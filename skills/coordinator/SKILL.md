@@ -1,11 +1,13 @@
 ---
 name: coordinator
-description: "Use when implementing Coordinator navigation pattern in iOS apps. Covers child coordinator lifecycle, Router abstraction, deep linking, tab bar coordination, and communication patterns."
+description: "Use when implementing Coordinator navigation pattern in iOS apps. Covers child coordinator lifecycle, Router abstraction, deep linking, tab bar coordination, and communication patterns. Uses Factory pattern for module assembly — see module-assembly skill for full Factory details."
 ---
 
 # Coordinator Pattern
 
 Navigation pattern that extracts routing logic from ViewControllers into dedicated Coordinator objects. Orthogonal to architectural pattern — works with MVC, MVVM, VIPER, etc.
+
+> **Related skill:** `module-assembly` — covers CoordinatorFactory, ModuleFactory, Assembly, and Composition Root in detail.
 
 ## Structure
 
@@ -92,27 +94,30 @@ class AppRouter: Router {
 
 ## Feature Coordinator
 
+Coordinator receives factories — never the DI container. See `module-assembly` skill for Factory details.
+
 ```swift
 class FeatureCoordinator: BaseCoordinator {
     private let router: Router
-    private let container: Resolver
+    private let coordinatorFactory: CoordinatorFactory
+    private let view: FeatureViewController
+    private let viewModel: FeatureViewModel
 
     // Completion signal to parent
     var onFinish: ((FeatureResult) -> Void)?
 
-    init(router: Router, container: Resolver) {
+    init(router: Router,
+         coordinatorFactory: CoordinatorFactory,
+         factory: FeatureModuleFactory) {
         self.router = router
-        self.container = container
+        self.coordinatorFactory = coordinatorFactory
+
+        let module = factory.makeFeatureModule()
+        self.view = module.view
+        self.viewModel = module.viewModel
     }
 
     override func start() {
-        showFeatureScreen()
-    }
-
-    private func showFeatureScreen() {
-        let viewModel = container.resolve(FeatureViewModelProtocol.self)!
-        let viewController = FeatureViewController(viewModel: viewModel)
-
         // ViewModel signals navigation intent, Coordinator decides
         viewModel.onItemSelected = { [weak self] item in
             self?.showDetail(for: item)
@@ -122,16 +127,17 @@ class FeatureCoordinator: BaseCoordinator {
             self?.onFinish?(result)
         }
 
-        router.push(viewController)
+        router.push(view)
     }
 
     private func showDetail(for item: Item) {
-        let detailCoordinator = container.resolve(
-            DetailCoordinator.self,
-            argument: item
-        )!
+        let detailCoordinator = coordinatorFactory.makeDetailCoordinator(
+            router: router,
+            item: item
+        )
 
-        detailCoordinator.onFinish = { [weak self] in
+        detailCoordinator.onFinish = { [weak self, weak detailCoordinator] in
+            guard let detailCoordinator else { return }
             self?.removeChild(detailCoordinator)
         }
 
@@ -145,22 +151,15 @@ class FeatureCoordinator: BaseCoordinator {
 
 ```swift
 class AppCoordinator: BaseCoordinator {
-    private let window: UIWindow
-    private let navigationController: UINavigationController
     private let router: Router
-    private let container: Resolver
+    private let coordinatorFactory: CoordinatorFactory
 
-    init(window: UIWindow, container: Resolver) {
-        self.window = window
-        self.navigationController = UINavigationController()
-        self.router = AppRouter(navigationController: navigationController)
-        self.container = container
+    init(router: Router, coordinatorFactory: CoordinatorFactory) {
+        self.router = router
+        self.coordinatorFactory = coordinatorFactory
     }
 
     override func start() {
-        window.rootViewController = navigationController
-        window.makeKeyAndVisible()
-
         if userIsLoggedIn {
             showMainFlow()
         } else {
@@ -169,8 +168,9 @@ class AppCoordinator: BaseCoordinator {
     }
 
     private func showAuthFlow() {
-        let authCoordinator = AuthCoordinator(router: router, container: container)
-        authCoordinator.onFinish = { [weak self] in
+        let authCoordinator = coordinatorFactory.makeAuthCoordinator(router: router)
+        authCoordinator.onFinish = { [weak self, weak authCoordinator] in
+            guard let authCoordinator else { return }
             self?.removeChild(authCoordinator)
             self?.showMainFlow()
         }
@@ -179,12 +179,14 @@ class AppCoordinator: BaseCoordinator {
     }
 
     private func showMainFlow() {
-        let mainCoordinator = MainTabCoordinator(router: router, container: container)
+        let mainCoordinator = coordinatorFactory.makeTabBarCoordinator(router: router)
         addChild(mainCoordinator)
         mainCoordinator.start()
     }
 }
 ```
+
+Window setup belongs in SceneDelegate (Composition Root) — see `module-assembly` skill.
 
 ## Communication Patterns
 
@@ -230,7 +232,7 @@ class FeatureCoordinator: BaseCoordinator, FeatureNavigationDelegate {
 ### Child → Parent Coordinator (closures)
 
 ```swift
-let child = ChildCoordinator(router: router, container: container)
+let child = coordinatorFactory.makeChildCoordinator(router: router)
 child.onFinish = { [weak self, weak child] result in
     guard let child = child else { return }
     self?.removeChild(child)
@@ -263,22 +265,22 @@ child.onFinish = { [weak self] in
 ```swift
 class MainTabCoordinator: BaseCoordinator {
     private let tabBarController = UITabBarController()
-    private let window: UIWindow
-    private let container: Resolver
+    private let router: Router
+    private let coordinatorFactory: CoordinatorFactory
 
-    init(window: UIWindow, container: Resolver) {
-        self.window = window
-        self.container = container
+    init(router: Router, coordinatorFactory: CoordinatorFactory) {
+        self.router = router
+        self.coordinatorFactory = coordinatorFactory
     }
 
     override func start() {
         let homeNav = UINavigationController()
         let homeRouter = AppRouter(navigationController: homeNav)
-        let homeCoordinator = HomeCoordinator(router: homeRouter, container: container)
+        let homeCoordinator = coordinatorFactory.makeHomeCoordinator(router: homeRouter)
 
         let profileNav = UINavigationController()
         let profileRouter = AppRouter(navigationController: profileNav)
-        let profileCoordinator = ProfileCoordinator(router: profileRouter, container: container)
+        let profileCoordinator = coordinatorFactory.makeProfileCoordinator(router: profileRouter)
 
         homeNav.tabBarItem = UITabBarItem(title: "Home", image: R.image.tabHome(), tag: 0)
         profileNav.tabBarItem = UITabBarItem(title: "Profile", image: R.image.tabProfile(), tag: 1)
@@ -291,8 +293,7 @@ class MainTabCoordinator: BaseCoordinator {
         homeCoordinator.start()
         profileCoordinator.start()
 
-        window.rootViewController = tabBarController
-        window.makeKeyAndVisible()
+        router.setRoot(tabBarController)
     }
 }
 ```
@@ -313,9 +314,8 @@ class AppCoordinator: BaseCoordinator {
     private func navigateToItem(itemId: String) {
         // Reset to main flow if needed
         // Then navigate to specific item
-        let detailCoordinator = DetailCoordinator(
+        let detailCoordinator = coordinatorFactory.makeDetailCoordinator(
             router: router,
-            container: container,
             itemId: itemId
         )
         detailCoordinator.onFinish = { [weak self, weak detailCoordinator] in
@@ -330,46 +330,44 @@ class AppCoordinator: BaseCoordinator {
 
 ## DI Registration
 
-```swift
-// Coordinators are always .transient — each flow is independent
-container.register(FeatureCoordinator.self) { (r, router: Router) in
-    FeatureCoordinator(router: router, container: r)
-}
-
-container.register(DetailCoordinator.self) { (r, router: Router, item: Item) in
-    DetailCoordinator(router: router, container: r, item: item)
-}
-```
+Coordinators are created by `CoordinatorFactory`, not resolved from Swinject container directly. See `module-assembly` skill for the full pattern.
 
 ## Testing Coordinators
+
+With Factory pattern, coordinators are testable without DI container:
 
 ```swift
 class FeatureCoordinatorTests: XCTestCase {
     var sut: FeatureCoordinator!
     var mockRouter: MockRouter!
-    var container: Container!
+    var mockCoordinatorFactory: MockCoordinatorFactory!
+    var mockModuleFactory: MockFeatureModuleFactory!
 
+    @MainActor
     override func setUp() {
         mockRouter = MockRouter()
-        container = TestDIContainer.makeContainer()
-        sut = FeatureCoordinator(router: mockRouter, container: container)
+        mockCoordinatorFactory = MockCoordinatorFactory()
+        mockModuleFactory = MockFeatureModuleFactory()
+        sut = FeatureCoordinator(
+            router: mockRouter,
+            coordinatorFactory: mockCoordinatorFactory,
+            factory: mockModuleFactory
+        )
     }
 
-    func testStart_pushesFeatureViewController() {
+    @MainActor
+    func test_start_pushesFeatureViewController() {
         sut.start()
-
         XCTAssertTrue(mockRouter.pushedViewController is FeatureViewController)
     }
 
-    func testItemSelected_pushesDetailScreen() {
+    @MainActor
+    func test_itemSelected_createsChildCoordinator() {
         sut.start()
-
-        // Simulate ViewModel navigation signal
-        let viewModel = mockRouter.lastPushedViewModel as! FeatureViewModel
-        viewModel.onItemSelected?(Item(id: "1"))
+        sut.viewModel.onItemSelected?(Item(id: "1"))
 
         XCTAssertEqual(sut.childCoordinators.count, 1)
-        XCTAssertTrue(sut.childCoordinators.first is DetailCoordinator)
+        XCTAssertTrue(mockCoordinatorFactory.lastCreatedCoordinator is DetailCoordinator)
     }
 }
 

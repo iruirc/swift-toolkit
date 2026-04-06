@@ -1,11 +1,13 @@
 ---
 name: swinject
-description: "Use when working with Swinject dependency injection in iOS apps. Covers container setup, object scopes, Assembly pattern, auto-registration, ViewModel factories, and testing configuration."
+description: "Use when working with Swinject dependency injection in iOS apps. Covers container setup, object scopes, Assembly pattern, auto-registration, and testing configuration. For module assembly (how DI connects to Coordinators) see module-assembly skill."
 ---
 
 # Swinject Dependency Injection Patterns
 
 This skill provides guidelines for using Swinject effectively in iOS applications.
+
+> **Related skill:** `module-assembly` — covers how DI container connects to Coordinators via Factory pattern without Service Locator.
 
 ## When to Use
 
@@ -25,19 +27,19 @@ This skill provides guidelines for using Swinject effectively in iOS application
 
 ### Container Setup
 
+The container should be created in the Composition Root (SceneDelegate) and wrapped in an `AppDependencyContainer` facade — not exposed as a global singleton. See `module-assembly` skill for the full Composition Root pattern.
+
 ```swift
 import Swinject
 import SwinjectAutoregistration
 
-class DIContainer {
-    static let shared = DIContainer()
-    let container: Container
+@MainActor
+final class AppDependencyContainer {
+    private let container = Container()
 
-    private init() {
-        container = Container()
+    func bootstrap() {
         registerServices()
         registerViewModels()
-        registerCoordinators()
     }
 
     private func registerServices() {
@@ -47,12 +49,10 @@ class DIContainer {
     private func registerViewModels() {
         // ViewModels go here
     }
-
-    private func registerCoordinators() {
-        // Coordinators go here
-    }
 }
 ```
+
+> **Avoid `static let shared`** — a global singleton container becomes a Service Locator (hidden dependencies, hard to test). Instead, create the container in SceneDelegate and pass typed dependency protocols to Factories. See `module-assembly` skill.
 
 ### Basic Registration
 
@@ -264,71 +264,54 @@ let assembler = Assembler([
 let container = assembler.resolver
 ```
 
-## Coordinator Registration Pattern
+## Coordinator and Module Assembly
 
-Coordinators need Router and Container access:
+Coordinators should **not** receive the Swinject container directly — this creates a Service Locator anti-pattern. Instead, use the Factory pattern described in the `module-assembly` skill:
 
-```swift
-container.register(FeatureCoordinator.self) { (r, router: Router) in
-    FeatureCoordinator(
-        router: router,
-        container: r as! Container  // Pass container for child resolution
-    )
-}
+- `AppDependencyContainer` wraps Swinject and conforms to feature dependency protocols
+- `ModuleFactory` assembles View + ViewModel using dependency protocols
+- `CoordinatorFactory` creates Coordinators with their ModuleFactory
+- Coordinators never import Swinject
 
-// In parent coordinator
-func showFeature() {
-    let coordinator = container.resolve(
-        FeatureCoordinator.self,
-        argument: router
-    )!
-    addChild(coordinator)
-    coordinator.start()
-}
-```
-
-## ViewModel Factory Pattern
-
-For ViewModels that need runtime data:
-
-```swift
-protocol ViewModelFactory {
-    func makeDetailViewModel(itemId: String) -> DetailViewModelProtocol
-    func makeEditViewModel(item: Item) -> EditViewModelProtocol
-}
-
-class ViewModelFactoryImpl: ViewModelFactory {
-    private let container: Resolver
-
-    init(container: Resolver) {
-        self.container = container
-    }
-
-    func makeDetailViewModel(itemId: String) -> DetailViewModelProtocol {
-        container.resolve(DetailViewModelProtocol.self, argument: itemId)!
-    }
-
-    func makeEditViewModel(item: Item) -> EditViewModelProtocol {
-        container.resolve(EditViewModelProtocol.self, argument: item)!
-    }
-}
-
-// Register factory
-container.register(ViewModelFactory.self) { r in
-    ViewModelFactoryImpl(container: r)
-}.inObjectScope(.container)
-```
+See `module-assembly` skill for complete examples.
 
 ## Testing Configuration
 
-### Test Container
+### Unit Tests — Direct Injection (Preferred)
+
+For ViewModels and services, inject mock dependencies directly — no container needed:
+
+```swift
+class ProfileViewModelTests: XCTestCase {
+    func test_loadProfile_success() {
+        let mockService = MockUserService(result: .success(testUser))
+        let viewModel = ProfileViewModel(userService: mockService)
+
+        viewModel.loadProfile()
+
+        XCTAssertEqual(viewModel.state, .loaded(testUser))
+    }
+
+    func test_loadProfile_failure() {
+        let mockService = MockUserService(result: .failure(TestError.network))
+        let viewModel = ProfileViewModel(userService: mockService)
+
+        viewModel.loadProfile()
+
+        XCTAssertEqual(viewModel.state, .error("Network error"))
+    }
+}
+```
+
+### Integration Tests — Test Container
+
+When testing the DI graph itself or integration between components:
 
 ```swift
 class TestDIContainer {
     static func makeContainer() -> Container {
         let container = Container()
 
-        // Register mocks
         container.register(NetworkServiceProtocol.self) { _ in
             MockNetworkService()
         }
@@ -337,27 +320,7 @@ class TestDIContainer {
             InMemoryDatabase()
         }
 
-        // Real implementations that are safe for tests
-        container.autoregister(
-            ProfileViewModel.self,
-            initializer: ProfileViewModel.init
-        )
-
         return container
-    }
-}
-
-// In tests
-class ProfileViewModelTests: XCTestCase {
-    var container: Container!
-
-    override func setUp() {
-        container = TestDIContainer.makeContainer()
-    }
-
-    func testProfile() {
-        let viewModel = container.resolve(ProfileViewModel.self)!
-        // Test with mocked dependencies
     }
 }
 ```
@@ -366,16 +329,14 @@ class ProfileViewModelTests: XCTestCase {
 
 ```swift
 func testWithCustomMock() {
-    // Start with test container
     let container = TestDIContainer.makeContainer()
 
-    // Override specific dependency
     container.register(NetworkServiceProtocol.self) { _ in
         MockNetworkService(shouldFail: true)
     }
 
     let viewModel = container.resolve(ProfileViewModel.self)!
-    // Test error handling
+    // Test error handling path
 }
 ```
 
@@ -424,12 +385,12 @@ container.register(B.self) { r in B(a: r.resolve(A.self)!) }
 ### 4. Resolving in Initializers
 
 ```swift
-// Accessing container during init
+// Accessing container during init — hidden dependency
 class BadService {
-    let dependency = DIContainer.shared.container.resolve(Dep.self)!
+    let dependency = appContainer.resolve(Dep.self)!
 }
 
-// Inject through initializer
+// Inject through initializer — explicit, testable
 class GoodService {
     let dependency: DepProtocol
     init(dependency: DepProtocol) {
@@ -441,18 +402,20 @@ class GoodService {
 ### 5. Container as Service Locator
 
 ```swift
-// Passing container everywhere
-class FeatureViewModel {
-    func doSomething() {
-        let service = container.resolve(Service.self)!  // Hidden dependency
+// Anti-pattern: passing container to Coordinator/ViewModel
+class FeatureCoordinator {
+    private let container: Resolver
+    func start() {
+        let vm = container.resolve(FeatureViewModel.self)!  // Hidden dependency
     }
 }
 
-// Explicit dependencies in init
-class FeatureViewModel {
-    private let service: ServiceProtocol
-    init(service: ServiceProtocol) {
-        self.service = service
+// Correct: use Factory pattern (see module-assembly skill)
+class FeatureCoordinator {
+    init(router: Router,
+         coordinatorFactory: CoordinatorFactory,
+         factory: FeatureModuleFactory) {
+        let module = factory.makeFeatureModule()  // Explicit, testable
     }
 }
 ```
