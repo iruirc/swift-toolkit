@@ -86,6 +86,61 @@ Consult the appropriate skill for testing patterns:
 - `swinject` — test container configuration
 - `module-assembly` — testing with mock Factories and Assemblies
 
+## Performance & Load Tests (On Request)
+
+When asked to write performance or load tests, generate the appropriate type:
+
+### Types
+
+- **XCTest `measure` tests** — for algorithmic performance, parsing, serialization, mapping, filtering.
+- **Async performance tests** — `measure` with async/await or Combine pipelines to check latency.
+- **UI stress tests (XCUITest)** — repeated screen opens, long scrolls, intensive user flows to verify UI stability.
+- **Swift micro-benchmarks** — using `swift-benchmark` or a custom harness for hot code paths.
+
+### Test Profiles
+
+Each performance test should support configurable profiles:
+
+| Profile | Purpose |
+|---------|---------|
+| **smoke** | Minimal load, fast sanity check |
+| **load** | Realistic scenarios (real data sizes, average usage) |
+| **stress** | Maximum load (upper boundary of expected capacity) |
+
+Configurable parameters: iteration count, data size, concurrency level, build configuration (Debug/Release).
+
+### Idempotency
+
+Performance tests follow the same clean-state rules as unit tests:
+- Reset in-memory storage, UserDefaults, Keychain, caches before each run.
+- Delete temporary files.
+- Results must not depend on previous runs.
+
+### Metrics to Collect
+
+- **Timing**: average, p95, p99, worst-case latency, throughput (ops/sec).
+- **UI**: FPS, frame drops, screen render time.
+- **Resources**: CPU usage (avg/max), memory (RSS, allocations, growth).
+- **Errors**: failure count, timeouts, critical log entries.
+
+### Acceptance Criteria
+
+Define target values per operation:
+- Operation time (e.g., export ≤ 2.0s)
+- Memory delta (e.g., growth ≤ 20MB)
+- UI stability (e.g., FPS ≥ 55 on target device)
+- Zero crashes, zero hangs
+
+### CI Integration
+
+Performance tests should support:
+- Execution via `xcodebuild test`
+- `.xcresult` artifact generation
+- Metric extraction via `xcresulttool`
+- Automated build failure on metric degradation (latency, memory, FPS thresholds)
+
+---
+
 ## Quality Gate
 
 Before finalizing tests:
