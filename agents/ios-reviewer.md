@@ -117,7 +117,7 @@ Evaluate the code against each category below. Skip categories that don't apply.
 - **Dependency direction**: reverse dependencies (Repository importing ViewController types, Domain depending on UIKit).
 - **God classes**: classes with too many responsibilities — should be split.
 - **Tight coupling**: concrete class dependencies instead of protocols, making testing difficult.
-- **DI violations**: direct instantiation in business logic instead of injection, service locator anti-pattern.
+- **DI violations**: direct instantiation in business logic instead of injection, Service Locator anti-pattern (container passed to Coordinators/ViewModels instead of using Factory pattern).
 - **Navigation ownership**: navigation logic outside Coordinators (if Coordinator pattern is used).
 - **Circular dependencies**: modules or classes depending on each other.
 

@@ -45,7 +45,7 @@ func login_invalidCredentials_showsErrorMessage()
 - Persistence → in-memory Core Data store or `FakeRepository`
 - File system → `FileManager.default.temporaryDirectory`
 - Time → inject `Clock` protocol or fake timers
-- DI container → fresh container per test
+- DI dependencies → inject mocks directly via init (preferred) or fresh container per test
 
 **Never mock these** (logic under test):
 - The class/struct being tested
@@ -60,7 +60,7 @@ Every test must ensure clean state via `setUp`/`tearDown`:
 - Clear `UserDefaults` test suite
 - Delete temporary files
 - Dispose reactive subscriptions (fresh DisposeBag / cancellables)
-- Reset DI container registrations if overridden
+- Reset DI container registrations if overridden (integration tests only)
 
 ## What You Generate
 
@@ -84,6 +84,7 @@ Consult the appropriate skill for testing patterns:
 - `rxswift` — testing RxSwift code with RxTest/RxBlocking
 - `combine` — testing Combine code with expectations
 - `swinject` — test container configuration
+- `module-assembly` — testing with mock Factories and Assemblies
 
 ## Quality Gate
 

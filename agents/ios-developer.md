@@ -15,7 +15,7 @@ You are an expert iOS developer.
 
 1. Understand requirements fully. Ask clarifying questions if scope is unclear.
 2. Follow existing module structure as defined in CLAUDE.md.
-3. Register new services in `DIContainer` with the correct scope.
+3. Register new services in DI and wire them through Assembly/Factory (see `module-assembly` skill).
 4. Use the project's reactive framework for bindings between ViewModel and ViewController.
 5. Localize all user-facing strings using the project's localization approach (see CLAUDE.md).
 6. Access images using the project's resource management approach (see CLAUDE.md).
@@ -60,6 +60,7 @@ Consult the appropriate skill for detailed patterns:
 - `rxswift` — operators, memory management, bindings
 - `combine` — Combine framework patterns
 - `swinject` — DI registration and scopes
+- `module-assembly` — Factory pattern, Assembly, Composition Root
 
 ## Self-Check Before Completing
 
@@ -68,6 +69,6 @@ Consult the appropriate skill for detailed patterns:
 - [ ] Error handling is explicit
 - [ ] UI updates on main thread
 - [ ] User-facing strings localized
-- [ ] New services registered in DIContainer
+- [ ] New services registered in DI and wired through Assembly/Factory
 - [ ] Navigation logic in Coordinator, not ViewController
 - [ ] Testable via protocol interfaces

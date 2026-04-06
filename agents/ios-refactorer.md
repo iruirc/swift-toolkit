@@ -41,10 +41,10 @@ When ViewControllers contain navigation logic:
 
 ### Replace Direct Instantiation with DI
 When services are created inline instead of injected:
-- Register the service in `DIContainer`
-- Add protocol if one doesn't exist
-- Inject via initializer or property
-- Choose scope: `.container` for stateless singletons, `.transient` for stateful
+- Define protocol if one doesn't exist
+- Register the service in DI container with correct scope (`.container` for stateless, `.transient` for stateful)
+- Add to feature dependency protocol and wire through Assembly/Factory (see `module-assembly` skill)
+- Inject via initializer — never pass the container itself (Service Locator anti-pattern)
 
 ### Extract to Swift Package
 When logic is reused across features or could be shared:
@@ -85,6 +85,7 @@ Consult the appropriate skill when refactoring:
 - `viper` — VIPER target patterns
 - `clean-architecture` — Clean Architecture target patterns
 - `swinject` — DI registration for extracted services
+- `module-assembly` — Factory pattern, Assembly, Composition Root
 - `rxswift` — simplifying RxSwift chains
 - `combine` — simplifying Combine chains
 
