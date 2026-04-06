@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "ios-toolkit",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "iOS development toolkit with specialized agents for architecture, development, code review, refactoring, and testing",
   "owner": {
     "name": "Dmitry Nuzhin"
@@ -13,7 +13,7 @@
     {
       "name": "ios-toolkit",
       "description": "iOS development toolkit with architect, developer, reviewer, refactorer, and tester agents",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": {
         "name": "Dmitry Nuzhin"
       },
