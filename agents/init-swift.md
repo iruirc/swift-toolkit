@@ -72,6 +72,36 @@ For SPM packages:
 
 Always use the latest stable swift-tools-version and Swift language version available on the user's machine. If unknown, fetch/ask before generating `Package.swift`.
 
+## Skills Reference (swift-toolkit)
+
+Consult the relevant skill when scaffolding. The skill body defines the folder structure, protocol shape, and conventions that must be reflected in the generated scaffold:
+
+- `mvvm` — MVVM module folder layout (View / ViewModel / bindings), binding setup
+- `coordinator` — Coordinator module and Router abstraction, navigation wiring
+- `viper` — VIPER module structure (View / Interactor / Presenter / Entity / Router files)
+- `clean-architecture` — Domain/Data/Presentation folder split, Use Cases, Repository protocols
+- `mvc` — classic MVC folder layout
+- `swinject` — Assembly/Container setup, scopes, AppDelegate/SceneDelegate wiring
+- `module-assembly` — Factory pattern, Composition Root, module seams
+- `rxswift` — RxSwift initial imports, DisposeBag setup, Resources subclass if present
+- `combine` — Combine imports, AnyCancellable storage patterns
+
+If the user's chosen architecture is ambiguous or missing, ASK before scaffolding; do not invent structure.
+
+## Related Agents (swift-toolkit)
+
+After `init-swift` finishes, the project is ready for regular work via the CLAUDE.md orchestrator. Subsequent tasks will use:
+
+- `swift-architect` — designs features within the generated architecture
+- `swift-developer` — implements features, follows the layout init-swift produced
+- `swift-reviewer` — reviews code against the generated structure + chosen skills
+- `swift-refactorer` — refactors without changing behavior
+- `swift-tester` — writes tests matching the chosen test framework
+- `swift-diagnostics` — hunts bugs once the project has code
+- `swift-security` — OWASP audit when the app grows to handle credentials/data
+
+Mention this explicitly in your final report to the user — so they know what comes next.
+
 ## Output Structure
 
 After generating, produce a short report to the user:

@@ -230,6 +230,21 @@ If verdict is "Request changes", a short list of the issues worth tracking as se
 
 ---
 
+## Skills Reference (swift-toolkit)
+
+Consult these skills when reviewing code against architectural / framework expectations. The skill body is the source of truth for "what correct looks like" in this project:
+
+- `mvvm` — MVVM layering expectations (bindings, ViewModel boundaries)
+- `coordinator` — Coordinator navigation pattern (what belongs in Coordinator vs ViewController)
+- `viper` — VIPER role boundaries (View / Interactor / Presenter / Entity / Router)
+- `clean-architecture` — Domain/Data/Presentation dependency rules, Use Case signatures
+- `mvc` — MVC boundaries
+- `rxswift` — RxSwift idioms, disposal, threading, Driver/Signal usage
+- `combine` — Combine idioms, subscription storage, schedulers
+- `swinject` — DI scopes, Assembly wiring, Service Locator anti-patterns
+- `module-assembly` — Factory pattern, Composition Root, protocol seams
+- `task-new`, `task-move` — task lifecycle management (used in Follow-up suggestions)
+
 ## Related Agents (swift-toolkit)
 
 - `swift-diagnostics` — bug hunting; the swift-reviewer may flag issues that need diagnostics follow-up
