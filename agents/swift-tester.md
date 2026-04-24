@@ -1,5 +1,5 @@
 ---
-name: ios-tester
+name: swift-tester
 description: "Generates unit and integration tests. Use when: writing tests for new or existing code, covering edge cases, testing services/ViewModels/repositories, or verifying bug fixes with regression tests. Never modifies production code."
 model: opus
 color: blue

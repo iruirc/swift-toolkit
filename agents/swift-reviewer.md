@@ -1,5 +1,5 @@
 ---
-name: ios-reviewer
+name: swift-reviewer
 description: "Reviews iOS/Swift code for bugs, security issues, performance problems, and adherence to project standards. Use when: reviewing PRs or diffs, auditing code quality, checking implementations before merge, or validating code after writing. Never modifies code. Works with UIKit, SwiftUI, Combine, RxSwift, and cross-platform (KMP, Flutter)."
 model: opus
 color: red

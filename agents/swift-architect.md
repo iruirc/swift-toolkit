@@ -1,5 +1,5 @@
 ---
-name: ios-architect
+name: swift-architect
 description: "Designs and reviews iOS application architecture. Use when: planning new feature modules, evaluating architectural patterns, designing service layers, configuring dependency injection, deciding package boundaries, or refactoring architecture."
 model: opus
 color: purple

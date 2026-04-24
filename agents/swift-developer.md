@@ -1,5 +1,5 @@
 ---
-name: ios-developer
+name: swift-developer
 description: "Implements iOS features, updates existing functionality, and fixes bugs. Use when: writing new code, modifying existing code, implementing UI, integrating services, or resolving crashes and defects."
 model: opus
 color: purple

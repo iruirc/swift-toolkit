@@ -1,5 +1,5 @@
 ---
-name: ios-refactorer
+name: swift-refactorer
 description: "Refactors existing code to improve structure, readability, and maintainability without changing behavior. Use when: extracting protocols, splitting large classes, migrating patterns, reducing technical debt, or reorganizing module boundaries."
 model: opus
 color: orange
