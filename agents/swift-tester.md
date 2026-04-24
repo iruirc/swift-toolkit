@@ -78,7 +78,7 @@ Every test must ensure clean state via `setUp`/`tearDown`:
 2. **Integration tests** — service + repository, coordinator flows
 3. **Regression tests** — for bug fixes, proving the bug is caught
 
-## Output Format
+## Output Structure
 
 Your response MUST be structured with these top-level sections:
 

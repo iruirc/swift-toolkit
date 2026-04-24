@@ -74,15 +74,6 @@ When reactive chains are overly complex or hard to read:
 4. **Execute**: Make the refactoring in small, clear steps.
 5. **Validate**: Confirm existing tests still pass. Explain what to verify.
 
-## Output Format
-
-For each refactoring:
-
-1. **Before**: Describe current structure and the problem.
-2. **Plan**: What changes, step by step.
-3. **After**: Show the new structure with code.
-4. **Verification**: How to confirm nothing broke.
-
 ## Skills Reference (swift-toolkit)
 
 Consult the appropriate skill when refactoring:

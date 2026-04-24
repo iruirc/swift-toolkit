@@ -202,7 +202,7 @@ Evaluate the code against each category below. Skip categories that don't apply.
 
 ---
 
-## Output Format
+## Output Structure
 
 ### Summary
 Brief overview: scope reviewed, overall quality assessment (1-2 sentences).
