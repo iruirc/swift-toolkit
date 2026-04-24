@@ -90,7 +90,9 @@ Consult the appropriate skill based on the architecture in use:
 
 ## Output Structure
 
-Your response MUST be structured with these top-level sections so the orchestrator can place it into the stage file:
+The "Output Standards" above enumerate the content your proposal must cover; the sections below specify how that content is organized in your response so the orchestrator can place it into the stage file.
+
+Your response MUST be structured with these top-level sections:
 
 - `## Architectural Analysis` — current-state observations relevant to the task
 - `## Proposed Design` — component relationships, folder structure, protocol definitions, DI wiring
