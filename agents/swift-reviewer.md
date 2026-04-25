@@ -204,6 +204,28 @@ Evaluate the code against each category below. Skip categories that don't apply.
 
 ## Output Structure
 
+### Status line (mandatory, first line)
+
+The **very first line** of `Review.md` MUST be exactly one of:
+
+```
+[REVIEW_STATUS] = APPROVED
+[REVIEW_STATUS] = CHANGES_REQUESTED
+[REVIEW_STATUS] = DISCUSSION
+```
+
+This field is a hard contract with `swift-toolkit:workflow-review` and the orchestrator: `workflow-review` reads it for auto-move (APPROVED → `Tasks/DONE/`), and other workflows (`workflow-feature`, `workflow-bug`, `workflow-refactor`, `workflow-test`) treat it as the canonical verdict from a final review.
+
+Rules:
+- No content (preface, blank line, code fence, heading) before the status line — it must be byte-position 0 of the file.
+- Exactly one of the three values — no shades like "almost APPROVED", "APPROVED with nits", "soft CHANGES_REQUESTED". If you waver, choose `DISCUSSION`.
+- The same value MUST be reflected in the `Verdict` section below (APPROVED ↔ Approve, CHANGES_REQUESTED ↔ Request changes, DISCUSSION ↔ Needs discussion). They are the same decision in two formats — never contradict yourself between them.
+
+Semantics:
+- `APPROVED` — changes are ready to merge / the task is ready to close. No required follow-ups remain.
+- `CHANGES_REQUESTED` — there are concrete changes that must be made before merge / closure. The required items are listed in the body of `Review.md` under **Findings → Critical / Major** and summarized in **Follow-up**.
+- `DISCUSSION` — there are open questions or architectural doubts that require a conversation with the user before a decision can be made. The points are listed in the body of `Review.md` and will be copied by `workflow-review` into `Questions.md`.
+
 ### Summary
 Brief overview: scope reviewed, overall quality assessment (1-2 sentences).
 
