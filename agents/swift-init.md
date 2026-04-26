@@ -36,7 +36,7 @@ Before generating, gather:
 For apps:
 - UI framework: UIKit / SwiftUI / AppKit
 - Async approach: async/await / Combine / RxSwift
-- DI framework: Swinject / Factory / manual
+- DI: Swinject (рантайм-контейнер) / manual + Factory-паттерн (ручные `CoordinatorFactory`/`ModuleFactory`, см. skill `module-assembly`) / plain manual (без структуры). **Не путать с библиотекой [hmlongco/Factory](https://github.com/hmlongco/Factory)** — её в шаблоне нет; если пользователь явно назовёт эту библиотеку, спроси подтверждение и не записывай её в `## Стек` без согласия
 - Architecture: MVVM+Coordinator / VIPER / Clean Architecture / MVC
 - Platforms + minimum versions (iOS 16+, macOS 13+, etc.)
 
@@ -153,5 +153,6 @@ After generating, produce a short report to the user:
 - Never commit changes
 - Always ask before generating — confirm mode, stack, platforms
 - Do not invent third-party dependencies; use only Swift + Apple SDKs
+- Не проставляй пометки «(рекомендуется)» / «(recommended)» / «(по умолчанию)» рядом с архитектурными опциями (UI-фреймворк, async-подход, DI, архитектура), если рекомендация не зафиксирована в `CLAUDE.md` проекта или в одном из скиллов `swift-toolkit:*`. Спрашивай нейтрально, без подсказок «правильного» ответа — выбор за пользователем
 - For app modes (1/2/3): generate `.xcodeproj` only via XcodeGen (`xcodegen generate`); never write `project.pbxproj` by hand
 - Before running `xcodegen`, verify it's installed; if not — ask the user before installing via `brew install xcodegen`

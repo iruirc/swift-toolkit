@@ -16,7 +16,7 @@
 
 - UI: <SwiftUI | UIKit | AppKit>
 - Async: <async/await | Combine | RxSwift>
-- DI: <Swinject | Factory | manual>
+- DI: <Swinject | Factory-паттерн (см. skill module-assembly) | manual>
 - Архитектура: <MVVM+Coordinator | VIPER | Clean Architecture | MVC>
 - Платформа: <iOS 16+ | macOS 13+ | iOS+macOS>
 - Тесты: <XCTest | Quick+Nimble>
