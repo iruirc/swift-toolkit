@@ -90,9 +90,11 @@ Consult the appropriate skill when refactoring:
 
 ## Related Agents (swift-toolkit)
 
-- `swift-diagnostics` — bug hunting with static scan, simulator logs, instrumentation
-- `swift-security` — OWASP Mobile Top-10 audit
-- `swift-init` — project bootstrapping (iOS/macOS apps, SPM packages)
+При вызове через Task tool используй полные имена с префиксом плагина (`subagent_type=swift-toolkit:<name>`), чтобы избежать коллизий с другими установленными плагинами.
+
+- `swift-toolkit:swift-diagnostics` — bug hunting with static scan, simulator logs, instrumentation
+- `swift-toolkit:swift-security` — OWASP Mobile Top-10 audit
+- `swift-toolkit:swift-init` — project bootstrapping (iOS/macOS apps, SPM packages)
 
 ## Output Structure
 

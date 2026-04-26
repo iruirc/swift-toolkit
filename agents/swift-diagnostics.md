@@ -70,10 +70,12 @@ Produce the Output Structure below. Wait for explicit user confirmation (`ok`, `
 
 ## Related Agents (swift-toolkit)
 
-- `swift-architect` — co-reviews root cause during the Diagnose consilium
-- `swift-developer` — applies the fix after user approval
-- `swift-security` — for vulnerabilities that overlap with bugs
-- `swift-tester` — writes the regression test after the fix
+При вызове через Task tool используй полные имена с префиксом плагина (`subagent_type=swift-toolkit:<name>`), чтобы избежать коллизий с другими установленными плагинами.
+
+- `swift-toolkit:swift-architect` — co-reviews root cause during the Diagnose consilium
+- `swift-toolkit:swift-developer` — applies the fix after user approval
+- `swift-toolkit:swift-security` — for vulnerabilities that overlap with bugs
+- `swift-toolkit:swift-tester` — writes the regression test after the fix
 
 ## Output Structure
 

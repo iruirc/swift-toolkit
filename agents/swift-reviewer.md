@@ -269,9 +269,11 @@ Consult these skills when reviewing code against architectural / framework expec
 
 ## Related Agents (swift-toolkit)
 
-- `swift-diagnostics` — bug hunting; the swift-reviewer may flag issues that need diagnostics follow-up
-- `swift-security` — OWASP Mobile Top-10 audit for security-specific concerns
-- `swift-init` — project bootstrapping (iOS/macOS apps, SPM packages)
+При вызове через Task tool используй полные имена с префиксом плагина (`subagent_type=swift-toolkit:<name>`), чтобы избежать коллизий с другими установленными плагинами.
+
+- `swift-toolkit:swift-diagnostics` — bug hunting; the swift-reviewer may flag issues that need diagnostics follow-up
+- `swift-toolkit:swift-security` — OWASP Mobile Top-10 audit for security-specific concerns
+- `swift-toolkit:swift-init` — project bootstrapping (iOS/macOS apps, SPM packages)
 
 ---
 

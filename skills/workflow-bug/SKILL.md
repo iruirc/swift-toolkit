@@ -20,7 +20,7 @@ description: "Воркфлоу профиля BUG: Reproduce → Diagnose → Pl
 - `start_phase` — точка входа внутри стадии (например, `Fix:phase=2.3`).
 - `mode` — `manual` / `auto` (см. секции 3 и 4).
 - `stack` — передаётся субагентам как контекст.
-- `need_test`, `need_review` — управляют включением `swift-tester` и `swift-reviewer`.
+- `need_test`, `need_review` — управляют включением `swift-toolkit:swift-tester` и `swift-toolkit:swift-reviewer`.
 - `archive_paths` — пути к уже сделанным бэкапам (бэкап делает оркестратор ДО вызова; workflow-bug их не создаёт).
 
 **Диапазон выполнения.** Стадии выполняются в порядке Reproduce → Diagnose → Plan → Fix → Validation → Review → Done, начиная с `start_stage` и до `end_stage` включительно. Если `end_stage=null` — до конца профиля. Если `end_stage` указана и она раньше `start_stage` в порядке — это ошибка контракта, возврат `{status: error, reason: "end_stage before start_stage"}`.
@@ -32,19 +32,19 @@ description: "Воркфлоу профиля BUG: Reproduce → Diagnose → Pl
 
 ## 2. Stages
 
-- **Reproduce** — `swift-diagnostics`. Артефакт: `Reproduce.md` (или раздел в `Research.md`) с шагами воспроизведения, минимальным reproducer-ом, частотой проявления (всегда / иногда / при условии X). Цель — зафиксировать детерминированный сценарий, на который потом будет опираться Validation.
+- **Reproduce** — `swift-toolkit:swift-diagnostics`. Артефакт: `Reproduce.md` (или раздел в `Research.md`) с шагами воспроизведения, минимальным reproducer-ом, частотой проявления (всегда / иногда / при условии X). Цель — зафиксировать детерминированный сценарий, на который потом будет опираться Validation.
 
-- **Diagnose** — консилиум: `swift-diagnostics` + `swift-architect` (через Task tool параллельно или последовательно по решению оркестратора). Артефакт: `Research.md` с root cause analysis, картой затронутых компонентов, оценкой scope фикса и связанных рисков.
+- **Diagnose** — консилиум: `swift-toolkit:swift-diagnostics` + `swift-toolkit:swift-architect` (через Task tool параллельно или последовательно по решению оркестратора). Артефакт: `Research.md` с root cause analysis, картой затронутых компонентов, оценкой scope фикса и связанных рисков.
 
-- **Plan** — `swift-architect`. Артефакт: `Plan.md` с прогресс-таблицей фаз (см. State Detection в orchestrator: статусы ✅/🔄/⬜/⏸/🚫/⊘). План включает: точечный фикс, регрессионный тест (если `need_test=true`), миграционные/совместимостные шаги при необходимости.
+- **Plan** — `swift-toolkit:swift-architect`. Артефакт: `Plan.md` с прогресс-таблицей фаз (см. State Detection в orchestrator: статусы ✅/🔄/⬜/⏸/🚫/⊘). План включает: точечный фикс, регрессионный тест (если `need_test=true`), миграционные/совместимостные шаги при необходимости.
 
-- **Fix** — `swift-developer` + `swift-tester` (если `need_test=true` — для бага regression test обязателен: он закрывает сценарий из Reproduce.md и предотвращает повторное появление). Поэтапно реализует фазы из Plan.md, обновляя прогресс-таблицу после каждой фазы. Артефакты: исходный код в проекте + regression test.
+- **Fix** — `swift-toolkit:swift-developer` + `swift-toolkit:swift-tester` (если `need_test=true` — для бага regression test обязателен: он закрывает сценарий из Reproduce.md и предотвращает повторное появление). Поэтапно реализует фазы из Plan.md, обновляя прогресс-таблицу после каждой фазы. Артефакты: исходный код в проекте + regression test.
 
-  Если в args передан `start_phase=<phase_id>` — `swift-developer` получает эту фазу как точку старта в промпте Task tool. Уже завершённые фазы (статус `✅` в `Plan.md`) пропускаются, не переделываются. Прогресс-таблица обновляется только для новых/изменённых фаз.
+  Если в args передан `start_phase=<phase_id>` — `swift-toolkit:swift-developer` получает эту фазу как точку старта в промпте Task tool. Уже завершённые фазы (статус `✅` в `Plan.md`) пропускаются, не переделываются. Прогресс-таблица обновляется только для новых/изменённых фаз.
 
 - **Validation** — XcodeBuildMCP (`build_sim`, `test_sim`) + mobile MCP **обязательно**: верификация фикса на реальном симуляторе/устройстве с повтором сценария воспроизведения из `Reproduce.md`. Без подтверждения «баг больше не воспроизводится» Validation не считается пройденной. Артефакт: `Validation.md` с логом сборки/тестов, повтором сценария воспроизведения и итоговым вердиктом.
 
-- **Review** — `swift-reviewer` (если `need_review=true` в args). Артефакт: `Review.md`, **первая строка обязательно** `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (это поле — общий контракт между workflow-* и оркестратором; используется также в `swift-toolkit:workflow-review` для auto-move в DONE/).
+- **Review** — `swift-toolkit:swift-reviewer` (если `need_review=true` в args). Артефакт: `Review.md`, **первая строка обязательно** `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (это поле — общий контракт между workflow-* и оркестратором; используется также в `swift-toolkit:workflow-review` для auto-move в DONE/).
 
 - **Done** — финальный отчёт `Done.md`: что исправлено, какой regression test добавлен, валидация (статус сборки/тестов + результат повтора сценария воспроизведения), возражения (если пользователь настоял на спорном решении).
 

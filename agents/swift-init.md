@@ -90,15 +90,15 @@ If the user's chosen architecture is ambiguous or missing, ASK before scaffoldin
 
 ## Related Agents (swift-toolkit)
 
-After `swift-init` finishes, the project is ready for regular work via the CLAUDE.md orchestrator. Subsequent tasks will use:
+After `swift-toolkit:swift-init` finishes, the project is ready for regular work via the CLAUDE.md orchestrator. Subsequent tasks will use the agents below — when invoking them via the Task tool, always use the full plugin-prefixed name (`subagent_type=swift-toolkit:<name>`) to avoid collisions with similarly named agents from other installed plugins:
 
-- `swift-architect` — designs features within the generated architecture
-- `swift-developer` — implements features, follows the layout swift-init produced
-- `swift-reviewer` — reviews code against the generated structure + chosen skills
-- `swift-refactorer` — refactors without changing behavior
-- `swift-tester` — writes tests matching the chosen test framework
-- `swift-diagnostics` — hunts bugs once the project has code
-- `swift-security` — OWASP audit when the app grows to handle credentials/data
+- `swift-toolkit:swift-architect` — designs features within the generated architecture
+- `swift-toolkit:swift-developer` — implements features, follows the layout swift-init produced
+- `swift-toolkit:swift-reviewer` — reviews code against the generated structure + chosen skills
+- `swift-toolkit:swift-refactorer` — refactors without changing behavior
+- `swift-toolkit:swift-tester` — writes tests matching the chosen test framework
+- `swift-toolkit:swift-diagnostics` — hunts bugs once the project has code
+- `swift-toolkit:swift-security` — OWASP audit when the app grows to handle credentials/data
 
 Mention this explicitly in your final report to the user — so they know what comes next.
 

@@ -72,9 +72,11 @@ Consult the appropriate skill based on the architecture in use:
 
 ## Related Agents (swift-toolkit)
 
-- `swift-diagnostics` — bug hunting with static scan, simulator logs, instrumentation
-- `swift-security` — OWASP Mobile Top-10 audit
-- `swift-init` — project bootstrapping (iOS/macOS apps, SPM packages)
+При вызове через Task tool используй полные имена с префиксом плагина (`subagent_type=swift-toolkit:<name>`), чтобы избежать коллизий с другими установленными плагинами.
+
+- `swift-toolkit:swift-diagnostics` — bug hunting with static scan, simulator logs, instrumentation
+- `swift-toolkit:swift-security` — OWASP Mobile Top-10 audit
+- `swift-toolkit:swift-init` — project bootstrapping (iOS/macOS apps, SPM packages)
 
 ## Output Structure
 
@@ -85,7 +87,7 @@ Your response MUST be structured with these top-level sections so the orchestrat
 - `## Code` — per-file full code blocks (no fragments)
 - `## DI & Wiring` — what was registered, in which Assembly/Factory
 - `## Localization & Resources` — strings/images added (or `(нет)`)
-- `## Tests Written` — names of new tests (or `(делегировано swift-tester)` / `(нет)` if NEED_TEST=false)
+- `## Tests Written` — names of new tests (or `(делегировано swift-toolkit:swift-tester)` / `(нет)` if NEED_TEST=false)
 - `## Open Issues` — anything the orchestrator/reviewer should know
 
 ## Self-Check Before Completing

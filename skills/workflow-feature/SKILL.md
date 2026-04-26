@@ -20,7 +20,7 @@ description: "Воркфлоу профиля FEATURE: Research → Plan → Exe
 - `start_phase` — точка входа внутри стадии (например, `Execute:phase=2.3`).
 - `mode` — `manual` / `auto` (см. секции 3 и 4).
 - `stack` — передаётся субагентам как контекст.
-- `need_test`, `need_review` — управляют включением `swift-tester` и `swift-reviewer`.
+- `need_test`, `need_review` — управляют включением `swift-toolkit:swift-tester` и `swift-toolkit:swift-reviewer`.
 - `archive_paths` — пути к уже сделанным бэкапам (бэкап делает оркестратор ДО вызова; workflow-feature их не создаёт).
 
 **Диапазон выполнения.** Стадии выполняются в порядке Research → Plan → Execute → Validation → Review → Done, начиная с `start_stage` и до `end_stage` включительно. Если `end_stage=null` — до конца профиля. Если `end_stage` указана и она раньше `start_stage` в порядке — это ошибка контракта, возврат `{status: error, reason: "end_stage before start_stage"}`.
@@ -32,17 +32,17 @@ description: "Воркфлоу профиля FEATURE: Research → Plan → Exe
 
 ## 2. Stages
 
-- **Research** — консилиум: `swift-architect` + `swift-security` (через Task tool параллельно или последовательно по решению оркестратора). Артефакт: `Research.md` в папке задачи. Цель: исследовать предметную область, выявить риски, предложить варианты архитектуры.
+- **Research** — консилиум: `swift-toolkit:swift-architect` + `swift-toolkit:swift-security` (через Task tool параллельно или последовательно по решению оркестратора). Артефакт: `Research.md` в папке задачи. Цель: исследовать предметную область, выявить риски, предложить варианты архитектуры.
 
-- **Plan** — `swift-architect`. Артефакт: `Plan.md` с прогресс-таблицей фаз (см. State Detection в orchestrator: статусы ✅/🔄/⬜/⏸/🚫/⊘). План декомпозирует фичу на конкретные фазы и шаги.
+- **Plan** — `swift-toolkit:swift-architect`. Артефакт: `Plan.md` с прогресс-таблицей фаз (см. State Detection в orchestrator: статусы ✅/🔄/⬜/⏸/🚫/⊘). План декомпозирует фичу на конкретные фазы и шаги.
 
-- **Execute** — `swift-developer` + `swift-tester` (если `need_test=true` в args). Поэтапно реализует фазы из Plan.md, обновляя прогресс-таблицу после каждой фазы. Артефакты: исходный код в проекте + тесты.
+- **Execute** — `swift-toolkit:swift-developer` + `swift-toolkit:swift-tester` (если `need_test=true` в args). Поэтапно реализует фазы из Plan.md, обновляя прогресс-таблицу после каждой фазы. Артефакты: исходный код в проекте + тесты.
 
-  Если в args передан `start_phase=<phase_id>` — `swift-developer` получает эту фазу как точку старта в промпте Task tool. Уже завершённые фазы (статус `✅` в `Plan.md`) пропускаются, не переделываются. Прогресс-таблица обновляется только для новых/изменённых фаз.
+  Если в args передан `start_phase=<phase_id>` — `swift-toolkit:swift-developer` получает эту фазу как точку старта в промпте Task tool. Уже завершённые фазы (статус `✅` в `Plan.md`) пропускаются, не переделываются. Прогресс-таблица обновляется только для новых/изменённых фаз.
 
 - **Validation** — XcodeBuildMCP (`build_sim`, `test_sim`) + опционально mobile MCP (E2E сценарий ключевого пути; обязательно при наличии UI-слоя — SwiftUI/UIKit views, экраны, навигация; пропускается для чисто доменных/инфраструктурных фич). Проверка, что фича собирается и проходит тесты. Артефакт: `Validation.md` с логом и вердиктом.
 
-- **Review** — `swift-reviewer` (если `need_review=true` в args). Артефакт: `Review.md`, **первая строка обязательно** `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (это поле — общий контракт между workflow-* и оркестратором; используется также в `swift-toolkit:workflow-review` для auto-move в DONE/).
+- **Review** — `swift-toolkit:swift-reviewer` (если `need_review=true` в args). Артефакт: `Review.md`, **первая строка обязательно** `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (это поле — общий контракт между workflow-* и оркестратором; используется также в `swift-toolkit:workflow-review` для auto-move в DONE/).
 
 - **Done** — финальный отчёт `Done.md`: что сделано, какие артефакты, валидация (статус сборки/тестов), возражения (если пользователь настоял на спорном решении).
 

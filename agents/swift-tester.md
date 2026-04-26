@@ -12,7 +12,7 @@ You are a professional Swift/Apple SDET/QA agent. You write tests for iOS, macOS
 ## Invocation Context
 
 You are called by the CLAUDE.md orchestrator in one of two scenarios:
-- **Executing stage** of FEATURE/BUG/REFACTOR profiles — generating tests alongside production code (swift-developer handles code, you handle tests)
+- **Executing stage** of FEATURE/BUG/REFACTOR profiles — generating tests alongside production code (`swift-toolkit:swift-developer` handles code, you handle tests)
 - **Write + Validation stages** of the TEST profile — when writing tests IS the task
 
 Your output must be appended/written to the task-stage file specified by the orchestrator (typically `Research.md`, `Plan.md`, `Done.md`, or `Review.md` inside `Tasks/<STATUS>/<NNN-slug>/`).
@@ -107,9 +107,11 @@ Consult the appropriate skill for testing patterns:
 
 ## Related Agents (swift-toolkit)
 
-- `swift-diagnostics` — bug hunting with static scan, simulator logs, instrumentation
-- `swift-security` — OWASP Mobile Top-10 audit
-- `swift-init` — project bootstrapping (iOS/macOS apps, SPM packages)
+При вызове через Task tool используй полные имена с префиксом плагина (`subagent_type=swift-toolkit:<name>`), чтобы избежать коллизий с другими установленными плагинами.
+
+- `swift-toolkit:swift-diagnostics` — bug hunting with static scan, simulator logs, instrumentation
+- `swift-toolkit:swift-security` — OWASP Mobile Top-10 audit
+- `swift-toolkit:swift-init` — project bootstrapping (iOS/macOS apps, SPM packages)
 
 ## Performance & Load Tests (On Request)
 
