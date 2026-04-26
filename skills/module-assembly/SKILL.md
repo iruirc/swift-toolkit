@@ -383,6 +383,23 @@ final class AppDependencyContainer: AppDependencies {
 
 **Key insight:** Swinject `container.resolve()` calls happen **only inside AppDependencyContainer**. The rest of the app works with typed protocols — no container leaks out.
 
+### Реализация без DI-framework
+
+`AppDependencyContainer` можно реализовать через `lazy var` поля вместо Swinject — внешний контракт (`AppDependencies` + фичевые `*FeatureDependencies`) идентичен, остальная цепочка (`CoordinatorFactory`, `ModuleFactory`, `Assembly`) не меняется.
+
+```swift
+@MainActor
+final class AppDependencyContainer: AppDependencies {
+    lazy var userService: UserServiceProtocol = UserService(networkClient: networkClient)
+    lazy var analyticsService: AnalyticsServiceProtocol = AnalyticsService()
+    private lazy var networkClient: HTTPClient = URLSessionHTTPClient()
+
+    func bootstrap() { _ = networkClient; _ = userService }
+}
+```
+
+Для маленьких app (< 30 сервисов) и **обязательно** для SPM-пакетов (см. `spm-package-design`). Полное сравнение, scope-стратегии и обработка циклов — в `composition-root`, секция «DI: контейнер vs ручной граф».
+
 ## File Structure
 
 ```

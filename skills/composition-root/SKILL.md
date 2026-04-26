@@ -52,6 +52,112 @@ CR решает это: **только он** импортирует все ко
 | Условные ветвления по фиче-флагам | Засоряет CR — превращается в god-class | Factory с ветвлением + протокольная подмена |
 | Регистрация после старта app | CR должен закончить работу до первого frame | Lazy property + on-demand creation |
 
+## DI: контейнер vs ручной граф
+
+CR можно реализовать двумя способами — через DI-framework (Swinject, Resolver, Factory-library) или вручную (`lazy let` поля). Внешний контракт (`AppDependencies`, фичевые `*FeatureDependencies`, `CoordinatorFactory`, `ModuleFactory`, `Assembly`) **в обоих вариантах идентичен** — меняется только внутренняя реализация `AppDependencyContainer`.
+
+| Аспект | DI-framework (Swinject) | Manual DI (`lazy let`) |
+|---|---|---|
+| Граф < 30 сервисов | Overkill | ✅ Лучший выбор |
+| Граф 30-100 сервисов | ✅ Окупается | Можно, но громоздко |
+| Граф > 100 сервисов | ✅ Стандарт | Сложно поддерживать |
+| Compile-time safety регистраций | Нет (resolve-crash в рантайме) | ✅ Компилятор сразу укажет на пропуск |
+| Циклические зависимости | Property injection из коробки | Вручную (см. ниже) |
+| Multi-binding / условный bind | Ветвление в `register` | `if`/`switch` в getter |
+| Runtime-параметры в registrations | `Container` API | Computed-getter с аргументами / отдельный фабричный метод |
+| Использование внутри SPM-пакета | ❌ Запрещено (см. `spm-package-design`) | ✅ Единственный допустимый вариант |
+| Кривая обучения | Знать API контейнера | 0 — обычный Swift |
+
+**По умолчанию начинай с manual.** Переходи на DI-framework только когда: граф разросся, появилось много циклов, или нужны runtime-зарегистрированные factories.
+
+### Manual AppDependencyContainer — полный пример
+
+```swift
+@MainActor
+final class AppDependencyContainer: AppDependencies {
+
+    // App-scope: lazy var — создаётся при первом обращении, живёт до kill app
+    lazy var userService: UserServiceProtocol = UserService(
+        networkClient: networkClient,
+        storage: keychainStorage,
+        logger: logger
+    )
+    lazy var analyticsService: AnalyticsServiceProtocol = AnalyticsService(
+        config: config,
+        logger: logger
+    )
+    lazy var imageLoader: ImageLoaderProtocol = ImageLoader(
+        networkClient: networkClient,
+        cache: imageCache
+    )
+
+    // Internal infra — не входит в AppDependencies, но нужна для построения сервисов выше
+    private lazy var config: AppConfig = .fromBundle()
+    private lazy var logger: Logger = OSLogger(subsystem: "com.example.app")
+    private lazy var networkClient: HTTPClient = URLSessionHTTPClient(
+        config: config,
+        logger: logger
+    )
+    private lazy var keychainStorage: KeychainStorage = KeychainStorage(
+        service: config.bundleId
+    )
+    private lazy var imageCache: ImageCache = ImageCache(maxBytes: 50 * 1024 * 1024)
+
+    func bootstrap() {
+        // Eager-init критичных сервисов — упасть на старте, а не на первом экране
+        _ = config
+        _ = logger
+        _ = networkClient
+        _ = userService
+    }
+}
+```
+
+Снаружи `AppDependencyContainer` ведёт себя как Swinject-вариант: соответствует `AppDependencies`, передаётся в `CoordinatorFactoryImp(dependencies: container)` (см. `module-assembly`).
+
+### Scopes в manual DI
+
+| Scope | Реализация | Пример |
+|---|---|---|
+| **app / scene** (один инстанс) | `lazy var` поле | `lazy var userService = UserService(...)` |
+| **transient** (новый каждый раз) | computed `var` getter | `var requestId: UUID { UUID() }` |
+| **flow** (живёт пока активен flow) | `let` поле в Coordinator-родителе flow | `OnboardingCoordinator { let state = OnboardingState() }` |
+| **weak / опциональный shared** | `weak var` + ручное управление | Редко нужно |
+
+`lazy var` соответствует `.container` scope в Swinject. Чтобы инициализировать сразу, не лениво — `_ = service` в `bootstrap()`.
+
+### Циклические зависимости в manual DI
+
+Если A нужен B, а B нужен A — через `lazy` напрямую не выйдет (init требует уже готового противоположного). Варианты:
+
+1. **Property injection** — одно поле делается опциональным `weak var` и сетится после init обоих
+2. **Ввести третий тип C**, через который общаются A и B (обычно правильнее — цикл = архитектурный дефект)
+3. **Closure-injection** — A получает `() -> B` вместо `B`, реальный B создаётся при первом вызове
+
+```swift
+// Property injection: оба сервиса получают друг на друга weak-ссылку
+final class AppDependencyContainer: AppDependencies {
+    lazy var userService: UserService = {
+        let service = UserService(network: networkClient)
+        service.analytics = analyticsService  // weak var в UserService
+        return service
+    }()
+    lazy var analyticsService: AnalyticsService = {
+        let service = AnalyticsService()
+        service.userService = userService     // weak var в AnalyticsService
+        return service
+    }()
+}
+```
+
+Механика идентична Swinject-варианту, только без autoresolve. Подробнее — `swinject` skill, секция «Circular Dependencies».
+
+### Когда manual точно не подходит
+
+- Многомодульное app с >100 сервисов и активным onboarding-ом разработчиков — DI-framework лучше модулирует регистрации (Assembly-классы)
+- Нужны runtime-зарегистрированные factories с автоматической резолюцией параметров (autoregister, name-based binding)
+- Legacy уже на Swinject — переписать дороже, чем поддерживать
+
 ## Bootstrap: sync vs async
 
 ### Sync bootstrap (типовой случай)
