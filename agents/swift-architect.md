@@ -78,6 +78,7 @@ Consult the appropriate skill based on the architecture in use:
 - `arch-viper` — VIPER architecture
 - `arch-clean` — Clean Architecture with Use Cases
 - `arch-mvc` — MVC pattern
+- `arch-tca` — The Composable Architecture: when to recommend (SwiftUI-only, team already fluent, rich state machines, exhaustive testing required) vs when not (UIKit-heavy, deadline, beginner team); reducer composition (`Scope`, `ifLet`, `forEach`), navigation modeling with `@Presents` / `StackState`, dependency design (`@Dependency` + `Client` structs of closures vs protocols), CR-level wiring of root `Store` and `withDependencies`
 - `reactive-rxswift` — RxSwift patterns and best practices
 - `reactive-combine` — Combine framework patterns
 - `error-architecture` — per-layer error types, mapping (Network → Domain → UI), presentation strategy, recoverable/fatal classification

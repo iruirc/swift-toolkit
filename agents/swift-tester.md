@@ -110,6 +110,7 @@ Consult the appropriate skill for testing patterns:
 - `di-composition-root` — smoke tests for CR (registrations, bootstrap timing)
 - `di-module-assembly` — testing with mock Factories and Assemblies
 - `pkg-spm-design` — testing package boundaries, test-utility package patterns
+- `arch-tca` — `TestStore` discipline: exhaustive by default (every state mutation in trailing closure, every effect received), `withDependencies` overrides per test (never call live), `unimplemented(...)` `testValue` so any forgotten override fails loudly, `TestClock` for debounce/timer effects (never real `Task.sleep`), wrap non-`Equatable` payloads (errors) before asserting, use `store.exhaustivity = .off` only for narrow integration tests where the exhaustive default would obscure the assertion
 - `task-new`, `task-move` — task lifecycle management
 
 ## Related Agents (swift-toolkit)

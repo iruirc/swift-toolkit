@@ -262,6 +262,7 @@ Consult these skills when reviewing code against architectural / framework expec
 - `arch-viper` — VIPER role boundaries (View / Interactor / Presenter / Entity / Router)
 - `arch-clean` — Domain/Data/Presentation dependency rules, Use Case signatures
 - `arch-mvc` — MVC boundaries
+- `arch-tca` — TCA review red flags: services called directly from views (bypassing reducer), `UUID()` / `Date()` / `Task.sleep` inside reducers (use `@Dependency`), imperative action names (`loadItems` vs `onAppear`), state mutated inside `Effect.run`, missing `cancellable(id:)` on competing async work, navigation stack modeled as nested `@Presents` instead of `StackState`, `Action: Equatable` payloads that aren't actually `Equatable`, `forEach` over plain `Array` instead of `IdentifiedArrayOf`, `testValue` returning silent fallbacks instead of `unimplemented(...)`, mixed-architecture features (some reducers, some plain `@Observable`)
 - `reactive-rxswift` — RxSwift idioms, disposal, threading, Driver/Signal usage
 - `reactive-combine` — Combine idioms, subscription storage, schedulers
 - `error-architecture` — per-layer error type discipline, mapper purity, presentation policy, PII in logs, CancellationError handling

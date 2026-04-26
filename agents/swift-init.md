@@ -105,6 +105,7 @@ Consult the relevant skill when scaffolding. The skill body defines the folder s
 - `arch-viper` — VIPER module structure (View / Interactor / Presenter / Entity / Router files)
 - `arch-clean` — Domain/Data/Presentation folder split, Use Cases, Repository protocols
 - `arch-mvc` — classic MVC folder layout
+- `arch-tca` — The Composable Architecture (Point-Free): folder layout (`*Feature.swift` + `*View.swift`), `swift-composable-architecture` SPM dependency, root `Store` wired in `@main App`, `@Reducer` + `@ObservableState` scaffolding. Use only when CLAUDE.md `## Стек` already records TCA — do not propose it on a new project unless the user explicitly asks; default to MVVM
 - `di-swinject` — Swinject-специфика: scopes, регистрации, autoregister, тестовые контейнеры
 - `di-composition-root` — где живёт CR (SceneDelegate / @main App / AppDelegate), sync vs async bootstrap, scopes (app/scene/flow)
 - `di-module-assembly` — Factory-паттерн для UI-фич, не-UI factories, late & conditional initialization

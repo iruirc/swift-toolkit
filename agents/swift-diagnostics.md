@@ -73,6 +73,7 @@ Produce the Output Structure below. Wait for explicit user confirmation (`ok`, `
 - `di-swinject`, `di-composition-root`, `di-module-assembly` — DI configuration bugs (registrations, scope mismatches, async bootstrap races)
 - `pkg-spm-design` — bugs caused by package boundary violations (DI-framework version conflicts, leaked internal state)
 - `arch-mvvm`, `arch-viper`, `arch-clean`, `arch-coordinator`, `arch-swiftui-navigation` — layer-violation detection (Coordinator for UIKit, `arch-swiftui-navigation` for SwiftUI Router/Path bugs)
+- `arch-tca` — TCA-specific diagnostics: stale state from missing `cancellable(id:)` (newer effect overwritten by older one finishing late); test flakes from real `Date()` / `Task.sleep` in reducers (replace with `@Dependency(\.date)` / `\.continuousClock` + `TestClock`); view not updating despite state change (missing `@ObservableState` or reading state through stale `WithViewStore` instead of `@Bindable var store`); navigation stuck/duplicated when sheet is modeled with raw `@State Bool` instead of `@Presents`; effects leaking past presentation dismissal (effect tied to long-lived parent instead of `@Presents` child); `unimplemented(...)` failures in tests pointing at missing `withDependencies` overrides
 
 ## Related Agents (swift-toolkit)
 

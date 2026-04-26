@@ -83,6 +83,7 @@ Consult the appropriate skill when refactoring:
 - `arch-viper` — VIPER target patterns
 - `arch-clean` — Clean Architecture target patterns
 - `arch-mvc` — MVC pattern
+- `arch-tca` — refactoring into TCA (one feature at a time, never the whole app): wrap existing services in `Client` structs of closures, convert `@Observable` ViewModel methods into action cases + reducer branches, replace `Task { … }` calls with `Effect.run`, replace `Coordinator.show(...)` / `NavigationPath.append(...)` with `state.path.append(...)` and `@Presents`. Always write the TestStore tests as part of the refactor — that's where the payoff lands
 - `reactive-rxswift` — simplifying RxSwift chains
 - `reactive-combine` — simplifying Combine chains
 - `error-architecture` — extracting ErrorMapper functions, splitting god `AppError`, replacing leaked `URLError.localizedDescription` with proper `UserMessage`

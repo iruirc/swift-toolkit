@@ -8,7 +8,7 @@ description: "Use at project bootstrap or major refactor to pick the iOS/macOS a
 A **meta-skill** for picking a stack at day-one or at a major refactor. Doesn't teach any pattern — points to the skill that does. Use this once per project; for everything else use the skill of the chosen pattern.
 
 > **Related skills:**
-> - `arch-mvc`, `arch-mvvm`, `arch-clean`, `arch-viper` — the patterns this skill chooses between (`arch-mvc` "When Appropriate" gives the fuller MVC criteria; this matrix is a one-line summary)
+> - `arch-mvc`, `arch-mvvm`, `arch-clean`, `arch-viper`, `arch-tca` — the patterns this skill chooses between (`arch-mvc` "When Appropriate" gives the fuller MVC criteria; `arch-tca` "When Appropriate" gives the fuller TCA criteria; this matrix is a one-line summary)
 > - `arch-coordinator`, `arch-swiftui-navigation` — orthogonal navigation skills, almost always added on top
 > - `pkg-spm-design` — when "should we modularize at all" is also being decided
 > - `di-composition-root`, `di-swinject`, `di-module-assembly` — DI is a **parallel** decision, not derived from architecture
@@ -68,6 +68,7 @@ Find the row that best matches reality. Thresholds are heuristics, not boundarie
 | macOS utility / settings-style app | **MVC (AppKit) or MVVM (SwiftUI)** | Window / Sheet | AppKit MVC if heavy menu/window APIs; SwiftUI MVVM if mostly forms — pick the framework you'll write more in |
 | Multi-platform iOS + macOS, shared business logic | **Clean Architecture** | Per-platform Presentation | Domain/Data shared via SPM Library package, Presentation per platform. See `pkg-spm-design` "Library" archetype |
 | Legacy team trained on VIPER, large existing codebase | **VIPER** (modernized to async/await) | Router | Use only where the team is already fluent; otherwise pick MVVM |
+| SwiftUI-only, team fluent with TCA / Elm / Redux, rich state machines, exhaustive testing required | **TCA** (Point-Free Composable Architecture) | `@Presents` / `StackState` | Reducer composition + `TestStore` exhaustive tests pay off on years-long projects with complex state; non-default track — pick consciously, not "to future-proof". See `arch-tca` |
 
 **One row, not a pattern blend.** A "Clean-MVC" hybrid is almost always Massive ViewController in disguise. The Hybrid row above is the one **legitimate** mix — same patterns across two UI frameworks, not different patterns per feature.
 
@@ -81,6 +82,7 @@ Each stack is the set of skills you should now follow. Cross all of them off.
 - **Hybrid UIKit + SwiftUI** → `arch-mvvm` + `arch-coordinator` + `arch-swiftui-navigation` ("Hybrid" section)
 - **Clean Architecture** → `arch-clean` + `arch-mvvm` (Presentation layer) + `arch-coordinator` / `arch-swiftui-navigation`; add `pkg-spm-design` if 4+ devs or multi-platform
 - **VIPER** → `arch-viper` + `arch-coordinator`
+- **TCA** → `arch-tca` (replaces both architecture and navigation: `@Presents` + `StackState` cover what `arch-swiftui-navigation` would otherwise cover); add `arch-mvvm` only if mixing TCA islands with plain SwiftUI screens elsewhere — but see `arch-tca` "Common Mistakes" #13 first
 
 Cross-cutting (always, regardless of pattern):
 
@@ -100,7 +102,7 @@ Cross-cutting (always, regardless of pattern):
 | "Should we modularize?" | Not yet. One package, multiple folders, until 2+ devs collide or compile time hurts |
 | RxSwift vs Combine on a new project | Combine. RxSwift only if existing code already uses it |
 | Swinject vs manual DI | Manual graph (`di-composition-root` "Manual DI" section) until 3+ devs or 10+ services |
-| TCA? | Toolkit doesn't have a TCA skill yet (roadmap P2). If team is fluent and project is SwiftUI-only, valid choice — just outside this compass |
+| TCA? | Pick TCA only when SwiftUI-only **and** team already fluent **and** the project benefits from exhaustive reducer-level tests. Otherwise default to MVVM (`arch-mvvm`) — see `arch-tca` "When Appropriate" for the full criteria. TCA is a non-default track; don't pick it on a deadline or to "future-proof" |
 
 ## Anti-Patterns at Choice Time
 

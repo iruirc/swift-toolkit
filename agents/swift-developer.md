@@ -65,6 +65,7 @@ Consult the appropriate skill based on the architecture in use:
 - `arch-viper` — VIPER architecture
 - `arch-clean` — Clean Architecture with Use Cases
 - `arch-mvc` — MVC pattern
+- `arch-tca` — implementing TCA features: `@Reducer` State/Action/body, `Effect.run` with `cancellable(id:)`, `@Dependency` clients (struct of closures, never call services directly), composition via `Scope`/`ifLet`/`forEach` with `IdentifiedArrayOf`, navigation via `@Presents` (sheet/alert) and `StackState` (multi-step), bindings via `BindingReducer` + `@Bindable var store`
 - `reactive-rxswift` — RxSwift patterns and best practices
 - `reactive-combine` — Combine framework patterns
 - `error-architecture` — choosing per-layer error types, writing mappers, building UserMessage in ViewModel, cancellation handling
