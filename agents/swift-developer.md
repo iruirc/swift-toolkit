@@ -68,6 +68,8 @@ Consult the appropriate skill based on the architecture in use:
 - `rxswift` — RxSwift patterns and best practices
 - `combine` — Combine framework patterns
 - `error-architecture` — choosing per-layer error types, writing mappers, building UserMessage in ViewModel, cancellation handling
+- `networking-architecture` — implementing HTTPClient/APIClient, auth interceptor with token refresh, retry policy (idempotency-aware), pagination, mocking via URLProtocol
+- `openapi-codegen` — wiring `swift-openapi-generator`, wrapping generated `Client` in your `APIClient` protocol, mapping `Output` enums to domain errors
 - `swinject` — dependency injection patterns (Swinject-specific)
 - `composition-root` — where to wire new services (CR layout, bootstrap)
 - `module-assembly` — Factory pattern, Assembly, non-UI factories, late initialization

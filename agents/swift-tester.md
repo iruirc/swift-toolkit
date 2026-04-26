@@ -102,6 +102,8 @@ Consult the appropriate skill for testing patterns:
 - `rxswift` — testing RxSwift code with RxTest/RxBlocking
 - `combine` — testing Combine code with expectations
 - `error-architecture` — testing error paths: golden mapper tables, ViewModel UserMessage assertions, cancellation silence
+- `networking-architecture` — `URLProtocol` stub for transport-level integration tests, fake `HTTPClient` for unit tests, contract tests for endpoint URL/method/body encoding
+- `openapi-codegen` — mocking generated `APIProtocol` vs adapter `APIClient` protocol, server stub for integration tests
 - `swinject` — test container configuration
 - `composition-root` — smoke tests for CR (registrations, bootstrap timing)
 - `module-assembly` — testing with mock Factories and Assemblies

@@ -265,6 +265,8 @@ Consult these skills when reviewing code against architectural / framework expec
 - `rxswift` — RxSwift idioms, disposal, threading, Driver/Signal usage
 - `combine` — Combine idioms, subscription storage, schedulers
 - `error-architecture` — per-layer error type discipline, mapper purity, presentation policy, PII in logs, CancellationError handling
+- `networking-architecture` — HTTPClient/APIClient boundary integrity, interceptor ordering, retry-on-non-idempotent (POST without idempotency-key) red flag, JSON decoding leaking into ViewModel
+- `openapi-codegen` — generated types not leaked past adapter, `.undocumented` handled, `accessModifier: internal`, no committed generated code
 - `swinject` — DI scopes, Assembly wiring, Service Locator anti-patterns
 - `composition-root` — what belongs in CR vs not, bootstrap correctness, scope leaks
 - `module-assembly` — Factory pattern, protocol seams, late initialization patterns

@@ -80,6 +80,8 @@ Consult the appropriate skill based on the architecture in use:
 - `rxswift` — RxSwift patterns and best practices
 - `combine` — Combine framework patterns
 - `error-architecture` — per-layer error types, mapping (Network → Domain → UI), presentation strategy, recoverable/fatal classification
+- `networking-architecture` — designing the network layer (HTTPClient/APIClient boundary, interceptors, retry, pagination, framework comparison URLSession/Alamofire/Moya/Get)
+- `openapi-codegen` — when API has an OpenAPI spec; generated client + adapter pattern, custom transports, server stubs
 - `swinject` — dependency injection patterns (Swinject-specific)
 - `composition-root` — Composition Root design, bootstrap strategies, scope management
 - `module-assembly` — Factory pattern, Assembly, non-UI factories, late initialization

@@ -86,6 +86,8 @@ Consult the appropriate skill when refactoring:
 - `rxswift` — simplifying RxSwift chains
 - `combine` — simplifying Combine chains
 - `error-architecture` — extracting ErrorMapper functions, splitting god `AppError`, replacing leaked `URLError.localizedDescription` with proper `UserMessage`
+- `networking-architecture` — extracting `URLSession.shared` calls into HTTPClient protocol, hoisting middleware out of endpoints, removing duplicated decoders
+- `openapi-codegen` — replacing hand-written API clients with generated client + adapter when OpenAPI spec exists
 - `swinject` — DI registration for extracted services
 - `composition-root` — extracting CR concerns out of fat AppDelegate/SceneDelegate
 - `module-assembly` — Factory pattern, Assembly, non-UI factories

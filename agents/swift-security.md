@@ -47,6 +47,8 @@ Audit source code, infrastructure (Info.plist, entitlements, xcconfig), dependen
 - `spm-package-design` — auditing public surface of auth/credentials packages
 - `combine`, `rxswift` — for token refresh streams and subscription leaks that affect auth
 - `error-architecture` — PII redaction in logs, never leaking server error bodies / stack traces / tokens to user-facing messages
+- `networking-architecture` — auth interceptor design (single-flight refresh actor), retry policy that never auto-retries non-idempotent POST, cache poisoning via `URLCache` with `Authorization`
+- `openapi-codegen` — generated client middleware for token injection, no committed generated code containing secrets, `accessModifier: internal` to keep auth surfaces from leaking
 
 ## Related Agents (swift-toolkit)
 
