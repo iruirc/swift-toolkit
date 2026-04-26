@@ -64,13 +64,13 @@ Produce the Output Structure below. Wait for explicit user confirmation (`ok`, `
 
 ## Skills Reference (swift-toolkit)
 
-- `rxswift`, `combine` — framework-specific leak/threading patterns
+- `reactive-rxswift`, `reactive-combine` — framework-specific leak/threading patterns
 - `error-architecture` — diagnosing leaked low-level errors, broken mapping, swallowed catches, CancellationError shown as user error
-- `networking-architecture` — token refresh races, retry storms, double-charge from POST retry, hidden `URLSession.shared` usage, JSON decoding-by-mistake
-- `openapi-codegen` — `.undocumented` runtime crashes, spec/server drift, generated decode failures (date format mismatch, optional/required mismatch)
-- `swinject`, `composition-root`, `module-assembly` — DI configuration bugs (registrations, scope mismatches, async bootstrap races)
-- `spm-package-design` — bugs caused by package boundary violations (DI-framework version conflicts, leaked internal state)
-- `mvvm`, `viper`, `clean-architecture`, `coordinator`, `swiftui-navigation` — layer-violation detection (Coordinator for UIKit, swiftui-navigation for SwiftUI Router/Path bugs)
+- `net-architecture` — token refresh races, retry storms, double-charge from POST retry, hidden `URLSession.shared` usage, JSON decoding-by-mistake
+- `net-openapi` — `.undocumented` runtime crashes, spec/server drift, generated decode failures (date format mismatch, optional/required mismatch)
+- `di-swinject`, `di-composition-root`, `di-module-assembly` — DI configuration bugs (registrations, scope mismatches, async bootstrap races)
+- `pkg-spm-design` — bugs caused by package boundary violations (DI-framework version conflicts, leaked internal state)
+- `arch-mvvm`, `arch-viper`, `arch-clean`, `arch-coordinator`, `arch-swiftui-navigation` — layer-violation detection (Coordinator for UIKit, `arch-swiftui-navigation` for SwiftUI Router/Path bugs)
 
 ## Related Agents (swift-toolkit)
 

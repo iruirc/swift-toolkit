@@ -1,5 +1,5 @@
 ---
-name: mvvm
+name: arch-mvvm
 description: "Use when implementing MVVM (Model-View-ViewModel) architecture pattern in iOS apps. Covers ViewModel design, UI binding with multiple approaches (Closures, Combine, async/await, @Observable, RxSwift), Input/Output pattern, and testing."
 ---
 
@@ -8,11 +8,11 @@ description: "Use when implementing MVVM (Model-View-ViewModel) architecture pat
 Separates business logic into a testable ViewModel, keeping ViewController as a thin UI binding layer.
 
 > **Related skills:**
-> - `coordinator` — extract navigation out of ViewModel/ViewController for multi-screen flows
-> - `combine`, `rxswift` — binding-framework specifics (this skill compares 5 binding approaches; the framework skills cover them in depth)
-> - `composition-root` — where ViewModels and their dependencies are wired
-> - `module-assembly` — Factory pattern for assembling View+ViewModel pairs
-> - `mvc` — predecessor pattern; see Migration Paths there for MVC → MVVM transition
+> - `arch-coordinator` — extract navigation out of ViewModel/ViewController for multi-screen flows
+> - `reactive-combine`, `reactive-rxswift` — binding-framework specifics (this skill compares 5 binding approaches; the framework skills cover them in depth)
+> - `di-composition-root` — where ViewModels and their dependencies are wired
+> - `di-module-assembly` — Factory pattern for assembling View+ViewModel pairs
+> - `arch-mvc` — predecessor pattern; see Migration Paths there for MVC → MVVM transition
 
 ## Structure
 
@@ -78,10 +78,10 @@ Is the project SwiftUI-first and targets iOS 17+?
   → Suggest @Observable (native, minimal boilerplate, fine-grained updates)
 
 Does the project already use RxSwift?
-  → Suggest RxSwift (consistency with existing code; see rxswift skill)
+  → Suggest RxSwift (consistency with existing code; see reactive-rxswift skill)
 
 Does the project already use Combine?
-  → Suggest Combine (consistency with existing code; see combine skill)
+  → Suggest Combine (consistency with existing code; see reactive-combine skill)
 
 Does the project need complex stream composition
 (merge, combineLatest, debounce, throttle)?
@@ -266,7 +266,7 @@ class FeatureViewModelTests: XCTestCase {
 
 ## Approach 2: Combine + @Published
 
-Uses Apple's Combine framework. See `combine` skill for framework details.
+Uses Apple's Combine framework. See `reactive-combine` skill for framework details.
 
 ### ViewModel
 
@@ -807,7 +807,7 @@ class FeatureViewModelTests: XCTestCase {
 
 ## Approach 5: RxSwift
 
-See `rxswift` skill for framework details.
+See `reactive-rxswift` skill for framework details.
 
 ### ViewModel
 
@@ -988,10 +988,10 @@ Key points:
 - Test state transitions (loading → loaded, loading → error)
 - Test navigation signals via closures
 - **Closures**: assert directly in closure callbacks with `XCTestExpectation`
-- **Combine**: subscribe with `sink`, use `XCTestExpectation` (see `combine` skill)
+- **Combine**: subscribe with `sink`, use `XCTestExpectation` (see `reactive-combine` skill)
 - **async/await**: use `@MainActor async` test methods, await Task completion
 - **@Observable**: use `async` test methods, call async ViewModel methods directly
-- **RxSwift**: use `RxTest`/`RxBlocking` (see `rxswift` skill)
+- **RxSwift**: use `RxTest`/`RxBlocking` (see `reactive-rxswift` skill)
 
 ## When Appropriate
 
@@ -1001,7 +1001,7 @@ Key points:
 
 ## When to Add Coordinator
 
-If navigation becomes complex (conditional flows, deep links, reusable screens), add the `coordinator` pattern on top. See `coordinator` skill.
+If navigation becomes complex (conditional flows, deep links, reusable screens), add the `arch-coordinator` pattern on top. See `arch-coordinator` skill.
 
 ## Common Mistakes
 
@@ -1011,5 +1011,5 @@ If navigation becomes complex (conditional flows, deep links, reusable screens),
 4. **Navigation inside ViewModel** — `navigationController?.pushViewController(...)` in ViewModel. Either signal intent via closure to the ViewController, or extract to Coordinator.
 5. **Exposing mutable state directly** — `var items: [Item]` instead of `@Published private(set) var items` (or equivalent). View must not mutate ViewModel state directly.
 6. **Skipping the protocol** — concrete `FeatureViewModel` typed in the ViewController. Define `FeatureViewModelProtocol` for test substitution and to keep boundaries explicit.
-7. **Massive ViewModel** — 600+ lines with networking, persistence, and formatting all inside. Extract Use Cases (see `clean-architecture`) or split into focused ViewModels.
+7. **Massive ViewModel** — 600+ lines with networking, persistence, and formatting all inside. Extract Use Cases (see `arch-clean`) or split into focused ViewModels.
 8. **`@StateObject` vs `@ObservedObject` confusion in SwiftUI** — `@StateObject` for VM owned by the view; `@ObservedObject` for VM passed in. Mixing them up causes recreation on every redraw.

@@ -1,5 +1,5 @@
 ---
-name: mvc
+name: arch-mvc
 description: "Use when implementing classic Apple MVC (Model-View-Controller) in iOS apps. Covers component responsibilities, communication patterns (target-action, delegate, NotificationCenter), Massive ViewController anti-pattern, when MVC is appropriate, and migration paths to MVVM or VIPER."
 ---
 
@@ -8,9 +8,9 @@ description: "Use when implementing classic Apple MVC (Model-View-Controller) in
 Стандартный паттерн Apple-фреймворков (UIKit, AppKit). View пассивна, Model независима, Controller связывает их и обрабатывает события. Прост, но без дисциплины быстро вырождается в Massive ViewController.
 
 > **Related skills:**
-> - `mvvm` — следующая ступень при росте логики (extract бизнес-логики из VC в ViewModel)
-> - `coordinator` — extract навигации из VC, ортогонален MVC (можно использовать MVC + Coordinator)
-> - `clean-architecture`, `viper` — для крупных проектов с явными слоями
+> - `arch-mvvm` — следующая ступень при росте логики (extract бизнес-логики из VC в ViewModel)
+> - `arch-coordinator` — extract навигации из VC, ортогонален MVC (можно использовать MVC + Coordinator)
+> - `arch-clean`, `arch-viper` — для крупных проектов с явными слоями
 
 ## When Appropriate
 
@@ -203,7 +203,7 @@ private func showDetail(for item: Item) {
 }
 ```
 
-Для проектов 4+ экранов **лучше использовать Coordinator** (см. `coordinator` skill) — он не противоречит MVC и решает проблему расползания навигации по контроллерам.
+Для проектов 4+ экранов **лучше использовать Coordinator** (см. `arch-coordinator` skill) — он не противоречит MVC и решает проблему расползания навигации по контроллерам.
 
 ## Massive ViewController Anti-Pattern
 
@@ -223,7 +223,7 @@ private func showDetail(for item: Item) {
 | Сложное форматирование | Formatter / Presenter struct |
 | TableView/CollectionView data source | Отдельный `UITableViewDataSource`-класс |
 | Валидация форм | Validator struct |
-| Навигация между фичами | Coordinator (см. `coordinator`) |
+| Навигация между фичами | Coordinator (см. `arch-coordinator`) |
 | Подписки / реактивные потоки | ViewModel — это уже миграция на MVVM |
 
 Вытаскивание data source и validator — **всё ещё MVC**. Вытаскивание ViewModel — **переход на MVVM**.
@@ -235,7 +235,7 @@ private func showDetail(for item: Item) {
 - Появились реактивные потоки (RxSwift / Combine / async/await) — Controller не справляется с binding
 - Команда > 2 человек активно работает с одним и тем же VC
 
-→ Мигрируй на MVVM (см. `mvvm` skill) или MVVM+Coordinator (для крупных).
+→ Мигрируй на MVVM (см. `arch-mvvm` skill) или MVVM+Coordinator (для крупных).
 
 ## DI
 
@@ -254,7 +254,7 @@ final class ItemListViewController: UIViewController {
 }
 ```
 
-Сборку графа делает Composition Root (см. `composition-root` skill). Для маленьких MVC-app достаточно manual DI без контейнера.
+Сборку графа делает Composition Root (см. `di-composition-root` skill). Для маленьких MVC-app достаточно manual DI без контейнера.
 
 Storyboard / XIB-based VC не позволяют init-инъекцию напрямую — для них либо property injection после `instantiateViewController`, либо переход на программный init.
 
@@ -294,7 +294,7 @@ final class ItemStoreTests: XCTestCase {
 1. Создай `FeatureViewModel` рядом с VC, оставь VC на месте
 2. Перемести бизнес-логику и обработку событий из VC в ViewModel
 3. VC получает `viewModel: FeatureViewModel` в init, делегирует ему действия
-4. Подпишись на изменения ViewModel (closure / Combine / async stream — см. `mvvm`)
+4. Подпишись на изменения ViewModel (closure / Combine / async stream — см. `arch-mvvm`)
 5. Удали из VC всё, кроме UI-кода
 
 ### MVC → MVC + Coordinator
@@ -302,7 +302,7 @@ final class ItemStoreTests: XCTestCase {
 1. Вынеси `pushViewController` / `present` из VC в Coordinator
 2. VC сообщает Coordinator-у о намерении перехода через delegate / closure
 3. Coordinator решает, куда переходить
-4. См. `coordinator` skill
+4. См. `arch-coordinator` skill
 
 Эти миграции **независимы** — можно сначала вынести Coordinator, потом ViewModel, или наоборот.
 

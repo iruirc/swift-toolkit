@@ -1,19 +1,19 @@
 ---
-name: coordinator
-description: "Use when implementing Coordinator navigation pattern in iOS apps. Covers child coordinator lifecycle, Router abstraction, deep linking, tab bar coordination, and communication patterns. Uses Factory pattern for module assembly — see module-assembly skill for full Factory details."
+name: arch-coordinator
+description: "Use when implementing Coordinator navigation pattern in iOS apps. Covers child coordinator lifecycle, Router abstraction, deep linking, tab bar coordination, and communication patterns. Uses Factory pattern for module assembly — see di-module-assembly skill for full Factory details."
 ---
 
 # Coordinator Pattern
 
 Navigation pattern that extracts routing logic from ViewControllers into dedicated Coordinator objects. Orthogonal to architectural pattern — works with MVC, MVVM, VIPER, etc.
 
-**Scope:** this skill covers the **UIKit** Coordinator pattern (imperative `push`/`present` via `UINavigationController`). For SwiftUI-first apps use `swiftui-navigation` instead — the SwiftUI equivalent is a state-driven `@Observable` Router holding a `NavigationPath`. For hybrid apps (UIKit Coordinators + embedded SwiftUI screens via `UIHostingController`), see the «Hybrid: SwiftUI ↔ UIKit Interop» section in `swiftui-navigation`.
+**Scope:** this skill covers the **UIKit** Coordinator pattern (imperative `push`/`present` via `UINavigationController`). For SwiftUI-first apps use `arch-swiftui-navigation` instead — the SwiftUI equivalent is a state-driven `@Observable` Router holding a `NavigationPath`. For hybrid apps (UIKit Coordinators + embedded SwiftUI screens via `UIHostingController`), see the «Hybrid: SwiftUI ↔ UIKit Interop» section in `arch-swiftui-navigation`.
 
 > **Related skills:**
-> - `swiftui-navigation` — SwiftUI-native navigation (NavigationStack/Path, Router class, deep links, hybrid interop)
-> - `module-assembly` — covers CoordinatorFactory, ModuleFactory, Assembly in detail
-> - `composition-root` — where Coordinators get bootstrapped (SceneDelegate / @main App / AppDelegate)
-> - `swinject` — DI-framework-specific patterns if Swinject is the chosen container
+> - `arch-swiftui-navigation` — SwiftUI-native navigation (NavigationStack/Path, Router class, deep links, hybrid interop)
+> - `di-module-assembly` — covers CoordinatorFactory, ModuleFactory, Assembly in detail
+> - `di-composition-root` — where Coordinators get bootstrapped (SceneDelegate / @main App / AppDelegate)
+> - `di-swinject` — DI-framework-specific patterns if Swinject is the chosen container
 
 ## Structure
 
@@ -100,7 +100,7 @@ class AppRouter: Router {
 
 ## Feature Coordinator
 
-Coordinator receives factories — never the DI container. See `module-assembly` skill for Factory details.
+Coordinator receives factories — never the DI container. See `di-module-assembly` skill for Factory details.
 
 ```swift
 class FeatureCoordinator: BaseCoordinator {
@@ -192,7 +192,7 @@ class AppCoordinator: BaseCoordinator {
 }
 ```
 
-Window setup belongs in SceneDelegate (Composition Root) — see `composition-root` skill.
+Window setup belongs in SceneDelegate (Composition Root) — see `di-composition-root` skill.
 
 ## Communication Patterns
 
@@ -336,7 +336,7 @@ class AppCoordinator: BaseCoordinator {
 
 ## DI Registration
 
-Coordinators are created by `CoordinatorFactory`, not resolved from Swinject container directly. See `module-assembly` skill for the full pattern.
+Coordinators are created by `CoordinatorFactory`, not resolved from Swinject container directly. See `di-module-assembly` skill for the full pattern.
 
 ## Testing Coordinators
 

@@ -1,5 +1,5 @@
 ---
-name: combine
+name: reactive-combine
 description: "Use when working with Apple's Combine framework in iOS apps. Covers publishers, subscribers, subjects, operators, UIKit integration, ViewModel patterns, and testing."
 ---
 

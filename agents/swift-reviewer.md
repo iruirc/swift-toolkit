@@ -256,21 +256,21 @@ If verdict is "Request changes", a short list of the issues worth tracking as se
 
 Consult these skills when reviewing code against architectural / framework expectations. The skill body is the source of truth for "what correct looks like" in this project:
 
-- `mvvm` — MVVM layering expectations (bindings, ViewModel boundaries)
-- `coordinator` — Coordinator navigation pattern (UIKit) — what belongs in Coordinator vs ViewController
-- `swiftui-navigation` — SwiftUI navigation review: NavigationStack/Path correctness, Router state ownership, common SwiftUI navigation pitfalls
-- `viper` — VIPER role boundaries (View / Interactor / Presenter / Entity / Router)
-- `clean-architecture` — Domain/Data/Presentation dependency rules, Use Case signatures
-- `mvc` — MVC boundaries
-- `rxswift` — RxSwift idioms, disposal, threading, Driver/Signal usage
-- `combine` — Combine idioms, subscription storage, schedulers
+- `arch-mvvm` — MVVM layering expectations (bindings, ViewModel boundaries)
+- `arch-coordinator` — Coordinator navigation pattern (UIKit) — what belongs in Coordinator vs ViewController
+- `arch-swiftui-navigation` — SwiftUI navigation review: NavigationStack/Path correctness, Router state ownership, common SwiftUI navigation pitfalls
+- `arch-viper` — VIPER role boundaries (View / Interactor / Presenter / Entity / Router)
+- `arch-clean` — Domain/Data/Presentation dependency rules, Use Case signatures
+- `arch-mvc` — MVC boundaries
+- `reactive-rxswift` — RxSwift idioms, disposal, threading, Driver/Signal usage
+- `reactive-combine` — Combine idioms, subscription storage, schedulers
 - `error-architecture` — per-layer error type discipline, mapper purity, presentation policy, PII in logs, CancellationError handling
-- `networking-architecture` — HTTPClient/APIClient boundary integrity, interceptor ordering, retry-on-non-idempotent (POST without idempotency-key) red flag, JSON decoding leaking into ViewModel
-- `openapi-codegen` — generated types not leaked past adapter, `.undocumented` handled, `accessModifier: internal`, no committed generated code
-- `swinject` — DI scopes, Assembly wiring, Service Locator anti-patterns
-- `composition-root` — what belongs in CR vs not, bootstrap correctness, scope leaks
-- `module-assembly` — Factory pattern, protocol seams, late initialization patterns
-- `spm-package-design` — package boundary violations (DI-framework leaks, public-surface bloat, archetype mismatch)
+- `net-architecture` — HTTPClient/APIClient boundary integrity, interceptor ordering, retry-on-non-idempotent (POST without idempotency-key) red flag, JSON decoding leaking into ViewModel
+- `net-openapi` — generated types not leaked past adapter, `.undocumented` handled, `accessModifier: internal`, no committed generated code
+- `di-swinject` — DI scopes, Assembly wiring, Service Locator anti-patterns
+- `di-composition-root` — what belongs in CR vs not, bootstrap correctness, scope leaks
+- `di-module-assembly` — Factory pattern, protocol seams, late initialization patterns
+- `pkg-spm-design` — package boundary violations (DI-framework leaks, public-surface bloat, archetype mismatch)
 - `task-new`, `task-move` — task lifecycle management (used in Follow-up suggestions)
 
 ## Related Agents (swift-toolkit)

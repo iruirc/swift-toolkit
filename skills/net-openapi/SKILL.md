@@ -1,5 +1,5 @@
 ---
-name: openapi-codegen
+name: net-openapi
 description: "Use when generating a Swift API client from an OpenAPI spec — Apple's swift-openapi-generator (SPM plugin), generated types/operations/middleware, transports (URLSession / AsyncHTTPClient), wrapping the generated Client in your own APIClient protocol, error mapping from generated Output enums to domain errors, mocking the generated client, server-side stubs, alternatives (CreateAPI, openapi-generator-cli)."
 ---
 
@@ -8,11 +8,11 @@ description: "Use when generating a Swift API client from an OpenAPI spec — Ap
 Architectural recipe for using **`swift-openapi-generator`** (Apple's official tool) to generate a Swift API client from an OpenAPI 3.x spec, and wiring it into a layered iOS app **without leaking generated types past the network adapter**.
 
 > **Related skills:**
-> - `networking-architecture` — overall network layering, HTTPClient/APIClient boundary, interceptors, retry. This skill plugs in as one transport choice.
+> - `net-architecture` — overall network layering, HTTPClient/APIClient boundary, interceptors, retry. This skill plugs in as one transport choice.
 > - `error-architecture` — mapping generated `Output` cases to domain/UI errors at the Repository boundary
-> - `composition-root` — where the generated `Client` and its transport are bootstrapped
-> - `module-assembly` — registering API surfaces into feature modules
-> - `spm-package-design` — when the OpenAPI client lives in its own SPM package
+> - `di-composition-root` — where the generated `Client` and its transport are bootstrapped
+> - `di-module-assembly` — registering API surfaces into feature modules
+> - `pkg-spm-design` — when the OpenAPI client lives in its own SPM package
 
 ## Why This Skill Exists
 
@@ -250,11 +250,11 @@ let itemsAPI: ItemsAPI = GeneratedItemsAPI(
 )
 ```
 
-See `composition-root` and `networking-architecture` for where this fits in the broader bootstrap.
+See `di-composition-root` and `net-architecture` for where this fits in the broader bootstrap.
 
 ## Middleware
 
-The generator defines `ClientMiddleware` (different protocol from the one in `networking-architecture`'s `HTTPMiddleware` — they live in different layers):
+The generator defines `ClientMiddleware` (different protocol from the one in `net-architecture`'s `HTTPMiddleware` — they live in different layers):
 
 ```swift
 import OpenAPIRuntime
@@ -286,7 +286,7 @@ struct AuthMiddleware: ClientMiddleware {
 
 **`HTTPRequest` / `HTTPResponse` here come from `swift-http-types`** (Apple's typed HTTP primitives), not Foundation. The generator standardises on these to be portable across transports (URLSession on Apple, AsyncHTTPClient on Linux).
 
-**Architectural choice — middleware in `ClientMiddleware` vs in your own `HTTPMiddleware` (`networking-architecture`):**
+**Architectural choice — middleware in `ClientMiddleware` vs in your own `HTTPMiddleware` (`net-architecture`):**
 
 - **Use generator `ClientMiddleware`** when the OpenAPI client is your only HTTP surface — auth/logging/retry sit closest to the codegen layer.
 - **Use your own `HTTPMiddleware`** when you have multiple HTTP surfaces (generated + hand-written legacy + analytics SDK) and want one place for cross-cutting policies. Then wrap a custom `ClientTransport` that forwards through your `HTTPClient`.
@@ -298,7 +298,7 @@ import OpenAPIRuntime
 import HTTPTypes
 
 struct HTTPClientTransport: ClientTransport {
-    let http: HTTPClient    // your protocol from networking-architecture skill
+    let http: HTTPClient    // your protocol from net-architecture skill
 
     func send(
         _ request: HTTPRequest,

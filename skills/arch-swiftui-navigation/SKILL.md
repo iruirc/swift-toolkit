@@ -1,5 +1,5 @@
 ---
-name: swiftui-navigation
+name: arch-swiftui-navigation
 description: "Use when implementing navigation in a SwiftUI-first iOS app. Covers NavigationStack + NavigationPath, type-based vs enum-based routing, modal presentation (sheet/cover/popover/alert), TabView, Router class pattern as a SwiftUI alternative to Coordinator, @Environment-based navigation, deep links, and hybrid SwiftUI ↔ UIKit interop."
 ---
 
@@ -8,10 +8,10 @@ description: "Use when implementing navigation in a SwiftUI-first iOS app. Cover
 State-driven navigation for SwiftUI apps. Replaces the imperative push/present/pop model with a declarative `NavigationPath`-as-state model. iOS 16+ for `NavigationStack`; iOS 17+ for `@Observable` Router.
 
 > **Related skills:**
-> - `coordinator` — UIKit navigation pattern; comparable role (flow control, decoupling navigation from views), but different mechanics
-> - `mvvm` — ViewModel emits navigation intent; the Router/Path here is what the View binds to in response
-> - `composition-root` — where Routers and root NavigationStacks are wired
-> - `module-assembly` — Factory pattern for assembling SwiftUI screens with their dependencies
+> - `arch-coordinator` — UIKit navigation pattern; comparable role (flow control, decoupling navigation from views), but different mechanics
+> - `arch-mvvm` — ViewModel emits navigation intent; the Router/Path here is what the View binds to in response
+> - `di-composition-root` — where Routers and root NavigationStacks are wired
+> - `di-module-assembly` — Factory pattern for assembling SwiftUI screens with their dependencies
 
 ## Navigation Primitives
 

@@ -1,5 +1,5 @@
 ---
-name: viper
+name: arch-viper
 description: "Use when implementing VIPER architecture pattern in iOS apps. Covers View, Interactor, Presenter, Entity, Router components, Assembly wiring, and testing."
 ---
 
@@ -8,10 +8,10 @@ description: "Use when implementing VIPER architecture pattern in iOS apps. Cove
 Maximum separation of concerns. Each layer has a single responsibility with strict protocol boundaries.
 
 > **Related skills:**
-> - `composition-root` — where Assemblies are bootstrapped
-> - `module-assembly` — Factory pattern for module wiring (VIPER's Assembly maps onto it)
-> - `mvvm`, `clean-architecture` — alternative patterns; choose VIPER only when strict layering pays off
-> - `combine`, `rxswift` — async approach inside Interactor (legacy callback style is shown here, but modern projects use these)
+> - `di-composition-root` — where Assemblies are bootstrapped
+> - `di-module-assembly` — Factory pattern for module wiring (VIPER's Assembly maps onto it)
+> - `arch-mvvm`, `arch-clean` — alternative patterns; choose VIPER only when strict layering pays off
+> - `reactive-combine`, `reactive-rxswift` — async approach inside Interactor (legacy callback style is shown here, but modern projects use these)
 
 ## Structure
 

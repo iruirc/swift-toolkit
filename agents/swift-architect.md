@@ -29,7 +29,7 @@ Produce output in the sections described in the "Output Structure" section below
 
 1. Define the protocol first — this is the contract.
 2. Choose the DI scope deliberately (see CLAUDE.md for scope guide).
-3. Never allow direct instantiation — inject via Factory/Assembly pattern (see `module-assembly` skill).
+3. Never allow direct instantiation — inject via Factory/Assembly pattern (see `di-module-assembly` skill).
 4. Coordinators receive factories, not the DI container — no Service Locator.
 5. Decide async strategy: RxSwift, Combine, or async/await (see CLAUDE.md for preferred approach).
 
@@ -71,21 +71,21 @@ When proposing architecture, always provide:
 ## Skills Reference (swift-toolkit)
 
 Consult the appropriate skill based on the architecture in use:
-- `mvvm` — MVVM pattern implementation
-- `coordinator` — Coordinator navigation pattern (UIKit)
-- `swiftui-navigation` — SwiftUI navigation (NavigationStack/Path, Router, deep links, hybrid interop)
-- `viper` — VIPER architecture
-- `clean-architecture` — Clean Architecture with Use Cases
-- `mvc` — MVC pattern
-- `rxswift` — RxSwift patterns and best practices
-- `combine` — Combine framework patterns
+- `arch-mvvm` — MVVM pattern implementation
+- `arch-coordinator` — Coordinator navigation pattern (UIKit)
+- `arch-swiftui-navigation` — SwiftUI navigation (NavigationStack/Path, Router, deep links, hybrid interop)
+- `arch-viper` — VIPER architecture
+- `arch-clean` — Clean Architecture with Use Cases
+- `arch-mvc` — MVC pattern
+- `reactive-rxswift` — RxSwift patterns and best practices
+- `reactive-combine` — Combine framework patterns
 - `error-architecture` — per-layer error types, mapping (Network → Domain → UI), presentation strategy, recoverable/fatal classification
-- `networking-architecture` — designing the network layer (HTTPClient/APIClient boundary, interceptors, retry, pagination, framework comparison URLSession/Alamofire/Moya/Get)
-- `openapi-codegen` — when API has an OpenAPI spec; generated client + adapter pattern, custom transports, server stubs
-- `swinject` — dependency injection patterns (Swinject-specific)
-- `composition-root` — Composition Root design, bootstrap strategies, scope management
-- `module-assembly` — Factory pattern, Assembly, non-UI factories, late initialization
-- `spm-package-design` — designing package boundaries (Feature / Library / API / Engine archetypes)
+- `net-architecture` — designing the network layer (HTTPClient/APIClient boundary, interceptors, retry, pagination, framework comparison URLSession/Alamofire/Moya/Get)
+- `net-openapi` — when API has an OpenAPI spec; generated client + adapter pattern, custom transports, server stubs
+- `di-swinject` — dependency injection patterns (Swinject-specific)
+- `di-composition-root` — Composition Root design, bootstrap strategies, scope management
+- `di-module-assembly` — Factory pattern, Assembly, non-UI factories, late initialization
+- `pkg-spm-design` — designing package boundaries (Feature / Library / API / Engine archetypes)
 - `task-new`, `task-move` — task lifecycle management
 
 ## Related Agents (swift-toolkit)

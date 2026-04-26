@@ -36,7 +36,7 @@ Before generating, gather:
 For apps:
 - UI framework: UIKit / SwiftUI / AppKit
 - Async approach: async/await / Combine / RxSwift
-- DI: Swinject (рантайм-контейнер) / manual + Factory-паттерн (ручные `CoordinatorFactory`/`ModuleFactory`, см. skill `module-assembly`) / plain manual (без структуры). **Не путать с библиотекой [hmlongco/Factory](https://github.com/hmlongco/Factory)** — её в шаблоне нет; если пользователь явно назовёт эту библиотеку, спроси подтверждение и не записывай её в `## Стек` без согласия
+- DI: Swinject (рантайм-контейнер) / manual + Factory-паттерн (ручные `CoordinatorFactory`/`ModuleFactory`, см. skill `di-module-assembly`) / plain manual (без структуры). **Не путать с библиотекой [hmlongco/Factory](https://github.com/hmlongco/Factory)** — её в шаблоне нет; если пользователь явно назовёт эту библиотеку, спроси подтверждение и не записывай её в `## Стек` без согласия
 - Architecture: MVVM+Coordinator / VIPER / Clean Architecture / MVC
 - Platforms + minimum versions (iOS 16+, macOS 13+, etc.)
 
@@ -98,21 +98,21 @@ Always use the latest stable swift-tools-version and Swift language version avai
 
 Consult the relevant skill when scaffolding. The skill body defines the folder structure, protocol shape, and conventions that must be reflected in the generated scaffold:
 
-- `mvvm` — MVVM module folder layout (View / ViewModel / bindings), binding setup
-- `coordinator` — Coordinator module and Router abstraction, navigation wiring (UIKit)
-- `swiftui-navigation` — SwiftUI navigation: NavigationStack/Path, `@Observable` Router, deep links, hybrid SwiftUI ↔ UIKit interop
-- `viper` — VIPER module structure (View / Interactor / Presenter / Entity / Router files)
-- `clean-architecture` — Domain/Data/Presentation folder split, Use Cases, Repository protocols
-- `mvc` — classic MVC folder layout
-- `swinject` — Swinject-специфика: scopes, регистрации, autoregister, тестовые контейнеры
-- `composition-root` — где живёт CR (SceneDelegate / @main App / AppDelegate), sync vs async bootstrap, scopes (app/scene/flow)
-- `module-assembly` — Factory-паттерн для UI-фич, не-UI factories, late & conditional initialization
-- `spm-package-design` — 4 архетипа SPM-пакетов (Feature / Library / API-Contract / Engine-SDK) с правилами публичности
-- `rxswift` — RxSwift initial imports, DisposeBag setup, Resources subclass if present
-- `combine` — Combine imports, AnyCancellable storage patterns
+- `arch-mvvm` — MVVM module folder layout (View / ViewModel / bindings), binding setup
+- `arch-coordinator` — Coordinator module and Router abstraction, navigation wiring (UIKit)
+- `arch-swiftui-navigation` — SwiftUI navigation: NavigationStack/Path, `@Observable` Router, deep links, hybrid SwiftUI ↔ UIKit interop
+- `arch-viper` — VIPER module structure (View / Interactor / Presenter / Entity / Router files)
+- `arch-clean` — Domain/Data/Presentation folder split, Use Cases, Repository protocols
+- `arch-mvc` — classic MVC folder layout
+- `di-swinject` — Swinject-специфика: scopes, регистрации, autoregister, тестовые контейнеры
+- `di-composition-root` — где живёт CR (SceneDelegate / @main App / AppDelegate), sync vs async bootstrap, scopes (app/scene/flow)
+- `di-module-assembly` — Factory-паттерн для UI-фич, не-UI factories, late & conditional initialization
+- `pkg-spm-design` — 4 архетипа SPM-пакетов (Feature / Library / API-Contract / Engine-SDK) с правилами публичности
+- `reactive-rxswift` — RxSwift initial imports, DisposeBag setup, Resources subclass if present
+- `reactive-combine` — Combine imports, AnyCancellable storage patterns
 - `error-architecture` — структура per-layer Error enum-ов, базовый `UserMessage`/`ErrorMapper`, политики logging/PII в шаблоне
-- `networking-architecture` — выбор HTTP-клиента (URLSession default / Alamofire / Moya / Get), стартовый `HTTPClient` протокол, базовая middleware-цепочка
-- `openapi-codegen` — если у API есть OpenAPI spec, scaffold под `swift-openapi-generator` + adapter-обёртка для domain типов
+- `net-architecture` — выбор HTTP-клиента (URLSession default / Alamofire / Moya / Get), стартовый `HTTPClient` протокол, базовая middleware-цепочка
+- `net-openapi` — если у API есть OpenAPI spec, scaffold под `swift-openapi-generator` + adapter-обёртка для domain типов
 
 If the user's chosen architecture is ambiguous or missing, ASK before scaffolding; do not invent structure.
 

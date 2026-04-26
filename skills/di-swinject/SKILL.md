@@ -1,6 +1,6 @@
 ---
-name: swinject
-description: "Use when working with Swinject dependency injection in iOS apps. Covers Swinject-specific patterns: object scopes, registrations (basic, autoregister, named, with arguments), Assembly pattern, testing configuration. For Composition Root design see composition-root skill; for connecting DI to Coordinators see module-assembly skill."
+name: di-swinject
+description: "Use when working with Swinject dependency injection in iOS apps. Covers Swinject-specific patterns: object scopes, registrations (basic, autoregister, named, with arguments), Assembly pattern, testing configuration. For Composition Root design see di-composition-root skill; for connecting DI to Coordinators see di-module-assembly skill."
 ---
 
 # Swinject Dependency Injection Patterns
@@ -8,9 +8,9 @@ description: "Use when working with Swinject dependency injection in iOS apps. C
 This skill provides Swinject-specific guidelines: scopes, registration techniques, autoregistration, testing.
 
 > **Related skills:**
-> - `composition-root` — где создаётся Swinject `Container`, как живёт его lifetime, sync/async bootstrap, scope-стратегии
-> - `module-assembly` — как Coordinator-ы получают сервисы из Swinject через Factory-паттерн без Service Locator
-> - `spm-package-design` — почему Swinject **не должен** импортироваться в SPM-пакетах
+> - `di-composition-root` — где создаётся Swinject `Container`, как живёт его lifetime, sync/async bootstrap, scope-стратегии
+> - `di-module-assembly` — как Coordinator-ы получают сервисы из Swinject через Factory-паттерн без Service Locator
+> - `pkg-spm-design` — почему Swinject **не должен** импортироваться в SPM-пакетах
 
 ## When to Use
 
@@ -24,13 +24,13 @@ This skill provides Swinject-specific guidelines: scopes, registration technique
 **Consider alternatives**:
 - Simple apps → Manual DI (pass dependencies in init)
 - SwiftUI apps → Environment objects
-- Compile-time safety priority → manual DI + Factory pattern (см. `module-assembly`)
+- Compile-time safety priority → manual DI + Factory pattern (см. `di-module-assembly`)
 
 ## Core Concepts
 
 ### Container Setup
 
-Swinject `Container` создаётся в Composition Root и оборачивается в `AppDependencyContainer` фасад — никогда не используется как глобальный `static let shared`. **Подробности про CR — в скилле `composition-root`.**
+Swinject `Container` создаётся в Composition Root и оборачивается в `AppDependencyContainer` фасад — никогда не используется как глобальный `static let shared`. **Подробности про CR — в скилле `di-composition-root`.**
 
 Минимум для контекста:
 
@@ -49,7 +49,7 @@ final class AppDependencyContainer {
 }
 ```
 
-> **`static let shared` запрещён** — превращает контейнер в Service Locator (скрытые зависимости, нет testability). См. `composition-root` skill про правильное место и lifetime контейнера.
+> **`static let shared` запрещён** — превращает контейнер в Service Locator (скрытые зависимости, нет testability). См. `di-composition-root` skill про правильное место и lifetime контейнера.
 
 ### Basic Registration
 
@@ -263,14 +263,14 @@ let container = assembler.resolver
 
 ## Coordinator and Module Assembly
 
-Coordinators should **not** receive the Swinject container directly — this creates a Service Locator anti-pattern. Instead, use the Factory pattern described in the `module-assembly` skill:
+Coordinators should **not** receive the Swinject container directly — this creates a Service Locator anti-pattern. Instead, use the Factory pattern described in the `di-module-assembly` skill:
 
 - `AppDependencyContainer` wraps Swinject and conforms to feature dependency protocols
 - `ModuleFactory` assembles View + ViewModel using dependency protocols
 - `CoordinatorFactory` creates Coordinators with their ModuleFactory
 - Coordinators never import Swinject
 
-See `module-assembly` skill for complete examples.
+See `di-module-assembly` skill for complete examples.
 
 ## Testing Configuration
 
@@ -407,7 +407,7 @@ class FeatureCoordinator {
     }
 }
 
-// Correct: use Factory pattern (see module-assembly skill)
+// Correct: use Factory pattern (see di-module-assembly skill)
 class FeatureCoordinator {
     init(router: Router,
          coordinatorFactory: CoordinatorFactory,

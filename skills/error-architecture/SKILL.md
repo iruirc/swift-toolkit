@@ -8,10 +8,10 @@ description: "Use when designing how errors flow through a layered iOS app — t
 Decisions about **where errors live, how they flow between layers, and how they reach the user** in an iOS app. Not about syntax of `try/catch` — about the architectural shape of error handling across DataSource → Repository → UseCase → ViewModel → View.
 
 > **Related skills:**
-> - `clean-architecture`, `mvvm`, `viper` — layer boundaries that error mapping respects
-> - `composition-root` — where `ErrorMapper`, `Logger`, crash-reporter are bootstrapped
-> - `combine`, `rxswift` — reactive-framework error semantics (this skill covers cross-cutting decisions only)
-> - `mvc` — for small apps you can collapse mapping into one layer (Controller); rules below still apply
+> - `arch-clean`, `arch-mvvm`, `arch-viper` — layer boundaries that error mapping respects
+> - `di-composition-root` — where `ErrorMapper`, `Logger`, crash-reporter are bootstrapped
+> - `reactive-combine`, `reactive-rxswift` — reactive-framework error semantics (this skill covers cross-cutting decisions only)
+> - `arch-mvc` — for small apps you can collapse mapping into one layer (Controller); rules below still apply
 
 ## Why This Skill Exists
 
@@ -58,7 +58,7 @@ func fetchItems() async throws(ItemRepositoryError) -> [Item]
 - Code calling third-party APIs that throw `any Error`
 - Top-level layers (ViewModel, Coordinator) that don't switch on error specifics
 
-**Default:** untyped `throws` for app code, typed throws for SPM packages with a closed error vocabulary (see `spm-package-design`).
+**Default:** untyped `throws` for app code, typed throws for SPM packages with a closed error vocabulary (see `pkg-spm-design`).
 
 ### One enum vs split enums per layer
 
@@ -333,7 +333,7 @@ Auto-retry rules of thumb:
 - ❌ 4xx (other than 429) → never auto-retry; client error won't fix itself
 - ❌ Auth (401) → trigger refresh flow once, then surface to user
 
-Networking-specific retry policy lives in the future `networking-architecture` skill — this skill only enforces **where the decision is made**: in the Repository or HTTPClient layer, never in the ViewModel.
+Networking-specific retry policy lives in the future `net-architecture` skill — this skill only enforces **where the decision is made**: in the Repository or HTTPClient layer, never in the ViewModel.
 
 User-initiated retry: ViewModel exposes `retryAction: () -> Void` in `UserMessage`. The View renders a button; tapping calls the closure. Closure re-invokes the original UseCase.
 
@@ -414,7 +414,7 @@ useCase.fetch(id: id)
 
 **Rule:** convert `Error → Value` (typically `Result`) at the latest reasonable layer (ViewModel) — let upper layers see a non-failing stream that always emits state.
 
-See `combine` and `rxswift` skills for operator-level detail.
+See `reactive-combine` and `reactive-rxswift` skills for operator-level detail.
 
 ## Testing Error Paths
 

@@ -21,7 +21,7 @@ Produce output in the sections described in the "Output Structure" section below
 
 1. Understand requirements fully. Ask clarifying questions if scope is unclear.
 2. Follow existing module structure as defined in CLAUDE.md.
-3. Register new services in DI and wire them through Assembly/Factory (see `module-assembly` skill).
+3. Register new services in DI and wire them through Assembly/Factory (see `di-module-assembly` skill).
 4. Use the project's reactive framework for bindings between ViewModel and ViewController.
 5. Localize all user-facing strings using the project's localization approach (see CLAUDE.md).
 6. Access images using the project's resource management approach (see CLAUDE.md).
@@ -59,21 +59,21 @@ Produce output in the sections described in the "Output Structure" section below
 ## Skills Reference (swift-toolkit)
 
 Consult the appropriate skill based on the architecture in use:
-- `mvvm` — MVVM pattern implementation
-- `coordinator` — Coordinator navigation pattern (UIKit)
-- `swiftui-navigation` — SwiftUI navigation (NavigationStack/Path, Router, deep links, hybrid interop)
-- `viper` — VIPER architecture
-- `clean-architecture` — Clean Architecture with Use Cases
-- `mvc` — MVC pattern
-- `rxswift` — RxSwift patterns and best practices
-- `combine` — Combine framework patterns
+- `arch-mvvm` — MVVM pattern implementation
+- `arch-coordinator` — Coordinator navigation pattern (UIKit)
+- `arch-swiftui-navigation` — SwiftUI navigation (NavigationStack/Path, Router, deep links, hybrid interop)
+- `arch-viper` — VIPER architecture
+- `arch-clean` — Clean Architecture with Use Cases
+- `arch-mvc` — MVC pattern
+- `reactive-rxswift` — RxSwift patterns and best practices
+- `reactive-combine` — Combine framework patterns
 - `error-architecture` — choosing per-layer error types, writing mappers, building UserMessage in ViewModel, cancellation handling
-- `networking-architecture` — implementing HTTPClient/APIClient, auth interceptor with token refresh, retry policy (idempotency-aware), pagination, mocking via URLProtocol
-- `openapi-codegen` — wiring `swift-openapi-generator`, wrapping generated `Client` in your `APIClient` protocol, mapping `Output` enums to domain errors
-- `swinject` — dependency injection patterns (Swinject-specific)
-- `composition-root` — where to wire new services (CR layout, bootstrap)
-- `module-assembly` — Factory pattern, Assembly, non-UI factories, late initialization
-- `spm-package-design` — when implementing inside SPM packages (per-archetype rules)
+- `net-architecture` — implementing HTTPClient/APIClient, auth interceptor with token refresh, retry policy (idempotency-aware), pagination, mocking via URLProtocol
+- `net-openapi` — wiring `swift-openapi-generator`, wrapping generated `Client` in your `APIClient` protocol, mapping `Output` enums to domain errors
+- `di-swinject` — dependency injection patterns (Swinject-specific)
+- `di-composition-root` — where to wire new services (CR layout, bootstrap)
+- `di-module-assembly` — Factory pattern, Assembly, non-UI factories, late initialization
+- `pkg-spm-design` — when implementing inside SPM packages (per-archetype rules)
 - `task-new`, `task-move` — task lifecycle management
 
 ## Related Agents (swift-toolkit)

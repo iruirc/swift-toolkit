@@ -43,12 +43,12 @@ Audit source code, infrastructure (Info.plist, entitlements, xcconfig), dependen
 
 ## Skills Reference (swift-toolkit)
 
-- `swinject`, `composition-root`, `module-assembly` — for reviewing DI-injected keychain/auth services and where they get bootstrapped
-- `spm-package-design` — auditing public surface of auth/credentials packages
-- `combine`, `rxswift` — for token refresh streams and subscription leaks that affect auth
+- `di-swinject`, `di-composition-root`, `di-module-assembly` — for reviewing DI-injected keychain/auth services and where they get bootstrapped
+- `pkg-spm-design` — auditing public surface of auth/credentials packages
+- `reactive-combine`, `reactive-rxswift` — for token refresh streams and subscription leaks that affect auth
 - `error-architecture` — PII redaction in logs, never leaking server error bodies / stack traces / tokens to user-facing messages
-- `networking-architecture` — auth interceptor design (single-flight refresh actor), retry policy that never auto-retries non-idempotent POST, cache poisoning via `URLCache` with `Authorization`
-- `openapi-codegen` — generated client middleware for token injection, no committed generated code containing secrets, `accessModifier: internal` to keep auth surfaces from leaking
+- `net-architecture` — auth interceptor design (single-flight refresh actor), retry policy that never auto-retries non-idempotent POST, cache poisoning via `URLCache` with `Authorization`
+- `net-openapi` — generated client middleware for token injection, no committed generated code containing secrets, `accessModifier: internal` to keep auth surfaces from leaking
 
 ## Related Agents (swift-toolkit)
 

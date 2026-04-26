@@ -1,5 +1,5 @@
 ---
-name: spm-package-design
+name: pkg-spm-design
 description: "Use when designing or reviewing Swift Package boundaries — what is public, what is internal, how the package gets its dependencies, and how the host app integrates it. Covers 4 package archetypes (Feature / Library / API-Contract / Engine-SDK) with per-type rules. DI-framework agnostic."
 ---
 
@@ -8,9 +8,9 @@ description: "Use when designing or reviewing Swift Package boundaries — what 
 Каждый Swift-пакет нужно проектировать осознанно. Универсального шаблона нет — есть **4 архетипа**, и под каждый свои правила публичности, инициализации и взаимодействия с host-приложением.
 
 > **Related skills:**
-> - `composition-root` — куда host-app встраивает пакет при сборке графа
-> - `module-assembly` — Factory-паттерн внутри Feature-пакета и в host-app
-> - `swinject` — если в host-app выбран Swinject как DI-framework (но **не** в самом пакете)
+> - `di-composition-root` — куда host-app встраивает пакет при сборке графа
+> - `di-module-assembly` — Factory-паттерн внутри Feature-пакета и в host-app
+> - `di-swinject` — если в host-app выбран Swinject как DI-framework (но **не** в самом пакете)
 
 ## Decision tree: какой это пакет?
 
@@ -111,7 +111,7 @@ MyFeature/
 
 ### Как host подключает Feature-пакет
 
-См. `composition-root` — host-app в `AppDependencyContainer+MyFeature.swift` extension собирает `Dependencies` из своего DI-контейнера и создаёт `Module`:
+См. `di-composition-root` — host-app в `AppDependencyContainer+MyFeature.swift` extension собирает `Dependencies` из своего DI-контейнера и создаёт `Module`:
 
 ```swift
 extension AppDependencyContainer {

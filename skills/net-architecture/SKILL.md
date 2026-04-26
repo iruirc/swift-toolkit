@@ -1,5 +1,5 @@
 ---
-name: networking-architecture
+name: net-architecture
 description: "Use when designing the networking layer of an iOS app — HTTPClient protocol behind framework choice (URLSession/Alamofire/Moya/Get), endpoint design, auth interceptors with token refresh, retry policies (idempotency-aware), pagination patterns, cancellation propagation, multipart/background URLSession, WebSocket/SSE, HTTP-level vs Repository-level caching, framework comparison, mock/stub testing strategies."
 ---
 
@@ -8,12 +8,12 @@ description: "Use when designing the networking layer of an iOS app — HTTPClie
 Decisions about **how the network layer is shaped** in an iOS app: layering, the `HTTPClient` boundary, interceptors, retry/cancellation, pagination, framework choice. Not a tutorial on URLSession or Alamofire — this skill tells you **how to wire any of them into a layered architecture** that stays testable as the app grows.
 
 > **Related skills:**
-> - `clean-architecture`, `mvvm`, `viper` — which layers the network layer reports into
+> - `arch-clean`, `arch-mvvm`, `arch-viper` — which layers the network layer reports into
 > - `error-architecture` — error mapping at the network boundary, retry/idempotency rules, PII-safe logging, cancellation policy
-> - `composition-root` — where `URLSession`, `HTTPClient`, `APIClient`, interceptors are wired
-> - `module-assembly` — registering networking services into feature modules
-> - `combine`, `rxswift` — bridging async/await network calls into reactive pipelines
-> - `openapi-codegen` — generating typed clients from OpenAPI specs (Apple's `swift-openapi-generator`)
+> - `di-composition-root` — where `URLSession`, `HTTPClient`, `APIClient`, interceptors are wired
+> - `di-module-assembly` — registering networking services into feature modules
+> - `reactive-combine`, `reactive-rxswift` — bridging async/await network calls into reactive pipelines
+> - `net-openapi` — generating typed clients from OpenAPI specs (Apple's `swift-openapi-generator`)
 
 ## Why This Skill Exists
 
@@ -145,7 +145,7 @@ final class APIClient {
 
 ### Pattern 3 — Generated client (OpenAPI)
 
-See `openapi-codegen` skill. Generated `Client` exposes `try await client.listItems(.init(query: .init(page: page)))`. Wrap it in your `ItemsAPI` protocol so the rest of the app doesn't depend on generated types.
+See `net-openapi` skill. Generated `Client` exposes `try await client.listItems(.init(query: .init(page: page)))`. Wrap it in your `ItemsAPI` protocol so the rest of the app doesn't depend on generated types.
 
 ## Interceptors / Middleware
 
@@ -427,7 +427,7 @@ Persistent storage strategies (Core Data, SwiftData, SQLite) — see `persistenc
 | Alamofire | Imperative request builder | async/await ✅, Combine ✅, RxSwift via extension | Built-in `RequestInterceptor` | — | Existing Alamofire codebases; multipart edge cases; legacy iOS 13- support. |
 | Moya | Declarative endpoint enum on top of Alamofire | async/await (Moya 15+), Combine ✅, RxSwift ✅ | Plugins | — | Large API surface (100+ endpoints), Rx-heavy team, want endpoint catalog. |
 | Get (kean) | Modern minimal URLSession wrapper | async/await ✅ | Delegate-based | — | Greenfield projects that want less boilerplate than raw URLSession. |
-| `swift-openapi-generator` | Generated client from OpenAPI spec | async/await ✅ | `ClientMiddleware` | ✅ from yaml | API has stable OpenAPI spec; want compile-time guarantees. See `openapi-codegen`. |
+| `swift-openapi-generator` | Generated client from OpenAPI spec | async/await ✅ | `ClientMiddleware` | ✅ from yaml | API has stable OpenAPI spec; want compile-time guarantees. See `net-openapi`. |
 | Apollo iOS | GraphQL client (different paradigm) | async/await ✅ | Interceptors | ✅ from `.graphql` | GraphQL backend — out of scope for this skill. |
 
 **Recommendation matrix:**
@@ -513,7 +513,7 @@ final class MoyaItemsAPI: ItemsAPI {
 
 ### swift-openapi-generator (cross-link)
 
-Setup, integration, error mapping, mocking — see dedicated `openapi-codegen` skill.
+Setup, integration, error mapping, mocking — see dedicated `net-openapi` skill.
 
 ## Testing
 

@@ -1,5 +1,5 @@
 ---
-name: clean-architecture
+name: arch-clean
 description: "Use when implementing Clean Architecture in iOS apps. Covers Domain/Data/Presentation layers, Use Cases, Repository pattern, DTOs, dependency rule, and testing each layer."
 ---
 
@@ -8,12 +8,12 @@ description: "Use when implementing Clean Architecture in iOS apps. Covers Domai
 Uncle Bob's layered architecture adapted for iOS. Strict dependency rules ensure business logic is independent of frameworks, UI, and external services.
 
 > **Related skills:**
-> - `mvvm` — typical Presentation-layer pattern (ViewModel binds Use Cases to View)
-> - `coordinator` — extract navigation out of Presentation
-> - `composition-root` — where Domain/Data/Presentation Assemblies are wired together
-> - `module-assembly` — Factory pattern for cross-layer module assembly
-> - `spm-package-design` — when extracting Domain/Data into separate SPM packages
-> - `combine`, `rxswift` — async return types in Repository/UseCase boundaries
+> - `arch-mvvm` — typical Presentation-layer pattern (ViewModel binds Use Cases to View)
+> - `arch-coordinator` — extract navigation out of Presentation
+> - `di-composition-root` — where Domain/Data/Presentation Assemblies are wired together
+> - `di-module-assembly` — Factory pattern for cross-layer module assembly
+> - `pkg-spm-design` — when extracting Domain/Data into separate SPM packages
+> - `reactive-combine`, `reactive-rxswift` — async return types in Repository/UseCase boundaries
 
 ## Structure
 
@@ -401,7 +401,7 @@ class ItemRepositoryImpl: ItemRepositoryProtocol {
 
 ### Presentation Layer
 
-ViewModel depends on UseCases (not Repository directly). Binding approach is independent of Clean Architecture — see `mvvm` skill for options.
+ViewModel depends on UseCases (not Repository directly). Binding approach is independent of Clean Architecture — see `arch-mvvm` skill for options.
 
 ```swift
 // Presentation/FeatureViewModel.swift — example with closures binding
@@ -448,16 +448,16 @@ class FeatureViewModel {
 }
 ```
 
-> **Note**: This ViewModel example uses async/await + closures. The ViewModel's binding approach (closures, Combine, RxSwift, @Observable) is chosen separately — see `mvvm` skill.
+> **Note**: This ViewModel example uses async/await + closures. The ViewModel's binding approach (closures, Combine, RxSwift, @Observable) is chosen separately — see `arch-mvvm` skill.
 
 ## DI
 
 Clean Architecture splits registrations by layer — typically one Assembly per layer (`DomainAssembly`, `DataAssembly`, `PresentationAssembly`). The dependency rule must be preserved: `PresentationAssembly` registers ViewModels that depend on Use Cases; `DomainAssembly` registers Use Cases that depend on Repository **protocols**; `DataAssembly` binds those Repository protocols to concrete implementations.
 
 For full registration patterns (Swinject scopes, manual DI alternative, async bootstrap, scope strategies) see:
-- `composition-root` — where these Assemblies are bootstrapped, sync vs async, scopes
-- `module-assembly` — Factory pattern for assembling Presentation modules
-- `swinject` — Swinject-specific registration syntax (`Assembly`, `inObjectScope`, autoregister)
+- `di-composition-root` — where these Assemblies are bootstrapped, sync vs async, scopes
+- `di-module-assembly` — Factory pattern for assembling Presentation modules
+- `di-swinject` — Swinject-specific registration syntax (`Assembly`, `inObjectScope`, autoregister)
 
 Whichever DI mechanism is chosen, the rule stays: **Domain layer never imports the DI framework** — Use Cases and Repository protocols are pure Swift. Only Assemblies (which live outside Domain) reference the container.
 

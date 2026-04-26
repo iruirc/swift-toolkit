@@ -49,7 +49,7 @@ When ViewControllers contain navigation logic:
 When services are created inline instead of injected:
 - Define protocol if one doesn't exist
 - Register the service in DI container with correct scope (`.container` for stateless, `.transient` for stateful)
-- Add to feature dependency protocol and wire through Assembly/Factory (see `module-assembly` skill)
+- Add to feature dependency protocol and wire through Assembly/Factory (see `di-module-assembly` skill)
 - Inject via initializer — never pass the container itself (Service Locator anti-pattern)
 
 ### Extract to Swift Package
@@ -77,21 +77,21 @@ When reactive chains are overly complex or hard to read:
 ## Skills Reference (swift-toolkit)
 
 Consult the appropriate skill when refactoring:
-- `mvvm` — MVVM target patterns
-- `coordinator` — UIKit navigation pattern
-- `swiftui-navigation` — SwiftUI navigation, Router class, hybrid interop
-- `viper` — VIPER target patterns
-- `clean-architecture` — Clean Architecture target patterns
-- `mvc` — MVC pattern
-- `rxswift` — simplifying RxSwift chains
-- `combine` — simplifying Combine chains
+- `arch-mvvm` — MVVM target patterns
+- `arch-coordinator` — UIKit navigation pattern
+- `arch-swiftui-navigation` — SwiftUI navigation, Router class, hybrid interop
+- `arch-viper` — VIPER target patterns
+- `arch-clean` — Clean Architecture target patterns
+- `arch-mvc` — MVC pattern
+- `reactive-rxswift` — simplifying RxSwift chains
+- `reactive-combine` — simplifying Combine chains
 - `error-architecture` — extracting ErrorMapper functions, splitting god `AppError`, replacing leaked `URLError.localizedDescription` with proper `UserMessage`
-- `networking-architecture` — extracting `URLSession.shared` calls into HTTPClient protocol, hoisting middleware out of endpoints, removing duplicated decoders
-- `openapi-codegen` — replacing hand-written API clients with generated client + adapter when OpenAPI spec exists
-- `swinject` — DI registration for extracted services
-- `composition-root` — extracting CR concerns out of fat AppDelegate/SceneDelegate
-- `module-assembly` — Factory pattern, Assembly, non-UI factories
-- `spm-package-design` — extracting code into SPM packages by archetype
+- `net-architecture` — extracting `URLSession.shared` calls into HTTPClient protocol, hoisting middleware out of endpoints, removing duplicated decoders
+- `net-openapi` — replacing hand-written API clients with generated client + adapter when OpenAPI spec exists
+- `di-swinject` — DI registration for extracted services
+- `di-composition-root` — extracting CR concerns out of fat AppDelegate/SceneDelegate
+- `di-module-assembly` — Factory pattern, Assembly, non-UI factories
+- `pkg-spm-design` — extracting code into SPM packages by archetype
 - `task-new`, `task-move` — task lifecycle management
 
 ## Related Agents (swift-toolkit)

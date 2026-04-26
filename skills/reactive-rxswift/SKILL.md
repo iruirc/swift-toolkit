@@ -1,5 +1,5 @@
 ---
-name: rxswift
+name: reactive-rxswift
 description: "Use when working with RxSwift in iOS apps. Covers observables, operators, memory management, UI bindings with Driver/Signal, ViewModel patterns, and testing with RxTest/RxBlocking."
 ---
 
