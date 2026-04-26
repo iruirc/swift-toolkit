@@ -60,6 +60,7 @@
 | [`net-openapi`](skills/net-openapi/SKILL.md) | `swift-openapi-generator`: SPM-плагин, обёртка генерируемого `Client` в свой `APIClient`, custom transport, mocking. |
 | [`persistence-architecture`](skills/persistence-architecture/SKILL.md) | Repository как граница, выбор хранилища (Core Data / SwiftData / GRDB / Realm / UserDefaults / files / Keychain), threading, reactive queries, CloudKit, encryption. |
 | [`persistence-migrations`](skills/persistence-migrations/SKILL.md) | Миграции схем (CD lightweight/heavyweight, SwiftData VersionedSchema, GRDB DatabaseMigrator, Realm migrationBlock), Codable evolution, backup, telemetry. |
+| [`concurrency-architecture`](skills/concurrency-architecture/SKILL.md) | Размещение Swift Concurrency по слоям: где `@MainActor`, когда custom `actor`, кому принадлежит `Task`, как cancellation проходит через слои, в какой роли живёт `async let` / `TaskGroup`. Архитектурное измерение; language-level вопросы (Sendable, Swift 6 migration) — к внешнему скиллу `swift-concurrency:swift-concurrency` (AvdLee). |
 
 ### 5. Binding tools — **не архитектуры**, а инструменты внутри них
 
@@ -106,7 +107,8 @@
 - `arch-coordinator` ↔ `arch-swiftui-navigation` — выбираются по UI-фреймворку, **не** по архитектуре. Можно сменить навигацию, не трогая `arch-mvvm`.
 - DI — отдельное решение от архитектуры. Любой `arch-*` совместим с любым `di-*` (или с manual graph).
 - `reactive-combine` / `reactive-rxswift` — это **инструменты**, а не архитектуры. Не путать с `arch-*`.
-- Cross-cutting (`error-architecture`, `net-architecture`, `persistence-architecture`) — нужны независимо от выбранного `arch-*`.
+- Cross-cutting (`error-architecture`, `net-architecture`, `persistence-architecture`, `concurrency-architecture`) — нужны независимо от выбранного `arch-*`.
+- `concurrency-architecture` отвечает за **размещение** примитивов по слоям; для **языковой** части (Sendable, isolation rules, Swift 6 migration, actor reentrancy) подключается внешний скилл `swift-concurrency:swift-concurrency` (см. [AvdLee/Swift-Concurrency-Agent-Skill](https://github.com/AvdLee/Swift-Concurrency-Agent-Skill) — устанавливается отдельно как Agent Skill / плагин).
 - TCA — исключение: заменяет и архитектуру, и навигацию (свои `@Presents` / `StackState`).
 
 ---

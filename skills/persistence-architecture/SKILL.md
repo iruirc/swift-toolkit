@@ -16,6 +16,7 @@ Decisions about **where data lives, how it survives app launches, and how the re
 > - `di-module-assembly` — registering Repository implementations into feature modules
 > - `reactive-combine`, `reactive-rxswift` — bridging persistence queries into reactive pipelines
 > - `pkg-spm-design` — when extracting persistence into its own SPM package (and what the public surface should be)
+> - `concurrency-architecture` — Repository façade stays `nonisolated`; backing context confinement (`viewContext` / `@ModelActor` / `DatabasePool` / Realm thread-confinement) is a per-framework concern; cross-context object passing (always by `NSManagedObjectID` / `PersistentIdentifier`, never by reference)
 
 ## Why This Skill Exists
 

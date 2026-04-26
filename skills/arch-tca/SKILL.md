@@ -14,6 +14,7 @@ Unidirectional, reducer-based state management for SwiftUI. State is a value typ
 > - `di-composition-root` — `@Dependency` covers TCA reducers only; CR still applies for app-level Store construction, UIKit screens, and any non-TCA modules
 > - `error-architecture`, `net-architecture`, `persistence-architecture` — cross-cutting; TCA only changes how you call into them (via `Effect.run` from a Reducer)
 > - `reactive-combine` — Effect previously bridged Combine publishers; modern TCA uses async/await first
+> - `concurrency-architecture` — TCA owns Task lifecycle via `Effect.run` + `cancellable(id:)`; for non-TCA modules in the same app (UIKit screens, app-scoped services) the placement rules in `concurrency-architecture` still apply
 
 ## When Appropriate
 

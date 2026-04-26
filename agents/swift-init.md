@@ -113,6 +113,7 @@ Consult the relevant skill when scaffolding. The skill body defines the folder s
 - `pkg-spm-design` — 4 архетипа SPM-пакетов (Feature / Library / API-Contract / Engine-SDK) с правилами публичности
 - `reactive-rxswift` — RxSwift initial imports, DisposeBag setup, Resources subclass if present
 - `reactive-combine` — Combine imports, AnyCancellable storage patterns
+- `concurrency-architecture` — день-1 решение isolation-карты для выбранной архитектуры: какие роли `@MainActor` (View/ViewModel/Presenter/Coordinator), какие `nonisolated` (UseCase/Repository/APIClient), нужны ли custom actor-ы (token refresher / image cache / etc), какой паттерн владения Task-ами (SwiftUI `.task` / UIKit stored-and-cancel / TCA `Effect.cancellable`). Решение фиксируется в CLAUDE.md `## Стек` рядом с архитектурой. Defer language-level questions (Sendable rules, Swift 6 migration) to `swift-concurrency:swift-concurrency` (AvdLee skill — install separately if not present)
 - `error-architecture` — структура per-layer Error enum-ов, базовый `UserMessage`/`ErrorMapper`, политики logging/PII в шаблоне
 - `net-architecture` — выбор HTTP-клиента (URLSession default / Alamofire / Moya / Get), стартовый `HTTPClient` протокол, базовая middleware-цепочка
 - `net-openapi` — если у API есть OpenAPI spec, scaffold под `swift-openapi-generator` + adapter-обёртка для domain типов

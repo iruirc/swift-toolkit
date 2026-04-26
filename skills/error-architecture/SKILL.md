@@ -14,6 +14,7 @@ Decisions about **where errors live, how they flow between layers, and how they 
 > - `arch-mvc` — for small apps you can collapse mapping into one layer (Controller); rules below still apply
 > - `net-architecture`, `persistence-architecture` — boundaries that produce errors mapped here (network errors, storage errors)
 > - `persistence-migrations` — typed `MigrationFailure(fromVersion:, toVersion:, underlying:, backupURL:)` surfaced to UI, three-button recovery dialog (retry / send report / start fresh), telemetry on migration outcomes
+> - `concurrency-architecture` — `CancellationError` is a control-flow signal, not an error to show the user; rules for re-throwing it separately at every layer boundary so the chain stays intact
 
 ## Why This Skill Exists
 

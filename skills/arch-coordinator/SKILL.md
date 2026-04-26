@@ -14,6 +14,7 @@ Navigation pattern that extracts routing logic from ViewControllers into dedicat
 > - `di-module-assembly` — covers CoordinatorFactory, ModuleFactory, Assembly in detail
 > - `di-composition-root` — where Coordinators get bootstrapped (SceneDelegate / @main App / AppDelegate)
 > - `di-swinject` — DI-framework-specific patterns if Swinject is the chosen container
+> - `concurrency-architecture` — Coordinator/Router is `@MainActor` (UIKit navigation APIs require it); rules for cancelling screen-bound Tasks when the Coordinator pops a child
 
 ## Structure
 

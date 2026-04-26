@@ -16,6 +16,7 @@ Decisions about **how the network layer is shaped** in an iOS app: layering, the
 > - `net-openapi` — generating typed clients from OpenAPI specs (Apple's `swift-openapi-generator`)
 > - `persistence-architecture` — pairing remote source with a local cache (offline-first, read-through, observe-with-refresh)
 > - `persistence-migrations` — when a server contract change requires a local-store schema migration (DTO restructure → cached DTO/entity restructure)
+> - `concurrency-architecture` — APIClient/HTTPClient stay `nonisolated` (URLSession is thread-safe); auth interceptor's token-refresh single-flight is a legitimate `actor`; `URLRequest.timeoutInterval` (transport) vs `withTimeout` at UseCase boundary (business)
 
 ## Why This Skill Exists
 

@@ -12,6 +12,7 @@ Maximum separation of concerns. Each layer has a single responsibility with stri
 > - `di-module-assembly` — Factory pattern for module wiring (VIPER's Assembly maps onto it)
 > - `arch-mvvm`, `arch-clean` — alternative patterns; choose VIPER only when strict layering pays off
 > - `reactive-combine`, `reactive-rxswift` — alternative async approaches inside Interactor (this skill defaults to async/await; Combine and callback variants are documented at the end of the Interactor section)
+> - `concurrency-architecture` — Presenter `@MainActor` (yes), Interactor `nonisolated` (yes), Task owned by Presenter and cancelled in `deinit`, cancellation propagation through Interactor → Repository → APIClient
 
 ## Structure
 

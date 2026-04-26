@@ -14,6 +14,7 @@ Uncle Bob's layered architecture adapted for iOS. Strict dependency rules ensure
 > - `di-module-assembly` — Factory pattern for cross-layer module assembly
 > - `pkg-spm-design` — when extracting Domain/Data into separate SPM packages
 > - `reactive-combine`, `reactive-rxswift` — async return types in Repository/UseCase boundaries
+> - `concurrency-architecture` — UseCase fan-out (`async let` for business operations), `@MainActor` only on Presentation, cancellation propagation through Domain/Data layers
 
 ## Structure
 

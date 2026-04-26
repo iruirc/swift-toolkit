@@ -101,6 +101,7 @@ When `NEED_TEST = false` in the task, do not generate tests — validate behavio
 Consult the appropriate skill for testing patterns:
 - `reactive-rxswift` — testing RxSwift code with RxTest/RxBlocking
 - `reactive-combine` — testing Combine code with expectations
+- `concurrency-architecture` — testing concurrency placement: `TestClock` (TCA / `swift-clocks`) instead of real `Task.sleep` for debounce/timeout/retry assertions; verifying that a cancelled Task does NOT mutate ViewModel state (assert no `@Published` change after cancel); asserting `CancellationError` silence (no `UserMessage` emitted, no error alert); confirming parallel fan-out happens at the expected layer (mock dependencies count concurrent calls — UseCase test sees N calls, ViewModel test sees 1 if business logic is in UseCase); `await sut.fetchTask?.value` synchronization in UIKit ViewModel tests; `@MainActor` test class for `@MainActor` ViewModel/Presenter; in-memory `actor` mocks must preserve serialization semantics. Defer Sendable conformance and Swift 6 test-target migration to `swift-concurrency:swift-concurrency` (AvdLee skill)
 - `error-architecture` — testing error paths: golden mapper tables, ViewModel UserMessage assertions, cancellation silence
 - `net-architecture` — `URLProtocol` stub for transport-level integration tests, fake `HTTPClient` for unit tests, contract tests for endpoint URL/method/body encoding
 - `net-openapi` — mocking generated `APIProtocol` vs adapter `APIClient` protocol, server stub for integration tests

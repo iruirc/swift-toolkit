@@ -13,6 +13,7 @@ Separates business logic into a testable ViewModel, keeping ViewController as a 
 > - `di-composition-root` — where ViewModels and their dependencies are wired
 > - `di-module-assembly` — Factory pattern for assembling View+ViewModel pairs
 > - `arch-mvc` — predecessor pattern; see Migration Paths there for MVC → MVVM transition
+> - `concurrency-architecture` — where `@MainActor` lives (ViewModel = yes; UseCase/Repository = no), Task ownership and cancellation discipline, `async let` placement
 
 ## Structure
 

@@ -12,6 +12,7 @@ State-driven navigation for SwiftUI apps. Replaces the imperative push/present/p
 > - `arch-mvvm` — ViewModel emits navigation intent; the Router/Path here is what the View binds to in response
 > - `di-composition-root` — where Routers and root NavigationStacks are wired
 > - `di-module-assembly` — Factory pattern for assembling SwiftUI screens with their dependencies
+> - `concurrency-architecture` — `@Observable` Router is `@MainActor`; SwiftUI `.task { }` modifier is the default Task-owner for screen-bound work (auto-cancel on disappear)
 
 ## Navigation Primitives
 
