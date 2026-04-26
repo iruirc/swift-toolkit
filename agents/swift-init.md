@@ -1,6 +1,6 @@
 ---
 name: swift-init
-description: "Генерирует новый Swift-проект (Xcode app или SPM package). Для подключения swift-toolkit к существующему проекту используй /swift-setup. Bootstraps a new Swift/Apple project: iOS/macOS apps or SPM packages. Use when: starting a new project from scratch, setting up modular structure, initializing SwiftLint and CLAUDE.md. Interactive — always confirms stack choices before generating."
+description: "Генерирует один Swift-артефакт за вызов: либо приложение (iOS/macOS/multi-platform), либо SPM-пакет. Для многомодульного проекта запускается несколько раз в нужных папках; объединение в `.xcworkspace` пользователь делает сам в Xcode. Для подключения swift-toolkit к существующему проекту используй /swift-setup. Bootstraps a new Swift/Apple project: iOS/macOS apps or SPM packages. Use when: starting a new project (or a single SPM package) from scratch, initializing SwiftLint and CLAUDE.md. Interactive — always confirms stack choices before generating."
 model: opus
 color: blue
 ---
@@ -13,18 +13,21 @@ You are invoked **directly by the user**, not by the CLAUDE.md orchestrator. You
 
 ## Modes
 
+Один вызов `swift-init` создаёт **ровно один артефакт** — приложение либо SPM-пакет. Для многомодульной структуры (app + N локальных пакетов) запусти `swift-init` несколько раз в нужных папках (пакеты могут лежать где угодно на диске), а `.xcworkspace` объедини руками в Xcode (см. секцию **Multi-module projects** ниже).
+
 Ask the user which mode applies before generating anything:
 
 **Applications:**
 1. **iOS App** (UIKit or SwiftUI, single target)
 2. **macOS App** (AppKit or SwiftUI)
 3. **iOS + macOS App** (multi-platform target or separate targets)
-4. **iOS App + SPM packages** (app + local packages, modular structure)
 
 **Libraries / Packages:**
-5. **SPM package** (pure library: `Package.swift`, `Sources/`, `Tests/`; no `.xcodeproj`)
-6. **SPM package (multi-target)** — several targets in one package
-7. **SPM package (multi-platform)** — iOS + macOS support
+4. **SPM package** (pure library: `Package.swift`, `Sources/`, `Tests/`; no `.xcodeproj`)
+5. **SPM package (multi-target)** — several targets in one package
+6. **SPM package (multi-platform)** — iOS + macOS support
+
+**Не предлагай комбинированный режим «App + SPM packages».** Если пользователь хочет такую структуру — объясни композицию: сначала `swift-init` для приложения, потом отдельные `swift-init` для пакетов в их собственных папках, затем workspace в Xcode.
 
 ## Mandatory Pre-Generation Dialog
 
@@ -46,7 +49,7 @@ For SPM packages:
 
 For every mode:
 - Folder structure matching the chosen mode and architecture
-- `CLAUDE.md` with filled `## Стек` and `## Режим` sections (`manual` by default); `## Модули` only if multi-module app or multi-target package; `## Пути` only if paths deviate from defaults
+- `CLAUDE.md` with filled `## Стек` and `## Режим` sections (`manual` by default); `## Модули` only for multi-target SPM packages (для apps секция пустая — модули добавятся, когда пользователь подключит локальные пакеты, см. **Multi-module projects**); `## Пути` only if paths deviate from defaults
 - `.swiftlint.yml` with sensible defaults
 - Empty `Tasks/` folder with subfolders `TODO/`, `ACTIVE/`, `DONE/`
 - `README.md` with brief project description + how to build
@@ -109,8 +112,19 @@ After generating, produce a short report to the user:
 - `## Summary` — what mode was chosen and why
 - `## Folder Tree` — `tree`-like listing of the generated structure
 - `## Files Created` — list with one-line purpose each
-- `## Next Steps` — exact commands to build and run the project
+- `## Next Steps` — exact commands to build and run the project. **Для app-модов обязательно добавь подсказку**: «Если нужны локальные SPM-пакеты — запусти `/swift-init` отдельно в любой папке на диске, затем в Xcode `File → New → Workspace`, перетащи в workspace `.xcodeproj` приложения и папки пакетов. После этого открывай **`.xcworkspace`**, не `.xcodeproj` — иначе Xcode не увидит локальные пакеты».
 - `## CLAUDE.md Highlights` — what was auto-filled in `## Стек`, `## Режим`, `## Модули`, `## Пути`
+
+## Multi-module projects
+
+Если пользователь хочет «приложение + локальные SPM-пакеты», `swift-init` **не делает это атомарно**. Корректная композиция:
+
+1. `swift-init` для приложения (mode 1/2/3) в папке приложения.
+2. `swift-init` отдельно для каждого пакета (mode 4/5/6) — пакеты могут лежать **где угодно** на диске: рядом с приложением, в подпапке `Packages/`, в братской папке `~/Projects/Shared/Core/`, в отдельном git-репозитории. Расположение — выбор пользователя, агент его не диктует.
+3. **Workspace** (`.xcworkspace`) собирается пользователем в Xcode за 30 секунд: `File → New → Workspace`, перетащить в навигатор workspace-а нужные `.xcodeproj` и папки пакетов (для пакета достаточно ссылки на папку — Xcode сам подхватит `Package.swift`). Сохранить рядом с приложением (или в отдельной папке-«хабе»).
+4. **Привязка пакета как зависимости app-таргета**: в Xcode выбрать app target → Frameworks, Libraries, and Embedded Content → `+` → выбрать продукт пакета из workspace.
+
+Агент `swift-init` **сам workspace не генерирует** — это организационный концерн, который часто эволюционирует (добавился sample app → расширили workspace; вынесли пакет → сократили). Шаблонизация workspace-XML в init-режиме создаёт жёсткие допущения о составе и путях, которые быстро устаревают.
 
 ## Rules
 
