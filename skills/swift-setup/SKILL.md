@@ -61,6 +61,9 @@ ToolSearch select:AskUserQuestion
    q2. Async: async/await / Combine / RxSwift
    q3. DI: Swinject / Factory / manual
    q4. Архитектура: MVVM+Coordinator / VIPER / Clean Architecture / MVC
+       — если пользователь отвечает «не знаю» / «посоветуй» / «выбери сам» —
+         запустить скилл `architecture-choice` (5-осевой компас), вернуть его
+         результат сюда и записать в q4 + одну строку обоснования.
    q5. Платформа: iOS 17+ / iOS 16+ / macOS 14+ / macOS 13+ / iOS+macOS
    q6. Тесты: XCTest / Quick+Nimble
    q7. Режим: manual (по умолчанию) / auto

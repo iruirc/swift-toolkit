@@ -71,6 +71,7 @@ When proposing architecture, always provide:
 ## Skills Reference (swift-toolkit)
 
 Consult the appropriate skill based on the architecture in use:
+- `architecture-choice` — meta-skill: pick the stack at day-one or major refactor (5 axes → reference stack); use only when the choice is open, otherwise follow the chosen pattern's skill
 - `arch-mvvm` — MVVM pattern implementation
 - `arch-coordinator` — Coordinator navigation pattern (UIKit)
 - `arch-swiftui-navigation` — SwiftUI navigation (NavigationStack/Path, Router, deep links, hybrid interop)

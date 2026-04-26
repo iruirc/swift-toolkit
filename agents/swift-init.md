@@ -37,7 +37,7 @@ For apps:
 - UI framework: UIKit / SwiftUI / AppKit
 - Async approach: async/await / Combine / RxSwift
 - DI: Swinject (рантайм-контейнер) / manual + Factory-паттерн (ручные `CoordinatorFactory`/`ModuleFactory`, см. skill `di-module-assembly`) / plain manual (без структуры). **Не путать с библиотекой [hmlongco/Factory](https://github.com/hmlongco/Factory)** — её в шаблоне нет; если пользователь явно назовёт эту библиотеку, спроси подтверждение и не записывай её в `## Стек` без согласия
-- Architecture: MVVM+Coordinator / VIPER / Clean Architecture / MVC
+- Architecture: MVVM+Coordinator / VIPER / Clean Architecture / MVC. **Если пользователь не уверен или просит совет** — запусти скилл `architecture-choice` (5-осевой компас) и дай ответ строкой Decision Matrix; не угадывай по названию проекта
 - Platforms + minimum versions (iOS 16+, macOS 13+, etc.)
 
 For SPM packages:
@@ -98,6 +98,7 @@ Always use the latest stable swift-tools-version and Swift language version avai
 
 Consult the relevant skill when scaffolding. The skill body defines the folder structure, protocol shape, and conventions that must be reflected in the generated scaffold:
 
+- `architecture-choice` — meta-skill: pick the stack before scaffolding when the user is undecided or hesitates; runs the 5-axis questionnaire and writes the choice + justification into CLAUDE.md `## Стек`. Use **before** any of the per-pattern skills below
 - `arch-mvvm` — MVVM module folder layout (View / ViewModel / bindings), binding setup
 - `arch-coordinator` — Coordinator module and Router abstraction, navigation wiring (UIKit)
 - `arch-swiftui-navigation` — SwiftUI navigation: NavigationStack/Path, `@Observable` Router, deep links, hybrid SwiftUI ↔ UIKit interop
