@@ -1,9 +1,12 @@
 ---
 name: reactive-rxswift
-description: "Use when working with RxSwift in iOS apps. Covers observables, operators, memory management, UI bindings with Driver/Signal, ViewModel patterns, and testing with RxTest/RxBlocking."
+description: "Use when working with RxSwift — a binding/event-stream tool, not an architecture. Covers observables, operators, memory management, Driver/Signal UI bindings, ViewModel binding patterns, and testing with RxTest/RxBlocking. Architecture is chosen separately (see arch-mvvm / arch-clean / arch-viper)."
 ---
 
 # RxSwift Patterns & Best Practices
+
+> **Категория:** binding/event-stream framework, **не** архитектурный паттерн.
+> RxSwift — это «провода» между слоями (View ↔ ViewModel, Service ↔ Repository), а не способ организовать сами слои. Архитектуру выбирай отдельно: `arch-mvvm` / `arch-clean` / `arch-viper` / `arch-tca` — RxSwift можно использовать с любой из них (для TCA это редкий выбор).
 
 This skill provides guidelines for using RxSwift effectively in iOS applications.
 

@@ -1,9 +1,12 @@
 ---
 name: reactive-combine
-description: "Use when working with Apple's Combine framework in iOS apps. Covers publishers, subscribers, subjects, operators, UIKit integration, ViewModel patterns, and testing."
+description: "Use when working with Apple's Combine framework — a binding/event-stream tool, not an architecture. Covers publishers, subscribers, subjects, operators, UIKit/SwiftUI integration, ViewModel binding patterns, and testing. Architecture is chosen separately (see arch-mvvm / arch-clean / arch-tca)."
 ---
 
 # Combine Framework Patterns & Best Practices
+
+> **Категория:** binding/event-stream framework, **не** архитектурный паттерн.
+> Combine — это «провода» между слоями (View ↔ ViewModel, Service ↔ Repository), а не способ организовать сами слои. Архитектуру выбирай отдельно: `arch-mvvm` / `arch-clean` / `arch-tca` / `arch-viper` — Combine можно использовать с любой из них.
 
 This skill provides guidelines for using Apple's Combine framework effectively in iOS applications.
 
