@@ -86,9 +86,10 @@ Consult the appropriate skill based on the architecture in use:
 - `net-openapi` — when API has an OpenAPI spec; generated client + adapter pattern, custom transports, server stubs
 - `persistence-architecture` — designing local storage (Core Data / SwiftData / GRDB / Realm decision, Repository as boundary, threading model, CloudKit sync, encryption at rest)
 - `persistence-migrations` — choosing migration strategy at design time (lightweight vs heavyweight, when to chain adjacent pairs, transformable Codable evolution policy: evolutionary / lazy / proactive / versioned envelope), planning long-migration UX and recovery flow on day one
-- `di-swinject` — dependency injection patterns (Swinject-specific)
-- `di-composition-root` — Composition Root design, bootstrap strategies, scope management
-- `di-module-assembly` — Factory pattern, Assembly, non-UI factories, late initialization
+- `di-swinject` — Swinject DI: when runtime container, autoregister, name-binding fit (UIKit-first, legacy)
+- `di-factory` — Factory (hmlongco) DI: when compile-time safety, property-wrapper injection, SwiftUI-first. Comparison table at the end of `di-swinject` for choosing
+- `di-composition-root` — Composition Root design, bootstrap strategies, scope management; manual / Swinject / Factory comparison table
+- `di-module-assembly` — Factory pattern, Assembly, non-UI factories, late initialization (architecture pattern, works over any DI)
 - `pkg-spm-design` — designing package boundaries (Feature / Library / API / Engine archetypes)
 - `task-new`, `task-move` — task lifecycle management
 

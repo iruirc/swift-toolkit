@@ -10,6 +10,7 @@ Connects Dependency Injection with Coordinators through explicit Factory objects
 > **Related skills:**
 > - `di-composition-root` — где живёт CR, как он передаёт зависимости в Factory-и (вынесено отдельно — этот скилл больше **не описывает CR подробно**, только использует)
 > - `di-swinject` — Swinject-специфика, если выбран как DI-framework
+> - `di-factory` — Factory (hmlongco) специфика. Архитектурный pattern (`AppDependencies` → `CoordinatorFactory` → `ModuleFactory`) идентичен; меняется только реализация фасада `AppDependencyContainer` (вместо `container.resolve(...)` — `Container.shared.foo()`)
 > - `pkg-spm-design` — как Module Assembly применяется внутри SPM-пакета (Feature-архетип)
 
 ## Problem

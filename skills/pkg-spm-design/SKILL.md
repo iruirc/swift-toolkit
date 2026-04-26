@@ -11,6 +11,7 @@ description: "Use when designing or reviewing Swift Package boundaries — what 
 > - `di-composition-root` — куда host-app встраивает пакет при сборке графа
 > - `di-module-assembly` — Factory-паттерн внутри Feature-пакета и в host-app
 > - `di-swinject` — если в host-app выбран Swinject как DI-framework (но **не** в самом пакете)
+> - `di-factory` — если в host-app выбран Factory (hmlongco). Правило «не импортируй DI в пакет» применяется и к Factory; модульные `extension Container` per feature живут в **app target**, см. `di-factory` секцию «Modular Containers»
 
 ## Decision tree: какой это пакет?
 
@@ -38,8 +39,9 @@ digraph package_type {
 
 ## Универсальные правила (для всех типов)
 
-1. **Никогда не импортируй DI-framework** в main target пакета — ни Swinject, ни Factory, ни Resolver, ни Needle, ни Cleanse. Это создаёт жёсткую связку: host обязан использовать тот же фреймворк той же мажорной версии.
+1. **Никогда не импортируй DI-framework** в main target пакета — ни Swinject, ни Factory (FactoryKit), ни Resolver, ни Needle, ни Cleanse. Это создаёт жёсткую связку: host обязан использовать тот же фреймворк той же мажорной версии.
    - **Исключение:** test target пакета может импортировать DI-framework для построения mock-графа в integration-тестах.
+   - **Про Factory отдельно:** хотя его `extension Container` pattern технически выглядит привлекательно для модульной организации, помещать `import FactoryKit` в SPM-пакет — то же нарушение правила, что и Swinject. Модульные `extension Container { var foo: Factory<Foo> }` per feature живут в **app target** (например, файлы `Container+ProfileFeature.swift`, `Container+SettingsFeature.swift`), а не в SPM-пакетах. См. `di-factory`, секцию «Modular Containers».
 2. **Минимизируй `public`** — всё, что не нужно за пределами пакета, держим `internal`. Каждый `public` — это публичный контракт, который ломать нельзя без major version bump.
 3. **Domain-пакеты не зависят от UIKit/SwiftUI/AppKit** — Models, Engine, бизнес-логика должны быть платформо-независимыми. UI-зависимости только в Feature-пакетах.
 4. **Никаких глобальных синглтонов** в пакете — это превращает пакет в Service Locator и убивает testability.

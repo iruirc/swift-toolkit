@@ -44,6 +44,7 @@ Audit source code, infrastructure (Info.plist, entitlements, xcconfig), dependen
 ## Skills Reference (swift-toolkit)
 
 - `di-swinject`, `di-composition-root`, `di-module-assembly` — for reviewing DI-injected keychain/auth services and where they get bootstrapped
+- `di-factory` — Factory-specific security audit: any auth/keychain service must NOT be `@Injected` deep in domain code (Service Locator → invisible attack surface); `Container.shared.foo()` from third-party SPM packages = uncontrolled access to credentials; `.onDebug` / `.onSimulator` overrides for auth must NOT bypass real cryptography in DEBUG (e.g. `.onDebug { NoOpKeychain() }` is a footgun if leaked into TestFlight); `register(...)` calls visible in production code paths = potential runtime override attack; tokens stored in `Container.shared.token` cached across `reset()` if scope is `.singleton` — prefer explicit init-injection for credentials rather than property-wrapper resolution
 - `pkg-spm-design` — auditing public surface of auth/credentials packages
 - `reactive-combine`, `reactive-rxswift` — for token refresh streams and subscription leaks that affect auth
 - `error-architecture` — PII redaction in logs, never leaking server error bodies / stack traces / tokens to user-facing messages

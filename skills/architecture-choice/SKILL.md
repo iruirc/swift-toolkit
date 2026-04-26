@@ -11,7 +11,7 @@ A **meta-skill** for picking a stack at day-one or at a major refactor. Doesn't 
 > - `arch-mvc`, `arch-mvvm`, `arch-clean`, `arch-viper`, `arch-tca` — the patterns this skill chooses between (`arch-mvc` "When Appropriate" gives the fuller MVC criteria; `arch-tca` "When Appropriate" gives the fuller TCA criteria; this matrix is a one-line summary)
 > - `arch-coordinator`, `arch-swiftui-navigation` — orthogonal navigation skills, almost always added on top
 > - `pkg-spm-design` — when "should we modularize at all" is also being decided
-> - `di-composition-root`, `di-swinject`, `di-module-assembly` — DI is a **parallel** decision, not derived from architecture
+> - `di-composition-root`, `di-swinject`, `di-factory`, `di-module-assembly` — DI is a **parallel** decision, not derived from architecture
 > - `reactive-combine`, `reactive-rxswift` — binding framework, orthogonal to architecture
 > - `error-architecture`, `net-architecture`, `persistence-architecture` — cross-cutting; bring them in regardless of pattern
 
@@ -86,7 +86,7 @@ Each stack is the set of skills you should now follow. Cross all of them off.
 
 Cross-cutting (always, regardless of pattern):
 
-- **DI** (parallel decision): `di-composition-root` (manual graph for MVC/small; Swinject for 3+ devs or 10+ services — see `di-swinject`); `di-module-assembly` for Factory pattern
+- **DI** (parallel decision): `di-composition-root` is the entry point — covers manual graph (default for MVC/small), Swinject (runtime, autoregister, SwiftUI-agnostic — see `di-swinject`), and Factory (compile-time, property-wrapper injection, SwiftUI-friendly — see `di-factory`). `di-module-assembly` is the Coordinator/ModuleFactory pattern that sits on top of any of those choices
 - **Errors:** `error-architecture` from day one — cheap to set up, expensive to retrofit
 - **Networking:** `net-architecture` (and `net-openapi` if API has an OpenAPI spec)
 - **Persistence:** `persistence-architecture` once you store more than UserDefaults; `persistence-migrations` on first commit if schema is non-trivial
@@ -101,7 +101,7 @@ Cross-cutting (always, regardless of pattern):
 | Coordinator vs Router on hybrid UIKit+SwiftUI | Coordinator at the top; Router inside SwiftUI islands |
 | "Should we modularize?" | Not yet. One package, multiple folders, until 2+ devs collide or compile time hurts |
 | RxSwift vs Combine on a new project | Combine. RxSwift only if existing code already uses it |
-| Swinject vs manual DI | Manual graph (`di-composition-root` "Manual DI" section) until 3+ devs or 10+ services |
+| Manual DI vs Factory vs Swinject | Manual graph (`di-composition-root` "Manual DI" section) until 10+ services. Then **Factory** (`di-factory`) by default for SwiftUI-first projects — compile-time safety, property-wrapper injection, preview/test contexts из коробки. **Swinject** (`di-swinject`) only when you need runtime autoregister, name-based lookup, or are stuck with legacy |
 | TCA? | Pick TCA only when SwiftUI-only **and** team already fluent **and** the project benefits from exhaustive reducer-level tests. Otherwise default to MVVM (`arch-mvvm`) — see `arch-tca` "When Appropriate" for the full criteria. TCA is a non-default track; don't pick it on a deadline or to "future-proof" |
 
 ## Anti-Patterns at Choice Time

@@ -91,9 +91,10 @@ Consult the appropriate skill when refactoring:
 - `net-openapi` — replacing hand-written API clients with generated client + adapter when OpenAPI spec exists
 - `persistence-architecture` — extracting `NSManagedObject` / `@Model` / Realm objects out of ViewModels behind a Repository protocol, splitting one-context-for-everything into viewContext + background contexts, replacing `UserDefaults`-as-database with proper storage
 - `persistence-migrations` — introducing a migration plan into a project that grew without one, splitting a mega `v1 → vCurrent` mapping model into adjacent pairs, wrapping unsafe migration calls in atomic backup-and-replace, retrofitting fixture tests for previously-shipped schema versions, replacing `try? JSONDecoder().decode` on transformable Codable with explicit lazy/proactive payload migration
-- `di-swinject` — DI registration for extracted services
+- `di-swinject` — DI registration for extracted services (Swinject-specific)
+- `di-factory` — DI registration when project is on Factory: extracting `Container.shared.foo()` calls hidden in domain code into proper init/`@Injected`, breaking `extension Container` namespaces by feature into `Container+Profile.swift` / `Container+Settings.swift`, migrating from `Factory` import to `FactoryKit`, splitting one giant `Container` into `SharedContainer` per feature group when name-collisions appear; migration `Swinject → Factory` (table at the end of `di-swinject`) — feature-by-feature, never both DI frameworks longer than one sprint
 - `di-composition-root` — extracting CR concerns out of fat AppDelegate/SceneDelegate
-- `di-module-assembly` — Factory pattern, Assembly, non-UI factories
+- `di-module-assembly` — Factory pattern, Assembly, non-UI factories (architecture pattern, works over any DI)
 - `pkg-spm-design` — extracting code into SPM packages by archetype
 - `task-new`, `task-move` — task lifecycle management
 

@@ -36,7 +36,7 @@ Before generating, gather:
 For apps:
 - UI framework: UIKit / SwiftUI / AppKit
 - Async approach: async/await / Combine / RxSwift
-- DI: Swinject (рантайм-контейнер) / manual + Factory-паттерн (ручные `CoordinatorFactory`/`ModuleFactory`, см. skill `di-module-assembly`) / plain manual (без структуры). **Не путать с библиотекой [hmlongco/Factory](https://github.com/hmlongco/Factory)** — её в шаблоне нет; если пользователь явно назовёт эту библиотеку, спроси подтверждение и не записывай её в `## Стек` без согласия
+- DI: четыре опции — (1) **Swinject** (рантайм-контейнер, autoregister, name-binding — см. `di-swinject`); (2) **Factory** by hmlongco (compile-time DI, `@Injected` property wrapper, preview/test contexts — см. `di-factory`); (3) **manual + Factory-паттерн** (ручные `CoordinatorFactory`/`ModuleFactory` без DI-библиотеки, см. `di-module-assembly` + `di-composition-root` секцию «Manual DI»); (4) **plain manual** (без структуры — для прототипов 1-3 экрана). **Не путай Factory-паттерн (архитектурный pattern) и Factory-библиотеку (hmlongco/Factory)** — это разные вещи: Factory-pattern есть везде, библиотека Factory — отдельный выбор. Если пользователь не уверен — запусти `architecture-choice` (там в Stack Cookbook есть DI-tiebreaker) или предложи default по проекту: SwiftUI-first → Factory; UIKit + autoregister нужен → Swinject; <10 сервисов → manual
 - Architecture: MVVM+Coordinator / VIPER / Clean Architecture / MVC. **Если пользователь не уверен или просит совет** — запусти скилл `architecture-choice` (5-осевой компас) и дай ответ строкой Decision Matrix; не угадывай по названию проекта
 - Platforms + minimum versions (iOS 16+, macOS 13+, etc.)
 
@@ -107,8 +107,9 @@ Consult the relevant skill when scaffolding. The skill body defines the folder s
 - `arch-mvc` — classic MVC folder layout
 - `arch-tca` — The Composable Architecture (Point-Free): folder layout (`*Feature.swift` + `*View.swift`), `swift-composable-architecture` SPM dependency, root `Store` wired in `@main App`, `@Reducer` + `@ObservableState` scaffolding. Use only when CLAUDE.md `## Стек` already records TCA — do not propose it on a new project unless the user explicitly asks; default to MVVM
 - `di-swinject` — Swinject-специфика: scopes, регистрации, autoregister, тестовые контейнеры
-- `di-composition-root` — где живёт CR (SceneDelegate / @main App / AppDelegate), sync vs async bootstrap, scopes (app/scene/flow)
-- `di-module-assembly` — Factory-паттерн для UI-фич, не-UI factories, late & conditional initialization
+- `di-factory` — Factory (hmlongco) специфика: `Container`/`SharedContainer`, property-wrapper injection (`@Injected`/`@LazyInjected`), scopes (`.cached`/`.singleton`/`.shared`/`.graph`/`.unique`), `AutoRegistering`, contexts (`onTest`/`onPreview`)
+- `di-composition-root` — где живёт CR (SceneDelegate / @main App / AppDelegate), sync vs async bootstrap, scopes (app/scene/flow), сравнительная таблица manual / Swinject / Factory
+- `di-module-assembly` — Factory-паттерн для UI-фич, не-UI factories, late & conditional initialization (работает поверх любого DI)
 - `pkg-spm-design` — 4 архетипа SPM-пакетов (Feature / Library / API-Contract / Engine-SDK) с правилами публичности
 - `reactive-rxswift` — RxSwift initial imports, DisposeBag setup, Resources subclass if present
 - `reactive-combine` — Combine imports, AnyCancellable storage patterns

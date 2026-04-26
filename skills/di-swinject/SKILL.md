@@ -11,6 +11,7 @@ This skill provides Swinject-specific guidelines: scopes, registration technique
 > - `di-composition-root` — где создаётся Swinject `Container`, как живёт его lifetime, sync/async bootstrap, scope-стратегии
 > - `di-module-assembly` — как Coordinator-ы получают сервисы из Swinject через Factory-паттерн без Service Locator
 > - `pkg-spm-design` — почему Swinject **не должен** импортироваться в SPM-пакетах
+> - `di-factory` — альтернативный DI-framework (Factory by hmlongco): compile-time safety, property-wrapper injection, SPM-friendly. Сравнительная таблица в конце этого скилла
 
 ## When to Use
 
@@ -22,9 +23,10 @@ This skill provides Swinject-specific guidelines: scopes, registration technique
 - Complex dependency graphs
 
 **Consider alternatives**:
-- Simple apps → Manual DI (pass dependencies in init)
-- SwiftUI apps → Environment objects
-- Compile-time safety priority → manual DI + Factory pattern (см. `di-module-assembly`)
+- Simple apps → Manual DI (pass dependencies in init, см. `di-composition-root` секция «Manual AppDependencyContainer»)
+- SwiftUI apps без runtime-binding-а → **Factory** (см. `di-factory`) — property-wrapper injection, preview/test contexts из коробки, compile-time safety
+- Compile-time safety priority → `di-factory` (factory-замыкание не существует → код не компилируется) или manual DI
+- TCA-фича целиком → `@Dependency` от Point-Free (см. `arch-tca`), не Swinject
 
 ## Core Concepts
 
@@ -456,3 +458,39 @@ extension Container {
     }
 }
 ```
+
+## Swinject vs Factory: когда что
+
+Swinject и Factory (см. `di-factory`) решают одну задачу разными способами. Выбор:
+
+| Критерий | Swinject | Factory |
+|---|---|---|
+| Compile-time safety | ❌ Resolve-crash в runtime | ✅ Не компилируется без factory |
+| Стиль injection | Constructor через `r.resolve(...)` | Property wrapper `@Injected` или `Container.shared.foo()` |
+| Регистрации | `register` / `autoregister` в Assembly | Computed property `var foo: Factory<Foo> { self { Foo() } }` |
+| Runtime-параметры | `register { (r, arg) in ... }` + `name:` | `ParameterFactory` (один тип параметров на ключ) |
+| Multiple impls одного типа | `name:` параметр | Отдельные computed-properties или modular containers |
+| Autoregister (avtores'olve init args) | ✅ Через `SwinjectAutoregistration` | ❌ Нет (явно прописать deps в замыкании) |
+| Внутри SPM-пакета | ❌ Запрещено | ❌ Запрещено в main target. Модульные `extension Container` per feature — в app target |
+| Preview/Test context overrides | Вручную (отдельный test-Assembly) | ✅ `.onPreview` / `.onTest` modifier из коробки |
+| Параллельные тесты | Ручной reset между тестами | ✅ Swift Testing `@Suite(.container)` через `@TaskLocal` |
+| Зрелость | 10+ лет в production, де-факто стандарт | Современная библиотека (2.x с 2023), активно развивается |
+| SwiftUI-специфика | Нейтрален | Заточен под SwiftUI/Observation |
+| Размер | ~3000 LOC + SwinjectAutoregistration | <1000 LOC, single dependency |
+
+**Когда Swinject лучше:**
+- Многомодульное legacy уже на нём — переписывать дороже
+- Нужен autoregister (`r.autoregister(...)` без явной выписки конструктора)
+- Нужны **многоисполняемые** биндинги по `name:` с разными аргументами
+- UIKit-first проект, SwiftUI используется редко
+
+**Когда Factory лучше:**
+- Новый SwiftUI-first проект
+- Граф 10–100 сервисов, монорепо или SPM-модули
+- Хочется compile-time видеть всю dependency surface
+- Команда любит property-wrapper стиль
+- Critical: тесты должны гоняться параллельно без reset-headache
+
+**Когда ни тот, ни другой:**
+- < 10 сервисов → manual DI на `lazy var` (см. `di-composition-root`)
+- TCA-фича целиком → `@Dependency` от Point-Free
