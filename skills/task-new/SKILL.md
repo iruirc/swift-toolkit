@@ -33,39 +33,27 @@ Step-task triggers cover sub-tasks of an epic: "create sub-task for 137", "step 
 
 ## Task.md Template
 
-> **CRITICAL — DO NOT TRANSLATE THE TEMPLATE.**
-> Every string in the template below is a **fixed machine identifier**, NOT a human-facing label. Copy it byte-for-byte into `Task.md` in English. This rule overrides the active language: even when LANG is non-English, the literal strings `**Date:**`, `## 1. [Files]`, `## 2. [Description]`, `## 3. [Task]`, `## 4. [Stack]`, `## 5. [Logs]`, `## 6. [StackTrace]`, `[TASK_TYPE]`, `[NEED_TEST]`, `[NEED_REVIEW]`, `[WORKFLOW_MODE]`, `[STATUS]` MUST appear exactly as shown. Do not translate them, do not localize them, do not adapt them.
->
-> These tokens are parsed by `orchestrator`, `task-status`, `task-move`, and `workflow-*`. Any translation silently breaks parsing across the toolkit.
->
-> Localize ONLY the **prose the user composes inside the sections** (their natural language). Never the section headings, never the `**Date:**` label, never the bracketed metadata.
+The Task.md template is **NOT inlined in this skill body**. It lives in two physical files inside the plugin's `templates/task-md/` folder:
 
-```markdown
-**Date:** YYYY-MM-DD
-# NNN-slug
+- `templates/task-md/task-root.md` — for root tasks (no `[STATUS]` field).
+- `templates/task-md/task-step.md` — for step tasks (includes `[STATUS]`).
 
-[TASK_TYPE] = [FEATURE]       # FEATURE | BUG | REFACTOR | REVIEW | TEST | EPIC
-[NEED_TEST] = [true]
-[NEED_REVIEW] = [true]
+The skill **MUST load the template via the Read tool and write it via the Write tool, byte-for-byte**, with only `{{...}}` placeholder substitution. Do NOT retype the template inline, do NOT paraphrase it, do NOT translate any of its literal characters.
 
-# Step tasks only (inside an epic):
-[STATUS] = [PENDING]          # PENDING | IN_PROGRESS | DONE | DEFERRED | BLOCKED | SKIPPED
+Section headings (`## 1. [Files]` … `## 6. [StackTrace]`), the `**Date:**` label, and bracketed metadata (`[TASK_TYPE]`, `[NEED_TEST]`, `[NEED_REVIEW]`, `[WORKFLOW_MODE]`, `[STATUS]`) are stable machine identifiers parsed by `orchestrator`, `task-status`, `task-move`, and `workflow-*`. Translating any of them silently breaks parsing across the toolkit. The Read+Write copy step guarantees they reach disk unmodified.
 
-# Optional (only if overriding project default from CLAUDE.md):
-# [WORKFLOW_MODE] = [auto]    # manual | auto
+Localize ONLY the **prose the user composes inside the sections** (their natural language). The section headings themselves stay exactly as the template provides them.
 
-## 1. [Files]
+For reference, the templates contain these placeholders:
 
-## 2. [Description]
-
-## 3. [Task]
-
-## 4. [Stack]
-
-## 5. [Logs]
-
-## 6. [StackTrace]
-```
+| Placeholder | Substituted value |
+|---|---|
+| `{{DATE}}` | Today's ISO date (`YYYY-MM-DD`). |
+| `{{NNN_SLUG}}` | The folder name, e.g. `001-profile-screen`. |
+| `{{TASK_TYPE}}` | `FEATURE` \| `BUG` \| `REFACTOR` \| `REVIEW` \| `TEST` \| `EPIC` (decided in step 6 below). |
+| `{{NEED_TEST}}` | `true` \| `false` (decided in step 7 below). |
+| `{{NEED_REVIEW}}` | `true` \| `false` (decided in step 7 below). |
+| `{{STATUS}}` | (`task-step.md` only) `PENDING` \| `IN_PROGRESS` \| `DONE` \| `DEFERRED` \| `BLOCKED` \| `SKIPPED`. |
 
 ## Process — root task
 
@@ -78,26 +66,33 @@ Step-task triggers cover sub-tasks of an epic: "create sub-task for 137", "step 
    - Explicit "create in <STATUS>" → that STATUS folder
 2. **Get the next NNN**: scan every folder under `Tasks/**/` matching `^\d{3}-`, find the max, increment by 1.
 3. **Make the folder**: `Tasks/<STATUS>/NNN-slug/`.
-4. **Create Task.md** with the template above.
-5. **Formalize the user's input** (no codebase research) and fill sections:
-   - File paths, screenshot paths → `## 1. [Files]`
-   - Context / current behavior / problem → `## 2. [Description]`
-   - What to do / questions / reproduction steps → `## 3. [Task]`
-   - Logs → `## 5. [Logs]` (only if present in the request)
-   - Stack traces / crashlogs → `## 6. [StackTrace]` (only if present)
-6. **Set `[TASK_TYPE]`** by intent (matched across languages):
+4. **Decide `{{TASK_TYPE}}`** by intent (matched across languages):
    - "bug" / "crash" / "doesn't work" / "regression" → `BUG`
    - "epic" / "roadmap" / "investigate a large area" → `EPIC`
    - "refactor" / "extract" / "split into modules" → `REFACTOR`
    - "review" / "look at the diff" → `REVIEW`
    - "write tests" / "cover with tests" / "unit tests" → `TEST`
    - Default → `FEATURE`
-7. **Flags `[NEED_TEST]` / `[NEED_REVIEW]`** — default `true`/`true`. Flip to `false` when:
+5. **Decide `{{NEED_TEST}}` / `{{NEED_REVIEW}}`** — default `true` / `true`. Flip to `false` when:
    - Visual/cosmetic ("change color", "move button", "update icon", "update localization string") → `NEED_TEST = false`.
    - `TASK_TYPE` is `REVIEW`, `TEST`, or `EPIC` → both flags become `false` (not applicable).
    - The user explicitly asked for the work without tests or without review.
-8. **`[WORKFLOW_MODE]`** — add ONLY if the user explicitly asked for a mode different from the project's `## Mode`. Otherwise omit.
-9. **Report** the created folder path to the user. Do not start the workflow.
+6. **Locate the template** in the plugin (Read the first existing path):
+   a. `~/.claude/plugins/cache/swift-toolkit/swift-toolkit/<version>/templates/task-md/task-root.md`
+   b. `~/.claude/plugins/marketplaces/swift-toolkit/templates/task-md/task-root.md`
+7. **Read the template, substitute placeholders, write the result** as a single mechanical pass:
+   - Read the template via the Read tool. Do NOT retype it. Do NOT paraphrase it. Do NOT translate any character of it.
+   - Substitute `{{DATE}}`, `{{NNN_SLUG}}`, `{{TASK_TYPE}}`, `{{NEED_TEST}}`, `{{NEED_REVIEW}}` with the values determined above. Touch ONLY the `{{...}}` tokens; every other character is preserved exactly.
+   - Write the result via the Write tool to `<project>/Tasks/<STATUS>/<NNN-slug>/Task.md`.
+8. **Fill section bodies** with the user's prose using the Edit tool (one Edit per section). Append text under each H2 heading without changing the heading itself:
+   - File paths, screenshot paths → `## 1. [Files]`
+   - Context / current behavior / problem → `## 2. [Description]`
+   - What to do / questions / reproduction steps → `## 3. [Task]`
+   - Logs → `## 5. [Logs]` (only if present in the request)
+   - Stack traces / crashlogs → `## 6. [StackTrace]` (only if present)
+   The prose follows the user's natural language. The headings themselves are not touched.
+9. **`[WORKFLOW_MODE]`** — if the user explicitly asked for a mode different from the project's `## Mode`, append the line `[WORKFLOW_MODE] = [<mode>]` immediately after the `[NEED_REVIEW]` line via Edit. Otherwise leave the template as is (the optional commented-out line stays as documentation).
+10. **Report** the created folder path to the user. Do not start the workflow.
 
 ## Process — step task (sub-task of an epic)
 
@@ -106,15 +101,20 @@ Step-task triggers cover sub-tasks of an epic: "create sub-task for 137", "step 
 3. **Choose the step name**:
    - Numeric: find the max existing `N.step` in the parent (including sibling steps in nested epics), increment by 1 → `<N+1>.step`.
    - Named: the user said "step composition-model" → `composition-model.step`.
-4. **Create** `parent/<name>.step/Task.md` using the same template, but `[STATUS]` is always included (default `PENDING`). Step tasks do NOT have their own STATUS-subfolder — they inherit their parent's folder.
-5. Formalize and fill exactly like a root task.
-6. Report the created path.
+4. **Decide `{{TASK_TYPE}}`, `{{NEED_TEST}}`, `{{NEED_REVIEW}}`** — same rules as the root-task process steps 4–5.
+5. **Decide `{{STATUS}}`** — default `PENDING`. Any other starting status requires an explicit user statement.
+6. **Locate the template** in the plugin (Read the first existing path):
+   a. `~/.claude/plugins/cache/swift-toolkit/swift-toolkit/<version>/templates/task-md/task-step.md`
+   b. `~/.claude/plugins/marketplaces/swift-toolkit/templates/task-md/task-step.md`
+7. **Read the template, substitute placeholders, write the result** to `parent/<name>.step/Task.md` — exactly the same Read+substitute+Write pass as for root tasks, plus the `{{STATUS}}` placeholder. Touch ONLY `{{...}}` tokens.
+8. **Fill section bodies** via Edit, like for root tasks. Step tasks do NOT have their own STATUS-subfolder — they inherit their parent's folder.
+9. **Report** the created path.
 
 ## Rules
 
-- Do NOT research the codebase (no file reads, no grep, no glob beyond folder discovery).
+- Do NOT research the codebase (no file reads, no grep, no glob beyond folder discovery and the template Read).
 - Do NOT add information that isn't in the user's request.
 - Do NOT propose architecture or a plan — that is the job of later workflow stages.
 - Sections Logs / StackTrace / Stack are created only if the user's request contains that data.
 - For steps, `[STATUS] = [PENDING]` by default; any other starting status requires an explicit user statement.
-- The language of the formalized prose follows the user's natural language (Russian in → Russian out; English in → English out). Structural anchors (section headings, `**Date:**`, bracketed metadata) stay English regardless.
+- The language of the formalized prose follows the user's natural language (Russian in → Russian out; English in → English out). Structural anchors come from the template file and are NOT modified by this skill — Read+Write copy guarantees they reach disk byte-for-byte.
