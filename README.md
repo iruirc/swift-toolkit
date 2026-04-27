@@ -4,9 +4,18 @@ A set of skills, agents, and slash commands for Claude Code that turn the assist
 
 ## Setup
 
-- **New project from scratch** — `/swift-init` (creates an iOS/macOS app or an SPM package, fills in `CLAUDE.md`, lays down the `Tasks/` structure).
-- **Existing project** — `/swift-setup` (copies the `CLAUDE.md` template, fills the stack via dialog, creates `Tasks/`).
+- **New project from scratch** — `/swift-init` (creates an iOS/macOS app or an SPM package, lays down the `Tasks/` structure, writes both `CLAUDE.md` and `CLAUDE-swift-toolkit.md` — see *File layout* below).
+- **Existing project** — `/swift-setup` (creates `CLAUDE-swift-toolkit.md` from the template, inserts the `@./CLAUDE-swift-toolkit.md` import into your `CLAUDE.md`, creates `Tasks/`).
 - From there — manage tasks via slash commands (`/task-new`, `/task-run`, `/task-continue`, `/task-redo`, `/task-restart`, `/task-move`, `/task-status`) or NL phrases ("create task: …", "run 001", "continue 001", "status 001").
+
+### File layout
+
+`/swift-setup` and `/swift-init` produce two files in your project root:
+
+- **`CLAUDE-swift-toolkit.md`** — toolkit-owned configuration (`## Language`, `## Persona`, `## Stack`, `## Mode`, `## Modules`, `## Paths`, `## Orchestration`). Updated by `/swift-setup` and `/swift-lang`. Don't edit by hand — re-running `/swift-setup` may overwrite it (with a backup).
+- **`CLAUDE.md`** — your project-level Claude instructions. Contains a single `@./CLAUDE-swift-toolkit.md` line that imports toolkit configuration into Claude's context. Add your own sections, conventions, and project-specific instructions here. Toolkit never overwrites this file beyond inserting the import line.
+
+Existing projects on the legacy single-file format (everything in `CLAUDE.md`) are migrated automatically on the next `/swift-setup` invocation: toolkit sections move to `CLAUDE-swift-toolkit.md`, your sections stay in `CLAUDE.md`, and the original is backed up to `CLAUDE.md.bak`.
 
 ---
 
@@ -20,7 +29,7 @@ The skills live flat under `skills/`, but logically split into **seven groups**.
 |---|---|
 | [`architecture-choice`](skills/architecture-choice/SKILL.md) | A compass: 5 axes (team / lifetime / domain complexity / UI framework / tests) → one of 9 rows in the Decision Matrix. Points to a specific `arch-*`; does not replace it. Run once per project. |
 
-**Run first** during bootstrap or a major refactor, if `CLAUDE.md → ## Stack` is empty.
+**Run first** during bootstrap or a major refactor, if `CLAUDE-swift-toolkit.md → ## Stack` is empty.
 
 ### 1. Architectural patterns (pick **one** per project)
 
@@ -135,7 +144,7 @@ Live under `agents/`. Each is a specialized role with its own set of relevant sk
 
 swift-toolkit ships with English source-of-truth and per-language locale files for user-facing prompts. Currently supported: `en`, `ru`.
 
-- The active language is stored in your project's `CLAUDE.md` under `## Language` (set during `/swift-setup`).
+- The active language is stored in your project's `CLAUDE-swift-toolkit.md` under `## Language` (set during `/swift-setup`).
 - Switch any time with `/swift-lang en` or `/swift-lang ru`.
 - Skill triggers are bilingual — phrase your request in Russian or English regardless of the active language; only the response language changes.
 
