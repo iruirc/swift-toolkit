@@ -33,7 +33,12 @@ Step-task triggers cover sub-tasks of an epic: "create sub-task for 137", "step 
 
 ## Task.md Template
 
-The template is fixed English structure (stable structural anchors). Section headings, the `**Date:**` label, and bracketed metadata (`[TASK_TYPE]`, `[NEED_TEST]`, `[NEED_REVIEW]`, `[WORKFLOW_MODE]`, `[STATUS]`) are written **literally in English** to the Task.md file regardless of the project's active language — they are parsed by other skills (orchestrator, task-status) and must stay stable. Only the prose **content** the user fills in inside those sections follows the user's language.
+> **CRITICAL — DO NOT TRANSLATE THE TEMPLATE.**
+> Every string in the template below is a **fixed machine identifier**, NOT a human-facing label. Copy it byte-for-byte into `Task.md` in English. This rule overrides the active language: even when LANG is non-English, the literal strings `**Date:**`, `## 1. [Files]`, `## 2. [Description]`, `## 3. [Task]`, `## 4. [Stack]`, `## 5. [Logs]`, `## 6. [StackTrace]`, `[TASK_TYPE]`, `[NEED_TEST]`, `[NEED_REVIEW]`, `[WORKFLOW_MODE]`, `[STATUS]` MUST appear exactly as shown. Do not translate them, do not localize them, do not adapt them.
+>
+> These tokens are parsed by `orchestrator`, `task-status`, `task-move`, and `workflow-*`. Any translation silently breaks parsing across the toolkit.
+>
+> Localize ONLY the **prose the user composes inside the sections** (their natural language). Never the section headings, never the `**Date:**` label, never the bracketed metadata.
 
 ```markdown
 **Date:** YYYY-MM-DD
