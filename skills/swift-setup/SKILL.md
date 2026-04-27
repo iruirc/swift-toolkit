@@ -72,9 +72,9 @@ The skill's behavior is determined by the project state, computed from three che
 
 2. Compute state (see State Detection table).
 
-3. Locate templates (using <lang>):
-   a. `templates/claude-toolkit-md/<lang>.md` — toolkit file template.
-   b. `templates/claude-md-stub/<lang>.md` — minimal CLAUDE.md stub.
+3. Locate templates:
+   a. `templates/claude-toolkit-md/en.md` — toolkit file template (English-only; the file body is always EN regardless of `<lang>`).
+   b. `templates/claude-md-stub/<lang>.md` — minimal CLAUDE.md stub (localized; body comment is in the user's language).
    Lookup paths (try in order):
      - ~/.claude/plugins/cache/swift-toolkit/swift-toolkit/<latest-version>/templates/...
      - ~/.claude/plugins/marketplaces/swift-toolkit/templates/...
@@ -84,7 +84,7 @@ The skill's behavior is determined by the project state, computed from three che
 
    STATE A (new_install):
      a. Ask q1–q7 (stack questions; details below).
-     b. Render `templates/claude-toolkit-md/<lang>.md` with placeholder values from q1–q7. Write to <project>/CLAUDE-swift-toolkit.md.
+     b. Render `templates/claude-toolkit-md/en.md` with placeholder values from q1–q7 plus `<lang>` from q0. Write to <project>/CLAUDE-swift-toolkit.md.
      c. **If CLAUDE.md does NOT exist**: Render `templates/claude-md-stub/<lang>.md` with `{project_name}` derived from the project directory name. Write to <project>/CLAUDE.md.
      **If CLAUDE.md DOES exist** (the broken-state edge sub-state — CLAUDE.md already has the @import line but toolkit file was missing): SKIP this sub-step. Do not overwrite the user's CLAUDE.md.
 
@@ -158,9 +158,8 @@ Exact match only — no prefix-matching. `## Stack Cookbook` is NOT classified a
 ### Preamble handling
 
 - **Toolkit preamble detected** if the H1 (first non-empty `# ...` line) matches any of these canonical strings (exact match, case-sensitive):
-  - `# CLAUDE.md — Swift Toolkit` (legacy template, both EN and RU — the legacy template used the same H1 string for both languages; only the body was localized)
-  - `# CLAUDE-swift-toolkit.md — Swift Toolkit Configuration` (current EN)
-  - `# CLAUDE-swift-toolkit.md — Конфигурация Swift Toolkit` (current RU)
+  - `# CLAUDE.md — Swift Toolkit` (legacy template — both EN and RU legacy templates used the same H1 string; only the body was localized)
+  - `# CLAUDE-swift-toolkit.md — Swift Toolkit Configuration` (current — toolkit file is now EN-only, single H1 for all languages)
   → Discard preamble, replace with rendered `templates/claude-md-stub/<lang>.md`.
 - **Otherwise**: preserve preamble as-is. Insert `@./CLAUDE-swift-toolkit.md` after the H1 (or at very top if no H1) before the first user section.
 
@@ -168,7 +167,7 @@ Exact match only — no prefix-matching. `## Stack Cookbook` is NOT classified a
 
 `CLAUDE-swift-toolkit.md`:
 ```
-<H1 + intro from templates/claude-toolkit-md/<lang>.md>
+<H1 + intro from templates/claude-toolkit-md/en.md>
 
 <toolkit_sections in canonical order>
 ```
@@ -209,18 +208,19 @@ Same as before. Labels from locale keys (`auq_q1_ui_label` … `auq_q7_mode_labe
 
 ## Placeholder Replacements
 
-In `templates/claude-toolkit-md/<lang>.md`:
+In `templates/claude-toolkit-md/en.md` (the toolkit file is EN-only):
 
-| Placeholder | Source |
-|---|---|
-| `<SwiftUI \| UIKit \| AppKit>` | q1 |
-| `<async/await \| Combine \| RxSwift>` | q2 |
-| `<Swinject \| Factory \| manual>` | q3 |
-| `<MVVM+Coordinator \| VIPER \| Clean Architecture \| MVC>` | q4 |
-| `<iOS 16+ \| macOS 13+ \| iOS+macOS>` | q5 |
-| `<XCTest \| Quick+Nimble>` | q6 |
-| `manual` in `## Mode` | q7 |
-| `en` / `ru` in `## Language` | q0 |
+| Placeholder | Source | Substituted with |
+|---|---|---|
+| `<SwiftUI \| UIKit \| AppKit>` | q1 | chosen UI framework |
+| `<async/await \| Combine \| RxSwift>` | q2 | chosen async approach |
+| `<Swinject \| Factory \| manual>` | q3 | chosen DI |
+| `<MVVM+Coordinator \| VIPER \| Clean Architecture \| MVC>` | q4 | chosen architecture |
+| `<iOS 16+ \| macOS 13+ \| iOS+macOS>` | q5 | chosen platform |
+| `<XCTest \| Quick+Nimble>` | q6 | chosen test framework |
+| `manual` in `## Mode` | q7 | `manual` or `auto` |
+| `en` value in `## Language` | q0 | `en` or `ru` |
+| `<Communication Language>` in `## Persona` | q0 | `English` or `Russian` (the human-readable language name; drives Claude's communication language with the user) |
 
 In `templates/claude-md-stub/<lang>.md`:
 
