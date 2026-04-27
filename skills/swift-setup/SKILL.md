@@ -85,7 +85,8 @@ The skill's behavior is determined by the project state, computed from three che
    STATE A (new_install):
      a. Ask q1–q7 (stack questions; details below).
      b. Render `templates/claude-toolkit-md/<lang>.md` with placeholder values from q1–q7. Write to <project>/CLAUDE-swift-toolkit.md.
-     c. Render `templates/claude-md-stub/<lang>.md` with `{project_name}` derived from the project directory name. Write to <project>/CLAUDE.md.
+     c. **If CLAUDE.md does NOT exist**: Render `templates/claude-md-stub/<lang>.md` with `{project_name}` derived from the project directory name. Write to <project>/CLAUDE.md.
+     **If CLAUDE.md DOES exist** (the broken-state edge sub-state — CLAUDE.md already has the @import line but toolkit file was missing): SKIP this sub-step. Do not overwrite the user's CLAUDE.md.
 
    STATE B (existing_md):
      a. Ask q1–q7.
@@ -156,10 +157,9 @@ Exact match only — no prefix-matching. `## Stack Cookbook` is NOT classified a
 
 ### Preamble handling
 
-- **Toolkit preamble detected** if the H1 (first non-empty `# ...` line) matches any of these canonical strings:
-  - `# CLAUDE.md — Swift Toolkit` (legacy EN)
+- **Toolkit preamble detected** if the H1 (first non-empty `# ...` line) matches any of these canonical strings (exact match, case-sensitive):
+  - `# CLAUDE.md — Swift Toolkit` (legacy template, both EN and RU — the legacy template used the same H1 string for both languages; only the body was localized)
   - `# CLAUDE-swift-toolkit.md — Swift Toolkit Configuration` (current EN)
-  - `# CLAUDE.md — Swift Toolkit` followed by RU subtitle (legacy RU; if the original RU template differed, treat as legacy EN above)
   - `# CLAUDE-swift-toolkit.md — Конфигурация Swift Toolkit` (current RU)
   → Discard preamble, replace with rendered `templates/claude-md-stub/<lang>.md`.
 - **Otherwise**: preserve preamble as-is. Insert `@./CLAUDE-swift-toolkit.md` after the H1 (or at very top if no H1) before the first user section.
