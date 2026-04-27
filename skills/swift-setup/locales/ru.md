@@ -6,12 +6,6 @@
 ## error_template_not_found
 Шаблон CLAUDE-swift-toolkit.md плагина не найден. Проверь установку swift-toolkit (`~/.claude/plugins/cache/` или `~/.claude/plugins/marketplaces/`).
 
-## auq_existing_claude_md
-В проекте уже есть `CLAUDE.md`. Что сделать?
-
-## auq_existing_claude_md_options
-Overwrite | Backup-and-overwrite | Cancel
-
 ## auq_create_tasks_structure
 Создать `Tasks/` структуру для управления задачами? [Yes / No]
 

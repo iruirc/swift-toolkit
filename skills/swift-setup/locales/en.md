@@ -6,12 +6,6 @@ Not a Swift project (no `.xcodeproj`, `.xcworkspace`, or `Package.swift` found).
 ## error_template_not_found
 swift-toolkit CLAUDE-swift-toolkit.md template not found. Check installation (`~/.claude/plugins/cache/` or `~/.claude/plugins/marketplaces/`).
 
-## auq_existing_claude_md
-A `CLAUDE.md` already exists in this project. What should I do?
-
-## auq_existing_claude_md_options
-Overwrite | Backup-and-overwrite | Cancel
-
 ## auq_create_tasks_structure
 Create `Tasks/` structure for managing tasks? [Yes / No]
 
