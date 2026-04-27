@@ -1,8 +1,8 @@
 ---
-description: Настроить swift-toolkit в существующем Swift-проекте
-argument-hint: (без аргументов)
+description: "Configure swift-toolkit in an existing Swift project / Настроить swift-toolkit в существующем Swift-проекте"
+argument-hint: (no arguments)
 ---
 
-Активируй `swift-toolkit:swift-setup`.
+Activate `swift-toolkit:swift-setup`.
 
-Скилл скопирует шаблон CLAUDE.md из плагина, через AskUserQuestion спросит стек проекта (UI/Async/DI/архитектура/платформа/тесты), заполнит плейсхолдеры и (по желанию) создаст структуру `Tasks/`. Для генерации **нового** Swift-проекта с нуля используй `/swift-init`.
+The skill copies the CLAUDE.md template from the plugin, asks via AskUserQuestion for the project's stack (UI/Async/DI/architecture/platform/tests) and language, fills placeholders, and (optionally) creates a `Tasks/` structure. To generate a **new** Swift project from scratch use `/swift-init`.

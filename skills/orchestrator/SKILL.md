@@ -1,130 +1,142 @@
 ---
 name: orchestrator
-description: "Маршрутизирует пользовательский запрос в нужный профильный воркфлоу (FEATURE/BUG/REFACTOR/TEST/REVIEW/EPIC), резолвит недостающие параметры (профиль, режим, стек, точку старта), управляет стадиями и архивацией артефактов. Use when: 'запусти/сделай/выполни N', 'продолжи N', 'только <stage> для N', 'до <stage> для N', 'начни с <stage> для N', 'переделай <stage> для N', 'начни с фазы N.N для X', 'переделай фазу N.N для X', 'начни заново для N', 'перезапусти валидацию для N'."
+description: |
+  Routes a user request to the appropriate profile workflow (FEATURE/BUG/REFACTOR/TEST/REVIEW/EPIC), resolves missing parameters (profile, mode, stack, start point), and manages stages and artifact archival.
+  Use when (en): "run N", "do N", "execute N", "continue N", "only <stage> for N", "up to <stage> for N", "start from <stage> for N", "redo <stage> for N", "start from phase N.N for X", "redo phase N.N for X", "start over for N", "rerun validation for N"
+  Use when (ru): "запусти N", "сделай N", "выполни N", "продолжи N", "только <stage> для N", "до <stage> для N", "начни с <stage> для N", "переделай <stage> для N", "начни с фазы N.N для X", "переделай фазу N.N для X", "начни заново для N", "перезапусти валидацию для N"
 ---
 
 # Orchestrator
 
-Единая точка входа для маршрутизации задач из `Tasks/<STATUS>/<task_id>-*/` в соответствующий профильный воркфлоу. Скилл принимает минимальный вход (только `task_id`), достраивает остальные параметры по детерминированному алгоритму и передаёт управление структурированным контрактом в `swift-toolkit:workflow-*`.
+Single entry point for routing tasks from `Tasks/<STATUS>/<task_id>-*/` into the corresponding profile workflow. The skill accepts a minimal input (only `task_id`), fills in the remaining parameters via a deterministic algorithm, and hands control to `swift-toolkit:workflow-*` via a structured contract.
 
-Скилл сам не выполняет работу стадий — только резолвит параметры, валидирует команду, согласует с пользователем (в `manual`) и передаёт управление профильному воркфлоу.
+The skill itself does not perform the work of stages — it only resolves parameters, validates the command, confirms with the user (in `manual` mode), and dispatches control to the profile workflow.
+
+## Language Resolution
+
+Before producing any user-facing string:
+
+1. Read `CLAUDE.md` from the project root.
+2. Find the `## Language` section.
+3. Take the first non-empty line in that section, lowercase and trim it. That is `<lang>`.
+4. If `<lang>` is `en` or `ru`, use it. Otherwise default to `en`.
+5. Read this skill's `locales/<lang>.md`. Look up keys by H2 header.
+6. If a key is missing, fall back to the same key in `locales/en.md`. If still missing, that's a bug — fail loudly with key name.
+
+Caching: resolve `<lang>` once per skill invocation; do not re-read CLAUDE.md per string.
 
 ## Tool Loading (preamble)
 
-`AskUserQuestion` в текущем Claude Code загружается отложенно. **Первое действие** оркестратора в любом запуске:
+`AskUserQuestion` in the current Claude Code is loaded lazily. The **first action** the orchestrator performs on any run:
 
 ```
 ToolSearch select:AskUserQuestion
 ```
 
-После загрузки схемы можно вызывать `AskUserQuestion`. Если по какой-то причине загрузка не удалась (старая среда, отсутствует тул), используется текстовый fallback: вопрос с пронумерованными вариантами в обычном сообщении и парсинг ответа пользователя:
+Once the schema is loaded, `AskUserQuestion` may be called. If loading fails for any reason (older environment, tool missing), use a textual fallback: ask the question with numbered options in a regular message and parse the user's reply. Use the `fallback_profile_question` locale key for the prompt text.
 
-```
-Какой профиль? (1) FEATURE (2) BUG (3) REFACTOR (4) TEST (5) REVIEW (6) EPIC
-```
-
-Парсинг ответа: цифра, имя профиля или однозначный префикс (`bug`, `ref`, `test`).
+Reply parsing: a digit, the profile name, or an unambiguous prefix (`bug`, `ref`, `test`).
 
 ## Resilient Input Contract
 
-Минимально жизнеспособный вход — только `task_id`. Все остальные поля опциональны и резолвятся в Resolution Algorithm.
+The minimum viable input is just `task_id`. All other fields are optional and resolved in the Resolution Algorithm.
 
-| Поле | Тип | Откуда | Если нет |
+| Field | Type | Source | Default / Error |
 |---|---|---|---|
-| `task_id` | string | NL/$ARGUMENTS (например `026`, `137`, `001-foo`) | **обязательно** — ошибка с подсказкой `"Укажите номер задачи: 'запусти 026'"` |
-| `action` | enum: `run` / `continue` / `redo` / `restart` / `restart-full` | парсинг команды (см. таблицу триггеров) | `run` для голого "запусти/сделай/выполни N", `continue` для "продолжи N" |
-| `stage_target` | string (имя стадии профиля) | требуется для `redo` / `restart`, или для модификаторов `--from` / `--to` при `run` | не нужен для `run` / `continue` / `restart-full` без модификаторов |
-| `mode_override` | enum: `manual` / `auto` | в запросе явно "автоматически" / "пошагово" | резолв из Task.md → CLAUDE.md → `manual` |
-| `stack_override` | string | в запросе явно указан стек | резолв из Task.md → CLAUDE.md → импорты → AskUserQuestion |
+| `task_id` | string | NL/$ARGUMENTS (e.g. `026`, `137`, `001-foo`) | **required** — error using key `error_no_task_id` |
+| `action` | enum: `run` / `continue` / `redo` / `restart` / `restart-full` | parsed from the command (see triggers table) | `run` for a bare "run/do/execute N", `continue` for "continue N" |
+| `stage_target` | string (profile stage name) | required for `redo` / `restart`, or for `--from` / `--to` modifiers under `run` | not needed for `run` / `continue` / `restart-full` without modifiers |
+| `mode_override` | enum: `manual` / `auto` | explicit "automatically" / "step-by-step" in the request | resolved from Task.md → CLAUDE.md → `manual` |
+| `stack_override` | string | stack explicitly named in the request | resolved from Task.md → CLAUDE.md → imports → AskUserQuestion |
 
-**Инвариант:** оркестратор НЕ падает на отсутствии опциональных полей. Он резолвит их в Resolution Algorithm и только потом передаёт заполненный контракт в workflow-*.
+**Invariant:** the orchestrator does NOT crash on missing optional fields. It resolves them in the Resolution Algorithm and only then hands the fully populated contract to workflow-*.
 
 ## Routing
 
-Оркестратор активируется не на любой пользовательский запрос — лёгкие команды отрабатывают мимо. Порядок проверок (первое совпадение выигрывает):
+The orchestrator does not activate on every user request — light commands bypass it. Order of checks (first match wins):
 
-1. **Инициализация проекта** — "создай проект" / "инициализируй" / отсутствуют `.xcodeproj` и `Package.swift` → напомнить про агента `swift-toolkit:swift-init` (вызов: `@swift-toolkit:swift-init` или слэш-команда `/swift-init`). Оркестратор не запускается.
-2. **Управление задачами** — "создай задачу" / "новая задача" / "ft" / "создай под-задачу для N" → скилл `task-new`. "Перемести задачу" / "в DONE" / "шаг N эпика M в <STATUS>" → скилл `task-move`. Оркестратор не запускается.
-3. **Микро-правка** — "исправь" / "переименуй" / "поменяй" + ≤2 файла без изменений интерфейсов → выполнить напрямую с быстрой проверкой через XcodeBuildMCP. Оркестратор не запускается.
-4. **Иначе** — это работа по задаче. Оркестратор запускается:
-   - Есть `Task.md` для `task_id`? Да → читать `[TASK_TYPE]`, `[WORKFLOW_MODE]` (если есть), `## 4. [Stack]` (если есть), `[STATUS]` (для шагов).
-   - Нет → запустить `task-new`, затем продолжить.
-   - Определить профиль из `[TASK_TYPE]` (см. Dispatch).
-   - Подтверждение/пропуск регулируется в Resolution Algorithm, шаг 6 (единственный источник правды).
+1. **Project initialization** — "create project" / "initialize" / no `.xcodeproj` and no `Package.swift` → remind about agent `swift-toolkit:swift-init` (invocation: `@swift-toolkit:swift-init` or slash command `/swift-init`). Orchestrator does not run.
+2. **Task management** — "create task" / "new task" / "ft" / "create sub-task for N" → skill `task-new`. "Move task" / "to DONE" / "step N of epic M to <STATUS>" → skill `task-move`. Orchestrator does not run.
+3. **Micro-edit** — "fix" / "rename" / "change" + ≤2 files with no interface changes → execute directly with a quick check via XcodeBuildMCP. Orchestrator does not run.
+4. **Otherwise** — this is task work. The orchestrator runs:
+   - Is there a `Task.md` for `task_id`? Yes → read `[TASK_TYPE]`, `[WORKFLOW_MODE]` (if present), `## 4. [Stack]` (if present), `[STATUS]` (for steps).
+   - No → run `task-new`, then continue.
+   - Determine the profile from `[TASK_TYPE]` (see Dispatch).
+   - Confirmation/skip is governed in Resolution Algorithm, step 6 (single source of truth).
 
 ## State Detection
 
-Источник истины — `Plan.md` (прогресс-таблица с чекбоксами `⬜ 🔄 ✅ ⏸ 🚫 ⊘`).
+The source of truth is `Plan.md` (the progress table with checkboxes `⬜ 🔄 ✅ ⏸ 🚫 ⊘`).
 
-Легенда чекбоксов: `⬜` = todo (запланировано), `🔄` = в работе, `✅` = готово, `⏸` = пауза, `🚫` = заблокировано, `⊘` = пропущено.
+Checkbox legend: `⬜` = todo (planned), `🔄` = in progress, `✅` = done, `⏸` = paused, `🚫` = blocked, `⊘` = skipped.
 
-Алгоритм:
+Algorithm:
 
-1. Папка задачи находится в `Tasks/DONE/` ИЛИ `Done.md` существует → задача считается завершённой. `AskUserQuestion`: подтвердить перезапуск (=`action=restart-full`), открыть заново (вернуть в `ACTIVE/`) или выйти.
-2. `Plan.md` существует → распарсить прогресс-таблицу и чекбоксы фаз; резюмировать с первой незакрытой стадии (первый `⬜` или `🔄`).
-   - Если прогресс-таблица не найдена или повреждена (Plan.md существует, но не парсится) — оркестратор считает стадию `Plan` завершённой, но точку резюме определить не может: стартует с `Execute` стадии профиля (если она есть) с предупреждением пользователю; иначе — спрашивает явно через `AskUserQuestion`.
-3. `Plan.md` нет, `Research.md` есть → старт со стадии `Plan` профиля.
-4. Ничего нет → старт с первой стадии профиля. Конкретное имя первой стадии определяется в соответствующем `swift-toolkit:workflow-<profile>` скилле; оркестратор не дублирует этот список.
+1. Task folder is in `Tasks/DONE/` OR `Done.md` exists → the task is considered finished. `AskUserQuestion`: confirm a full restart (=`action=restart-full`), reopen (move back into `ACTIVE/`), or exit.
+2. `Plan.md` exists → parse the progress table and phase checkboxes; resume from the first unfinished stage (the first `⬜` or `🔄`).
+   - If the progress table is missing or corrupt (Plan.md exists but does not parse) — the orchestrator considers stage `Plan` complete but cannot determine the resume point: it starts at the profile's `Execute` stage (if any) with a warning to the user; otherwise it asks explicitly via `AskUserQuestion`.
+3. No `Plan.md`, but `Research.md` exists → start at the profile's `Plan` stage.
+4. Nothing exists → start at the profile's first stage. The exact name of the first stage is determined by the corresponding `swift-toolkit:workflow-<profile>` skill; the orchestrator does not duplicate that list.
 
 **De-sync:**
-- `Task.md` новее `Plan.md` → предупредить, что описание задачи могло измениться после планирования; предложить `redo Plan`.
-- В git есть коммиты по файлам задачи без обновления чекбоксов в `Plan.md` → предупредить о рассинхроне; не блокировать, но пометить в выходном контракте.
+- `Task.md` is newer than `Plan.md` → warn that the task description may have changed after planning; suggest `redo Plan`.
+- Git contains commits touching task files without checkbox updates in `Plan.md` → warn about the desync; do not block, but flag it in the outbound contract.
 
 ## Resolution Algorithm
 
 ```
 1. Validate & find task folder:
-   • Если task_id не передан → ошибка "укажи номер задачи" и остановка.
-   • Иначе — поиск папки Tasks/<STATUS>/<task_id>-*/ (сканировать Tasks/**/<task_id>-* по всем STATUS-папкам).
-   • Для шагов: Tasks/**/<parent_id>-*/.../<step_id>.step/
-   ↓ if not found → error "task <task_id> not found"
+   • If task_id is not provided → error using key `error_no_task_id` and stop.
+   • Otherwise — locate the folder Tasks/<STATUS>/<task_id>-*/ (scan Tasks/**/<task_id>-* across all STATUS folders).
+   • For steps: Tasks/**/<parent_id>-*/.../<step_id>.step/
+   ↓ if not found → error using key `error_task_not_found` with placeholder `{task_id}`
 
 2. Resolve TASK_TYPE → profile
-   • Read Task.md, extract [TASK_TYPE] поле
-   ↓ if missing → AskUserQuestion с выбором: FEATURE / BUG / REFACTOR / TEST / REVIEW / EPIC
+   • Read Task.md, extract the [TASK_TYPE] field
+   ↓ if missing → AskUserQuestion using key `fallback_profile_question`
    ↓ profile = workflow-<TASK_TYPE.lower()>
 
 3. Resolve mode (priority high→low):
-   mode_override (NL: "автоматически" / "пошагово")
+   mode_override (NL: "automatically" / "step-by-step")
    > Task.md [WORKFLOW_MODE]
-   > CLAUDE.md "## Режим"
+   > CLAUDE.md "## Mode"
    > "manual" (default)
 
 4. Resolve stack (priority high→low):
-   stack_override (явно в запросе)
+   stack_override (explicit in the request)
    > Task.md "## 4. [Stack]"
-   > CLAUDE.md "## Модули" (если файлы задачи попадают в перечисленный модуль)
-   > CLAUDE.md "## Стек"
-   > авто-детект по импортам затрагиваемых файлов
-   > AskUserQuestion (последний fallback)
+   > CLAUDE.md "## Modules" (if the task's files fall into one of the listed modules)
+   > CLAUDE.md "## Stack"
+   > auto-detection by imports of the affected files
+   > AskUserQuestion (last fallback)
 
-5. Resolve start_stage (зависит от action):
-   action=run, stage_target=null  → state-detection: первая незакрытая стадия
-   action=run, stage_target=X     → старт с X (--from), предыдущие не трогать
-   action=continue                → state-detection (то же, что run без stage)
-   action=redo, stage_target=X    → старт с X, перевыполнить ТОЛЬКО эту стадию
-   action=restart, stage_target=X → старт с X, перевыполнить X и все последующие
-   action=restart-full            → старт с первой стадии профиля, перевыполнить все
+5. Resolve start_stage (depends on action):
+   action=run, stage_target=null  → state-detection: first unfinished stage
+   action=run, stage_target=X     → start at X (--from), do not touch previous stages
+   action=continue                → state-detection (same as run without stage)
+   action=redo, stage_target=X    → start at X, re-execute ONLY this stage
+   action=restart, stage_target=X → start at X, re-execute X and all subsequent stages
+   action=restart-full            → start at the profile's first stage, re-execute all
 
-6. Confirmation в manual режиме:
+6. Confirmation in manual mode:
    if mode == manual:
-       AskUserQuestion: "Профиль: <profile>, режим: <mode>, стек: <stack>, старт: <start_stage>. Верно?"
+       AskUserQuestion using key `confirm_dispatch` with placeholders `{profile}`, `{mode}`, `{stack}`, `{start_stage}`
    else:
        skip confirmation, go straight to Dispatch
 
-   Confirmation также пропускается, если оба ключевых параметра (профиль И режим) явно указаны в исходной команде пользователя.
-   "Явно указаны" = присутствуют как буквальные ключевые слова в тексте запроса.
-   Пример: `запусти 026 как BUG автоматически` — confirmation пропускается (есть "BUG" и "автоматически").
-   Пример: `запусти 026` — confirmation требуется (ни профиль, ни режим не указаны явно).
+   Confirmation is also skipped if both key parameters (profile AND mode) are explicitly stated in the user's original command.
+   "Explicitly stated" = present as literal keywords in the request text.
+   Example: `run 026 as BUG automatically` — confirmation skipped (both "BUG" and "automatically" are present).
+   Example: `run 026` — confirmation required (neither profile nor mode is explicit).
 ```
 
-См. также раздел "Управление стадиями" — там подробности семантики `run --from` / `redo` / `restart` / `restart-full` и матрица "что архивируется".
+See also the "Stage Management" section — it details the semantics of `run --from` / `redo` / `restart` / `restart-full` and the "what gets archived" matrix.
 
 ## Outbound Contract
 
-После Resolution оркестратор вызывает `Skill` с args в формате `key=value`, **разделённых только переводом строки** (запятая не используется как разделитель полей). **Все поля заполнены** — workflow-* не пытается ничего восстанавливать.
+After Resolution, the orchestrator calls `Skill` with args in `key=value` form, **separated only by newlines** (a comma is NOT used as a field separator). **All fields are filled** — workflow-* never tries to recover anything.
 
-Многозначные поля (например, `archive_paths`) кодируются в **list syntax**: квадратные скобки, запятая внутри.
+Multi-valued fields (e.g. `archive_paths`) are encoded in **list syntax**: square brackets, commas inside.
 
 ```
 task_id=001
@@ -141,18 +153,18 @@ need_review=true|false
 archive_paths=[Tasks/ACTIVE/001-profile/_archive/Plan-2026-04-25T143022.md, Tasks/ACTIVE/001-profile/_archive/Research-2026-04-25T143022.md]
 ```
 
-Семантика `stage_scope`:
-- `single` — только `start_stage` (для `redo`)
-- `forward` — `start_stage` → конец (для `run --from`, `continue`, `restart <stage>`)
-- `all` — все стадии профиля от первой до последней (для `restart-full`)
+Semantics of `stage_scope`:
+- `single` — only `start_stage` (for `redo`)
+- `forward` — `start_stage` → end (for `run --from`, `continue`, `restart <stage>`)
+- `all` — every stage of the profile, from first to last (for `restart-full`)
 
-`end_stage` — заполняется только при использовании `--to <stage>` (например, "сделай 026 до плана"); иначе `null`.
+`end_stage` — filled only when `--to <stage>` is used (e.g. "do 026 up to plan"); otherwise `null`.
 
-`start_phase` — для phase-level resume внутри стадии (например, `Execute:phase=2.3`). Заполняется только когда триггер указывает фазу ("начни с фазы 2.3", "переделай фазу 2.3"); иначе `null`.
+`start_phase` — for phase-level resume inside a stage (e.g. `Execute:phase=2.3`). Filled only when the trigger names a phase ("start from phase 2.3", "redo phase 2.3"); otherwise `null`.
 
-`archive_paths` — список путей к уже созданным бэкапам в `_archive/` для стадий, которые будут переписаны (заполняется до передачи управления). Формат: `[path1, path2, path3]`. Пустой список = `[]`.
+`archive_paths` — list of paths to backups already created in `_archive/` for stages that will be overwritten (filled before handing off control). Format: `[path1, path2, path3]`. Empty list = `[]`.
 
-**Инвариант:** workflow-* никогда не получает пустых полей. Если поле приходит пустым — workflow-* возвращает ошибку оркестратору и не пытается восстанавливаться.
+**Invariant:** workflow-* never receives empty fields. If a field arrives empty — workflow-* returns an error to the orchestrator and does not try to recover.
 
 ## Dispatch
 
@@ -165,60 +177,60 @@ archive_paths=[Tasks/ACTIVE/001-profile/_archive/Plan-2026-04-25T143022.md, Task
 | REVIEW | `swift-toolkit:workflow-review` |
 | EPIC | `swift-toolkit:workflow-epic` |
 
-Действие после Resolution: вызвать `Skill` tool с `name` из таблицы и `args` в формате Outbound Contract.
+Action after Resolution: invoke the `Skill` tool with `name` from the table and `args` in Outbound Contract format.
 
 ## Gating
 
-**Manual** (по умолчанию) — пауза после каждой стадии, `AskUserQuestion` с подтверждением перехода к следующей; обсуждения, которые не помещаются в одну реплику, фиксируются в `Questions.md` задачи.
+**Manual** (default) — pause after each stage with an `AskUserQuestion` (use key `stage_done_prompt` with placeholder `{stage}`) confirming the move to the next; discussions that don't fit in a single reply are recorded in the task's `Questions.md`.
 
-**Auto** — без пауз между стадиями. **Коммит всегда согласуется с пользователем** независимо от режима.
+**Auto** — no pauses between stages. **The commit is always confirmed with the user** regardless of mode.
 
-**Бэкап перед перезаписью / удалением артефакта:** копия в `Tasks/<STATUS>/<task_id>-*/_archive/<stage>-<timestamp>.md`, где `<timestamp>` — ISO-8601 без двоеточий (`2026-04-25T143022`). Бэкап делает оркестратор ДО вызова workflow-* и передаёт пути в `archive_paths` outbound-контракта.
+**Backup before overwriting / removing an artifact:** copy to `Tasks/<STATUS>/<task_id>-*/_archive/<stage>-<timestamp>.md`, where `<timestamp>` is ISO-8601 without colons (`2026-04-25T143022`). The orchestrator makes the backup BEFORE calling workflow-* and passes the paths via `archive_paths` in the outbound contract.
 
-В `manual` режиме перед бэкапом / удалением — обязательный `AskUserQuestion` с подтверждением.
+In `manual` mode, an `AskUserQuestion` confirmation is mandatory before the backup / removal.
 
-## Управление стадиями
+## Stage Management
 
-Триггеры (произвольная форма, парсятся в `action` + `stage_target`):
+Triggers (free-form, parsed into `action` + `stage_target`):
 
-| Команда | action | stage_target | stage_scope |
+| User text | action | stage_target | stage_scope |
 |---|---|---|---|
-| "запусти 026" / "сделай 026" / "выполни 026" | `run` | null | `forward` (от state-detection точки) |
-| "продолжи 026" | `continue` | null | `forward` |
-| "сделай 026 до плана" | `run` | null (`end_stage=Plan`) | `forward` (с ограничением сверху) |
-| "только план для 026" / "только исследование для 026" | `run` | `<stage>` (`end_stage=<stage>`) | `single` |
-| "начни с Plan для 026" | `run` | `Plan` (как `--from`) | `forward` |
-| "переделай план для 026" | `redo` | `Plan` | `single` |
-| "начни с фазы 2.3 для 026" | `run` | `<stage>:phase=2.3` | `forward` (с фазового якоря) |
-| "переделай фазу 2.3 для 026" | `redo` | `<stage>:phase=2.3` | `single` (на уровне фазы) |
-| "перезапусти валидацию для 026" | `redo` | `Validation` | `single` |
-| "начни заново для 026" | `restart-full` | null | `all` |
+| "run 026" / "do 026" / "execute 026" | `run` | null | `forward` (from the state-detection point) |
+| "continue 026" | `continue` | null | `forward` |
+| "do 026 up to plan" | `run` | null (`end_stage=Plan`) | `forward` (capped at the top) |
+| "only plan for 026" / "only research for 026" | `run` | `<stage>` (`end_stage=<stage>`) | `single` |
+| "start from Plan for 026" | `run` | `Plan` (as `--from`) | `forward` |
+| "redo plan for 026" | `redo` | `Plan` | `single` |
+| "start from phase 2.3 for 026" | `run` | `<stage>:phase=2.3` | `forward` (from the phase anchor) |
+| "redo phase 2.3 for 026" | `redo` | `<stage>:phase=2.3` | `single` (at the phase level) |
+| "rerun validation for 026" | `redo` | `Validation` | `single` |
+| "start over for 026" | `restart-full` | null | `all` |
 
-> Примечание по семантике "перезапусти": `перезапусти <stage>` = `redo` одной стадии (атомарное переделывание). Не путать с `restart`, который сбрасывает `<stage>` И все последующие. Пользовательский глагол "перезапусти" здесь ближе по смыслу к "переделай атомарно", а не к "сбросить и пройти заново до конца".
+> Note on the semantics of "rerun": `rerun <stage>` = `redo` of a single stage (an atomic redo). Do not confuse it with `restart`, which resets `<stage>` AND every subsequent stage. The user verb "rerun" here is closer in meaning to "redo atomically" than to "reset and walk through to the end again".
 
-Семантика action и архивации:
+Action and archival semantics:
 
-| Action | Семантика | Что архивируется в `_archive/` | Где старт |
+| Action | Semantics | What gets archived in `_archive/` | Where it starts |
 |---|---|---|---|
 | `run --from <stage>` | Skip previous stages | nothing | from `<stage>` |
 | `redo <stage>` | Redo one stage | `<stage>` artifact | from `<stage>`, after = untouched |
 | `restart <stage>` | Reset and rerun from stage to end | `<stage>` and all subsequent | from `<stage>` to end of profile |
-| `restart-full` | Full reset | all artifacts | from первой стадии профиля |
+| `restart-full` | Full reset | all artifacts | from the profile's first stage |
 
-**Все redo / restart операции в manual режиме требуют `AskUserQuestion` ДО архивирования.**
+**All redo / restart operations in manual mode require an `AskUserQuestion` BEFORE archiving.**
 
-Валидация команды:
-- "только Plan" / "начни с Plan" без `Research.md` (для профилей с предшествующим `Research`) → ошибка с подсказкой "сначала запустите Research или используйте `--skip-research`".
-- "переделай <stage>" при отсутствии артефакта `<stage>` → нечего переделывать; предложить `run --from <stage>`.
-- Имя стадии не из текущего профиля → ошибка с перечислением допустимых стадий.
+Command validation:
+- "only Plan" / "start from Plan" without `Research.md` (for profiles that have a preceding `Research`) → error using key `error_research_required` with placeholder `{stage}`.
+- "redo <stage>" with no `<stage>` artifact present → error using key `error_redo_no_artifact` with placeholder `{stage}`; suggest `run --from <stage>`.
+- A stage name not from the current profile → error listing the allowed stages.
 
-## Контекст для субагента
+## Subagent Context
 
-Workflow-* субагент получает:
+The workflow-* subagent receives:
 
-1. Полный текст `Task.md` задачи (как есть).
-2. Краткое summary предыдущих стадий (1–3 абзаца): что сделано, ключевые решения, открытые вопросы. Берётся из последних артефактов (`Research.md`, `Plan.md`).
-3. Стек: значение `stack` из Outbound Contract.
-4. Режим: `mode` из Outbound Contract.
+1. The full text of the task's `Task.md` (as is).
+2. A short summary of previous stages (1–3 paragraphs): what was done, key decisions, open questions. Pulled from the most recent artifacts (`Research.md`, `Plan.md`).
+3. Stack: the `stack` value from the Outbound Contract.
+4. Mode: `mode` from the Outbound Contract.
 
-**Стек не нужно переотдавать full-text:** скилл не выполняет `Read` для project-level `CLAUDE.md` — стек, режим и пути берутся из контекста, который Claude Code обычно загружает при старте сессии (если `CLAUDE.md` присутствует в корне проекта). Оркестратор парсит этот уже загруженный контекст для резолва приоритетов.
+**The stack does not need to be re-sent in full text:** the skill does not `Read` the project-level `CLAUDE.md` — stack, mode, and paths come from the context Claude Code typically loads at session start (when `CLAUDE.md` is present at the project root). The orchestrator parses this already-loaded context to resolve priorities.

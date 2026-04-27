@@ -1,8 +1,8 @@
 ---
-description: Создать новый Swift-проект (iOS/macOS app или SPM package)
-argument-hint: <описание проекта>
+description: "Create a new Swift project (iOS/macOS app or SPM package) / Создать новый Swift-проект (iOS/macOS app или SPM package)"
+argument-hint: <project description>
 ---
 
-Активируй агент `@swift-toolkit:swift-init` через Task tool (`subagent_type=swift-toolkit:swift-init`) с аргументами: $ARGUMENTS
+Activate agent `@swift-toolkit:swift-init` via the Task tool (`subagent_type=swift-toolkit:swift-init`) with arguments: $ARGUMENTS
 
-Агент сгенерирует **один артефакт** — приложение (iOS/macOS) либо SPM-пакет — настроит SwiftLint и базовый CLAUDE.md. Для app-режимов используется **XcodeGen** (`project.yml` → `xcodegen generate`); если он не установлен — агент спросит про `brew install xcodegen`. SPM-пакеты XcodeGen не требуют. Для **многомодульного проекта** запусти команду несколько раз в нужных папках (пакеты могут лежать где угодно на диске), `.xcworkspace` собери в Xcode (`File → New → Workspace`). Для подключения swift-toolkit к **уже существующему** проекту используй `/swift-setup`.
+The agent generates **a single artifact** — an application (iOS/macOS) or an SPM package — and configures SwiftLint plus a base CLAUDE.md. App modes use **XcodeGen** (`project.yml` → `xcodegen generate`); if it's not installed, the agent will ask about `brew install xcodegen`. SPM packages don't need XcodeGen. For a **multi-module project**, run the command several times in the relevant folders (packages can live anywhere on disk); assemble the `.xcworkspace` in Xcode (`File → New → Workspace`). To attach swift-toolkit to an **already existing** project use `/swift-setup`.

@@ -1,6 +1,9 @@
 ---
 name: swift-reviewer
-description: "Reviews iOS/Swift code for bugs, security issues, performance problems, and adherence to project standards. Use when: reviewing PRs or diffs, auditing code quality, checking implementations before merge, or validating code after writing. Never modifies code. Works with UIKit, SwiftUI, Combine, RxSwift, and cross-platform (KMP, Flutter)."
+description: |
+  Reviews iOS/Swift code for bugs, security issues, performance problems, and adherence to project standards. Use when: reviewing PRs or diffs, auditing code quality, checking implementations before merge, or validating code after writing. Never modifies code.
+  Use when (en): "review this code", "audit the diff", "check this implementation", "is this ready to merge?"
+  Use when (ru): "проведи ревью этого кода", "проверь диф", "оцени эту реализацию", "готово ли к мержу?"
 model: opus
 color: red
 ---
@@ -248,7 +251,7 @@ What the code does well — brief.
 One of: **Approve** / **Request changes** / **Needs discussion**.
 
 ### Follow-up
-If verdict is "Request changes", a short list of the issues worth tracking as separate tasks (for the user to create via `task-new` if desired). Otherwise write `(нет)`.
+If verdict is "Request changes", a short list of the issues worth tracking as separate tasks (for the user to create via `task-new` if desired). Otherwise write `(none)`.
 
 ---
 
@@ -280,7 +283,7 @@ Consult these skills when reviewing code against architectural / framework expec
 
 ## Related Agents (swift-toolkit)
 
-При вызове через Task tool используй полные имена с префиксом плагина (`subagent_type=swift-toolkit:<name>`), чтобы избежать коллизий с другими установленными плагинами.
+When invoking via the Task tool, use the fully plugin-prefixed names (`subagent_type=swift-toolkit:<name>`) to avoid collisions with other installed plugins.
 
 - `swift-toolkit:swift-diagnostics` — bug hunting; the swift-reviewer may flag issues that need diagnostics follow-up
 - `swift-toolkit:swift-security` — OWASP Mobile Top-10 audit for security-specific concerns

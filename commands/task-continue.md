@@ -1,10 +1,10 @@
 ---
-description: Продолжить задачу с точки последней остановки
+description: "Continue a task from the last stop point / Продолжить задачу с точки последней остановки"
 argument-hint: <id>
 ---
 
-Активируй `swift-toolkit:orchestrator` с action=continue.
+Activate `swift-toolkit:orchestrator` with action=continue.
 
-$ARGUMENTS — task_id (обязательно).
+$ARGUMENTS — task_id (required).
 
-Оркестратор читает `Plan.md` (если есть), определяет первую незавершённую фазу или стадию (по чекбоксам/прогресс-таблице) и резюмирует оттуда.
+The orchestrator reads `Plan.md` (if present), determines the first incomplete phase or stage (via checkboxes / progress table), and resumes from there.

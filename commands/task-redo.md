@@ -1,14 +1,14 @@
 ---
-description: Переделать одну стадию или фазу задачи
+description: "Redo a single stage or phase of a task / Переделать одну стадию или фазу задачи"
 argument-hint: <id> <stage|phase>
 ---
 
-Активируй `swift-toolkit:orchestrator` с action=redo, stage_scope=single.
+Activate `swift-toolkit:orchestrator` with action=redo, stage_scope=single.
 
-Парсинг $ARGUMENTS:
-- Первый токен — task_id
-- Второй токен — stage (например, `Plan`) или фаза (например, `2.3`)
+$ARGUMENTS parsing:
+- First token — task_id
+- Second token — stage (e.g., `Plan`) or phase (e.g., `2.3`)
 
-Оркестратор архивирует артефакт указанной стадии/фазы в `_archive/`, перезапускает только её. Стадии после неё не трогаются.
+The orchestrator archives the indicated stage's/phase's artifact under `_archive/` and re-runs only that stage/phase. Subsequent stages are not touched.
 
-В manual режиме — AskUserQuestion перед архивированием.
+In manual mode — AskUserQuestion before archiving.

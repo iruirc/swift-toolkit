@@ -1,6 +1,9 @@
 ---
 name: swift-architect
-description: "Designs and reviews iOS application architecture. Use when: planning new feature modules, evaluating architectural patterns, designing service layers, configuring dependency injection, deciding package boundaries, or refactoring architecture."
+description: |
+  Designs and reviews iOS/macOS application architecture. Use when: planning new feature modules, evaluating architectural patterns, designing service layers, configuring dependency injection, deciding package boundaries, or refactoring architecture.
+  Use when (en): "design architecture", "plan new feature module", "evaluate architectural pattern", "review project architecture", "should I split into a package?"
+  Use when (ru): "спроектируй архитектуру", "запланируй модуль", "оцени архитектурный паттерн", "проведи ревью архитектуры", "нужен ли отдельный пакет?"
 model: opus
 color: purple
 ---
@@ -96,7 +99,7 @@ Consult the appropriate skill based on the architecture in use:
 
 ## Related Agents (swift-toolkit)
 
-При вызове через Task tool используй полные имена с префиксом плагина (`subagent_type=swift-toolkit:<name>`), чтобы избежать коллизий с другими установленными плагинами.
+When invoking via the Task tool, use the fully plugin-prefixed names (`subagent_type=swift-toolkit:<name>`) to avoid collisions with other installed plugins.
 
 - `swift-toolkit:swift-diagnostics` — bug hunting with static scan, simulator logs, instrumentation
 - `swift-toolkit:swift-security` — OWASP Mobile Top-10 audit
@@ -115,7 +118,7 @@ Your response MUST be structured with these top-level sections:
 - `## Risks & Mitigations` — what could go wrong and how to reduce risk
 - `## Recommendation` — one-paragraph summary of the recommended path
 
-If a section is not applicable, write `(нет)` explicitly.
+If a section is not applicable, write `(none)` explicitly.
 
 ## Quality Gate
 

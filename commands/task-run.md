@@ -1,15 +1,15 @@
 ---
-description: Запустить задачу с первой незавершённой стадии
+description: "Run a task from the first unfinished stage / Запустить задачу с первой незавершённой стадии"
 argument-hint: <id> [--from <stage>] [--to <stage>]
 ---
 
-Активируй `swift-toolkit:orchestrator` с action=run.
+Activate `swift-toolkit:orchestrator` with action=run.
 
-Парсинг $ARGUMENTS:
-- Первый токен — task_id (обязательно)
+$ARGUMENTS parsing:
+- First token — task_id (required)
 - `--from <stage>` → start_stage = <stage>
 - `--to <stage>` → end_stage = <stage>
 
-Если task_id отсутствует — ошибка с подсказкой "укажи номер задачи, например `/task-run 001`".
+If task_id is missing — error using the orchestrator's `error_no_task_id` localized string.
 
-Оркестратор сам резолвит профиль, режим, стек по своему Resilient Input Contract. В manual режиме спросит подтверждение перед стартом.
+The orchestrator resolves profile, mode, and stack via its Resilient Input Contract. In manual mode it asks for confirmation before starting.

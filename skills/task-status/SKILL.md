@@ -1,105 +1,91 @@
 ---
 name: task-status
-description: "Показать прогресс задачи: текущая стадия, фаза, чекбоксы, точка возобновления. Use when: 'статус задачи N', 'где остановились в N', 'что готово в N', 'покажи прогресс N', '/task-status N'."
+description: |
+  Show task progress: current stage, phase, checkboxes, resume point. Read-only.
+  Use when (en): "task status N", "where did we stop in N", "what's done in N", "show progress N", "/task-status N", "status of active tasks", "what's in progress"
+  Use when (ru): "статус задачи N", "где остановились в N", "что готово в N", "покажи прогресс N", "/task-status N", "статус активных задач", "что в работе"
 ---
 
 # Task Status
 
-Read-only обзор прогресса задач в `Tasks/`. Показывает текущую стадию, прогресс фаз из `Plan.md`, точку возобновления (resume point) и список существующих артефактов. Без `task_id` — компактная сводка по всем задачам в `Tasks/ACTIVE/`.
+Read-only overview of task progress in `Tasks/`. Shows the current stage, phase progress from `Plan.md`, the resume point, and a list of existing artifacts. Without `task_id` — a compact summary of every task in `Tasks/ACTIVE/`.
+
+## Language Resolution
+
+Before producing any user-facing string:
+
+1. Read `CLAUDE.md` from the project root.
+2. Find the `## Language` section.
+3. Take the first non-empty line in that section, lowercase and trim it. That is `<lang>`.
+4. If `<lang>` is `en` or `ru`, use it. Otherwise default to `en`.
+5. Read this skill's `locales/<lang>.md`. Look up keys by H2 header.
+6. If a key is missing, fall back to the same key in `locales/en.md`. If still missing, that's a bug — fail loudly with key name.
+
+Caching: resolve `<lang>` once per skill invocation; do not re-read CLAUDE.md per string.
 
 ## Triggers
 
-- "статус задачи 026", "status of 026", "где остановились в 026"
-- "что готово в 026", "покажи прогресс 026"
-- "статус активных задач", "что в работе"
-- Slash: `/task-status 026`, `/task-status` (без аргумента → все ACTIVE)
+Bilingual triggers are listed in the frontmatter `description:`. The skill is invoked either via the `/task-status` slash command or directly by NL phrases that match those triggers.
 
 ## Input
 
-| Поле | Тип | Описание |
+| Field | Type | Description |
 |---|---|---|
-| `task_id` | string, опциональный | Номер или slug задачи (например `026`, `001-profile-screen`). Если не указан — сводка по всем `Tasks/ACTIVE/*/`. |
+| `task_id` | string, optional | Task number or slug (e.g. `026`, `001-profile-screen`). If absent — produce a summary across every `Tasks/ACTIVE/*/`. |
 
 ## Algorithm
 
 ```
-1. Если task_id указан:
-   a. Найти Tasks/<STATUS>/<task_id>-*/ (сканировать все STATUS-папки + Tasks/<task_id>-*).
-      ↓ если папка не найдена → ошибка "задача <task_id> не найдена".
-   b. Прочитать Task.md → [TASK_TYPE], [WORKFLOW_MODE] (если есть), [NEED_TEST], [NEED_REVIEW], [STATUS] (для шагов).
-   c. Если есть Done.md → задача завершена; вывести краткую сводку (статус-папка, дата из Done.md, ссылка на Done.md).
-   d. Если есть Plan.md → распарсить:
-      - Прогресс-таблицу фаз (символы статусов: ✅ 🔄 ⬜ ⏸ 🚫 ⊘).
-      - Подсчитать: завершённых ✅ / в работе 🔄 / ожидающих ⬜ / прочих (⏸ 🚫 ⊘).
-      - Найти первую незавершённую фазу (🔄, иначе первый ⬜) — это Resume point.
-      - Внутри найденной фазы — найти первый незакрытый чекбокс `- [ ]`,
-        извлечь название (текст после чекбокса) для поля Resume.
-      - Если прогресс-таблица отсутствует или не парсится → см. Edge cases.
-   e. Если есть только Research.md (без Plan.md) → стадия Plan ещё не выполнена;
-      Resume = "Plan стадия профиля".
-   f. Если нет ни Research.md, ни Plan.md → стадия Research ещё не выполнена;
-      Resume = "первая стадия профиля (Research)".
+1. If task_id is provided:
+   a. Locate Tasks/<STATUS>/<task_id>-*/ (scan every STATUS folder + Tasks/<task_id>-*).
+      ↓ if the folder is not found → render the error using key `error_task_not_found` with placeholder {task_id}.
+   b. Read Task.md → [TASK_TYPE], [WORKFLOW_MODE] (if present), [NEED_TEST], [NEED_REVIEW], [STATUS] (for steps).
+   c. If Done.md exists → the task is complete; render the card using key `card_done_template` with placeholders {task_id}, {profile}, {mode}, {date}, {artifacts}.
+   d. If Plan.md exists → parse:
+      - The phase progress table (status symbols: ✅ 🔄 ⬜ ⏸ 🚫 ⊘).
+      - Count: completed ✅ / in progress 🔄 / pending ⬜ / other (⏸ 🚫 ⊘).
+      - Find the first unfinished phase (🔄, otherwise the first ⬜) — that is the Resume point.
+      - Inside the phase, find the first unticked checkbox `- [ ]` and extract its label (text after the checkbox) for the Resume field.
+      - If the progress table is missing or unparseable → see Edge cases.
+      Render the card using key `card_active_template` with placeholders {task_id}, {profile}, {mode}, {done}, {total}, {in_progress}, {pending}, {stage}, {phase}, {resume}, {artifacts}.
+   e. If only Research.md exists (no Plan.md) → the Plan stage has not yet run;
+      Resume = value from key `resume_plan_stage`.
+   f. If neither Research.md nor Plan.md exists → the Research stage has not yet run;
+      Resume = value from key `resume_first_stage_research`.
 
-2. Если task_id не указан:
-   a. Перечислить все Tasks/ACTIVE/*/.
-      ↓ если пусто → "Нет ACTIVE задач".
-   b. Для каждой папки выполнить шаги 1.b–1.f, собрать строки в таблицу.
-   c. Вывести compact-таблицу (см. Output template).
-```
-
-Используемые символы прогресса согласованы с orchestrator State Detection: `⬜` todo, `🔄` в работе, `✅` готово, `⏸` пауза, `🚫` блок, `⊘` пропуск.
-
-## Output template
-
-**Single task — Plan.md есть:**
-```
-Задача 001-profile-screen: ACTIVE
-Профиль: FEATURE | Режим: manual
-Прогресс: 2/5 фаз ✅ | 1 фаза 🔄 | 2 фазы ⬜
-Стадия: Execute → Phase 3. ViewModel
-Resume: "Метод loadProfile()"
-Артефакты: Research.md, Plan.md
+2. If task_id is not provided:
+   a. List every Tasks/ACTIVE/*/.
+      ↓ if empty → render the error using key `error_no_active_tasks`.
+   b. For each folder, run steps 1.b–1.f and collect rows for the table.
+   c. Render the compact table:
+      - Heading using key `table_header_active`.
+      - Column header line using key `table_header_columns`.
+      - One row per task.
 ```
 
-**Single task — только Task.md (только что создана):**
-```
-Задача 001-profile-screen: TODO
-Профиль: FEATURE (по TASK_TYPE) | Режим: manual (по умолчанию)
-Прогресс: не начата
-Resume: первая стадия профиля (Research)
-Артефакты: Task.md
-```
+The progress symbols are aligned with the orchestrator's State Detection: `⬜` todo, `🔄` in progress, `✅` done, `⏸` paused, `🚫` blocked, `⊘` skipped.
 
-**Single task — Done.md есть:**
-```
-Задача 001-profile-screen: DONE
-Профиль: FEATURE | Режим: manual
-Завершена: 2026-04-23
-Артефакты: Research.md, Plan.md, Done.md
-```
+## Output templates
 
-**All ACTIVE — compact-таблица:**
-```
-ACTIVE задачи:
-| ID  | Название         | Стадия         | Прогресс  | Resume                    |
-|-----|------------------|----------------|-----------|---------------------------|
-| 001 | profile-screen   | Execute → 3.2  | 2/5 ✅ 🔄 | Метод loadProfile()       |
-| 003 | logging          | Plan           | —         | Plan.md создаётся         |
-| 005 | network-retry    | Validation     | 4/4 ✅    | (готово к Review)         |
-```
+User-facing card and table layouts are defined as locale keys (see `locales/<lang>.md`):
+
+- `card_active_template` — single task with `Plan.md` present.
+- `card_todo_template` — single task with only `Task.md` present (just created).
+- `card_done_template` — single task with `Done.md` present.
+- `table_header_active` + `table_header_columns` — compact table for the all-ACTIVE summary.
 
 ## Edge cases
 
-- `Task.md` без `[TASK_TYPE]` → "Профиль: не определён, требуется AskUserQuestion".
-- `Plan.md` без прогресс-таблицы или с повреждённой → "Прогресс: невозможно распарсить (Plan.md повреждён)"; Resume = "—".
-- Папки задачи нет → "задача `<task_id>` не найдена".
-- В `Tasks/ACTIVE/` пусто → "Нет ACTIVE задач".
-- Step-задача (`<id>.step` внутри эпика) → искать по полному пути `Tasks/**/<parent>-*/.../<id>.step/`; в строке статуса дополнительно показывать `[STATUS]` шага (PENDING / IN_PROGRESS / DONE / DEFERRED / BLOCKED / SKIPPED).
-- Несколько задач совпадают по `task_id` (теоретически не должно случаться) → перечислить найденные пути и попросить уточнения.
+- `Task.md` without `[TASK_TYPE]` → render the error using key `error_profile_undefined`.
+- `Plan.md` without a progress table or with a corrupted one → render Progress as `error_plan_unparseable`; Resume = `resume_dash`.
+- Task folder not found → render the error using key `error_task_not_found` with placeholder `{task_id}`.
+- `Tasks/ACTIVE/` is empty → render the error using key `error_no_active_tasks`.
+- Step task (`<id>.step` inside an epic) → search by the full path `Tasks/**/<parent>-*/.../<id>.step/`; in the status row also display the step's `[STATUS]` (PENDING / IN_PROGRESS / DONE / DEFERRED / BLOCKED / SKIPPED).
+- Multiple tasks match `task_id` (should not happen in practice) → list the matching paths and ask the user to disambiguate.
 
-## Что этот скилл НЕ делает
+## What this skill does NOT do
 
-- НЕ изменяет файлы — только чтение `Task.md` / `Plan.md` / `Done.md` / `Research.md`.
-- НЕ запускает воркфлоу и не вызывает workflow-* или orchestrator — только информация.
-- НЕ резолвит стек / режим (это работа orchestrator); показывает только то, что физически записано в файлах задачи и/или CLAUDE.md.
-- НЕ делает бэкапов и не трогает `_archive/`.
+- Does NOT modify files — only reads `Task.md` / `Plan.md` / `Done.md` / `Research.md`.
+- Does NOT start workflows and does not call workflow-* or orchestrator — informational only.
+- Does NOT resolve stack / mode (that is the orchestrator's job); shows only what is physically recorded in the task files and/or `CLAUDE.md`.
+- Does NOT create backups and does not touch `_archive/`.

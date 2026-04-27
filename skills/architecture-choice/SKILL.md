@@ -17,11 +17,11 @@ A **meta-skill** for picking a stack at day-one or at a major refactor. Doesn't 
 
 ## When to Use
 
-- New project (`swift-init`, `swift-setup`) and CLAUDE.md `## Стек` is empty
-- Major refactor and a concrete trigger fired: signals from `arch-mvc` "Сигналы, что MVC исчерпан"; team grows past 3 devs; domain develops explicit Use Cases; compile time / merge conflicts hurt enough to consider modularization
-- User asks "какую архитектуру выбрать", "что взять для нового iOS-проекта", "MVVM или Clean"
+- New project (`swift-init`, `swift-setup`) and CLAUDE.md `## Stack` is empty
+- Major refactor and a concrete trigger fired: signals from `arch-mvc` "Signals that MVC has run out of steam"; team grows past 3 devs; domain develops explicit Use Cases; compile time / merge conflicts hurt enough to consider modularization
+- User asks "which architecture should I pick", "what should I use for a new iOS project", "MVVM or Clean"
 
-If `CLAUDE.md → ## Стек` is already filled and the user is not refactoring — **don't run this skill**. Follow the chosen stack's skill instead.
+If `CLAUDE.md → ## Stack` is already filled and the user is not refactoring — **don't run this skill**. Follow the chosen stack's skill instead.
 
 ## Fast Path (skip the questionnaire)
 
@@ -101,25 +101,25 @@ Cross-cutting (always, regardless of pattern):
 | Coordinator vs Router on hybrid UIKit+SwiftUI | Coordinator at the top; Router inside SwiftUI islands |
 | "Should we modularize?" | Not yet. One package, multiple folders, until 2+ devs collide or compile time hurts |
 | RxSwift vs Combine on a new project | Combine. RxSwift only if existing code already uses it |
-| Manual DI vs Factory vs Swinject | Manual graph (`di-composition-root` "Manual DI" section) until 10+ services. Then **Factory** (`di-factory`) by default for SwiftUI-first projects — compile-time safety, property-wrapper injection, preview/test contexts из коробки. **Swinject** (`di-swinject`) only when you need runtime autoregister, name-based lookup, or are stuck with legacy |
+| Manual DI vs Factory vs Swinject | Manual graph (`di-composition-root` "Manual DI" section) until 10+ services. Then **Factory** (`di-factory`) by default for SwiftUI-first projects — compile-time safety, property-wrapper injection, preview/test contexts out of the box. **Swinject** (`di-swinject`) only when you need runtime autoregister, name-based lookup, or are stuck with legacy |
 | TCA? | Pick TCA only when SwiftUI-only **and** team already fluent **and** the project benefits from exhaustive reducer-level tests. Otherwise default to MVVM (`arch-mvvm`) — see `arch-tca` "When Appropriate" for the full criteria. TCA is a non-default track; don't pick it on a deadline or to "future-proof" |
 
 ## Anti-Patterns at Choice Time
 
 1. **Picking the most ambitious stack "just in case"** — Clean+VIPER+SPM+Swinject for a 5-screen utility wastes weeks and obscures intent
 2. **Mixing patterns by feature** — one feature MVC, another MVVM, third Clean — newcomers can't predict where logic lives. (Hybrid UIKit+SwiftUI is **not** this — same patterns, different UI frameworks)
-3. **Choosing without writing it down** — record the choice in `CLAUDE.md` `## Стек` so every future task reads from one source of truth
-4. **Refusing to migrate when signals appear** — see `arch-mvc` "Сигналы, что MVC исчерпан". Stacks fit a project's current size, not its lifetime
+3. **Choosing without writing it down** — record the choice in `CLAUDE.md` `## Stack` so every future task reads from one source of truth
+4. **Refusing to migrate when signals appear** — see `arch-mvc` "Signals that MVC has run out of steam". Stacks fit a project's current size, not its lifetime
 5. **Letting frameworks pick architecture** — "we use SwiftUI, therefore MVVM" is fine; "we use Combine, therefore MVVM-C" is not. Frameworks are tools, not patterns
 
 ## How to Use This Skill
 
-1. **Read CLAUDE.md `## Стек`.** If filled and user isn't refactoring — this skill is done; follow the chosen stack's skill.
+1. **Read CLAUDE.md `## Stack`.** If filled and user isn't refactoring — this skill is done; follow the chosen stack's skill.
 2. **Try Fast Path.** If a Fast Path scenario clearly applies — skip the questionnaire and recommend.
 3. **Otherwise collect the Five Axes** from the user via `AskUserQuestion` (or text fallback). Don't infer from project name or vibes.
 4. **Pick the matching row** from the Decision Matrix. If two rows fit — apply the When-in-Doubt defaults.
-5. **Write the choice into `CLAUDE.md` `## Стек`** in the existing bullet format (`- Архитектура: <stack>`, `- UI: <framework>`, и т.д. — не выдумывай свои поля). Сохрани короткий контекст выбора одной строкой в комментарии над секцией: `<!-- Chosen YYYY-MM-DD: <axes summary> → <stack> -->`.
-6. **If user disagrees with the recommendation** — record their choice as-is, then add `Возражение: <причина по матрице или Fast Path>` либо в `CLAUDE.md` сразу под секцией `## Стек`, либо в `Done.md → ## Возражения` активной задачи. Per CLAUDE.md "Персонализация" — риски должны быть видны.
+5. **Write the choice into `CLAUDE.md` `## Stack`** in the existing bullet format (`- Architecture: <stack>`, `- UI: <framework>`, etc. — don't invent your own fields). Record a short context line above the section as a comment: `<!-- Chosen YYYY-MM-DD: <axes summary> → <stack> -->`.
+6. **If user disagrees with the recommendation** — record their choice as-is, then add `Objection: <reason from matrix or Fast Path>` either in `CLAUDE.md` directly under `## Stack`, or in `Done.md → ## Objections` of the active task. Per CLAUDE.md "Persona" — risks must be visible.
 7. **Hand control** to `swift-init` (new project) or `swift-architect` (existing project) with the skill list from Stack Cookbook.
 
 The output of this skill is one paragraph in CLAUDE.md and a list of skills to follow next — nothing more. Don't generate code here.

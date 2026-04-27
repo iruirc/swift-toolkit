@@ -1,99 +1,115 @@
 ---
 name: workflow-test
-description: "Воркфлоу профиля TEST: Analyze → Plan → Write → Validation → Review → Done. Активируется swift-toolkit:orchestrator-ом, не вызывается пользователем напрямую."
+description: |
+  TEST profile workflow: Analyze → Plan → Write → Validation → Review → Done. Activated by swift-toolkit:orchestrator; not invoked by the user directly.
+  Use when (en): orchestrator dispatches a task with [TASK_TYPE]=TEST
+  Use when (ru): оркестратор диспетчеризует задачу с [TASK_TYPE]=TEST
 ---
 
 # Workflow Test
 
-Профильный воркфлоу для задач с `[TASK_TYPE] = TEST` — когда написание тестов является основной целью задачи (не как часть FEATURE/BUG, где тесты идут вместе с реализацией). Реализует последовательность стадий, результат каждой — артефакт-файл в папке задачи. Скилл получает уже резолвленный контракт от оркестратора и не пытается доразрешать параметры самостоятельно.
+The profile workflow for tasks with `[TASK_TYPE] = TEST` — used when writing tests is the primary goal of the task (not part of FEATURE/BUG, where tests ship alongside the implementation). Implements the sequence of stages; the result of each stage is an artifact file inside the task folder. The skill receives an already-resolved contract from the orchestrator and does not try to re-resolve any parameter on its own.
 
-## 1. Контракт входа
+## Language Resolution
 
-Скилл вызывается `swift-toolkit:orchestrator`-ом через `Skill` tool с структурированными `args` в формате `key=value`, разделённых только переводом строки.
+Before producing any user-facing string:
 
-Структура полей описана в `swift-toolkit:orchestrator` (раздел **Outbound Contract**). Workflow-test принимает все поля заполненными — invariant.
+1. Read `CLAUDE.md` from the project root.
+2. Find the `## Language` section.
+3. Take the first non-empty line in that section, lowercase and trim it. That is `<lang>`.
+4. If `<lang>` is `en` or `ru`, use it. Otherwise default to `en`.
+5. Read this skill's `locales/<lang>.md`. Look up keys by H2 header.
+6. If a key is missing, fall back to the same key in `locales/en.md`. If still missing, that's a bug — fail loudly with key name.
 
-Если пришло пустое обязательное поле — workflow-test не пытается восстановить, а возвращает `{status: error, reason: missing field <name>}` обратно в оркестратор.
+Caching: resolve `<lang>` once per skill invocation; do not re-read CLAUDE.md per string.
 
-Ключевые поля, которые непосредственно влияют на поведение этого воркфлоу:
-- `start_stage`, `end_stage`, `stage_scope` — определяют, какие стадии исполнять.
-- `start_phase` — точка входа внутри стадии (например, `Write:phase=2.3`).
-- `mode` — `manual` / `auto` (см. секции 3 и 4).
-- `stack` — передаётся субагентам как контекст (включая выбранный тестовый фреймворк, если уже определён).
-- `need_review` — управляет включением `swift-toolkit:swift-reviewer` (флаг `need_test` для TEST-профиля не имеет смысла: тесты — это и есть основной артефакт).
-- `archive_paths` — пути к уже сделанным бэкапам (бэкап делает оркестратор ДО вызова; workflow-test их не создаёт).
+## 1. Input Contract
 
-**Диапазон выполнения.** Стадии выполняются в порядке Analyze → Plan → Write → Validation → Review → Done, начиная с `start_stage` и до `end_stage` включительно. Если `end_stage=null` — до конца профиля. Если `end_stage` указана и она раньше `start_stage` в порядке — это ошибка контракта, возврат `{status: error, reason: "end_stage before start_stage"}`.
+The skill is invoked by `swift-toolkit:orchestrator` via the `Skill` tool with structured `args` in `key=value` form, separated only by newlines.
 
-**Scope.** `stage_scope` определяет ширину выполнения:
-- `single` — выполняется только `start_stage`, после неё workflow возвращает `{status: ok, last_completed_stage: <start_stage>, next_recommended_action: stop}`. Используется при `action=redo`.
-- `forward` — выполняется `start_stage` и все последующие до `end_stage` (или до конца профиля). Используется при `action=run`/`continue`/`restart`.
-- `all` — эквивалент `forward` с `start_stage = первая стадия профиля`. Используется при `action=restart-full`.
+The field structure is documented in `swift-toolkit:orchestrator` (section **Outbound Contract**). Workflow-test accepts every field already filled — invariant.
+
+If a required field arrives empty — workflow-test does not try to recover. It returns `{status: error, reason: status_error_empty_required_field}` (the `reason` value is taken from the locale key in `locales/<lang>.md`) back to the orchestrator.
+
+The fields that directly drive this workflow's behavior:
+- `start_stage`, `end_stage`, `stage_scope` — determine which stages run.
+- `start_phase` — entry point inside a stage (e.g. `Write:phase=2.3`).
+- `mode` — `manual` / `auto` (see sections 3 and 4).
+- `stack` — passed to subagents as context (including the chosen test framework, if already determined).
+- `need_review` — gates the inclusion of `swift-toolkit:swift-reviewer` (the `need_test` flag is meaningless for the TEST profile: tests ARE the primary artifact).
+- `archive_paths` — paths to backups already created (the orchestrator made them BEFORE the call; workflow-test does not create them).
+
+**Execution range.** Stages run in the order Analyze → Plan → Write → Validation → Review → Done, starting at `start_stage` and continuing through `end_stage` inclusive. If `end_stage=null` — through the end of the profile. If `end_stage` is set but precedes `start_stage` in order, that is a contract error: return `{status: error, reason: "end_stage before start_stage"}`.
+
+**Scope.** `stage_scope` controls execution width:
+- `single` — only `start_stage` runs; afterwards the workflow returns `{status: ok, last_completed_stage: <start_stage>, next_recommended_action: stop}`. Used for `action=redo`.
+- `forward` — `start_stage` plus every subsequent stage up to `end_stage` (or to the end of the profile). Used for `action=run`/`continue`/`restart`.
+- `all` — equivalent to `forward` with `start_stage = first stage of the profile`. Used for `action=restart-full`.
 
 ## 2. Stages
 
-- **Analyze** — консилиум: `swift-toolkit:swift-architect` + `swift-toolkit:swift-tester` (через Task tool параллельно или последовательно по решению оркестратора). Артефакт: `Research.md`. Цель: определить **что тестировать** (куски кода без покрытия, критичные пути, регрессионные сценарии), **какой уровень тестов** (unit / integration / UI / snapshot), **какие фреймворки** (XCTest / Quick+Nimble / ViewInspector / SnapshotTesting). `swift-toolkit:swift-architect` дополнительно оценивает testability существующего кода: нужны ли инъекции зависимостей, моки, протоколы для абстрагирования внешних зависимостей.
+- **Analyze** — a panel: `swift-toolkit:swift-architect` + `swift-toolkit:swift-tester` (via the Task tool, in parallel or sequentially as the orchestrator decides). Artifact: `Research.md`. Goal: determine **what to test** (uncovered code, critical paths, regression scenarios), **what test level** (unit / integration / UI / snapshot), **which frameworks** (XCTest / Quick+Nimble / ViewInspector / SnapshotTesting). Additionally, `swift-toolkit:swift-architect` evaluates the testability of existing code: whether dependency injection, mocks, or protocols for abstracting external dependencies are required.
 
-- **Plan** — `swift-toolkit:swift-tester`. Артефакт: `Plan.md` с прогресс-таблицей фаз (см. State Detection в orchestrator: статусы ✅/🔄/⬜/⏸/🚫/⊘). План декомпозирует тесты на фазы — обычно по группам (отдельная фаза на каждый тестируемый компонент/модуль/use case). Каждой фазе назначается приоритет `P0` (критично, блокирует релиз) / `P1` (важно) / `P2` (nice-to-have).
+- **Plan** — `swift-toolkit:swift-tester`. Artifact: `Plan.md` with a phase progress table (see `State Detection` in orchestrator: statuses ✅/🔄/⬜/⏸/🚫/⊘). The plan decomposes tests into phases — usually by groups (one phase per testable component / module / use case). Each phase is assigned a priority `P0` (critical, blocks release) / `P1` (important) / `P2` (nice-to-have).
 
-- **Write** — `swift-toolkit:swift-tester`. Поэтапно реализует фазы из Plan.md, обновляя прогресс-таблицу после каждой фазы. Артефакты: тестовый код в проекте + при необходимости тестовые helpers/fixtures/mocks. **Не правит production-код.** Если в процессе обнаружил, что тестируемый код не testable без рефакторинга (тесные связи, синглтоны, отсутствие протоколов под моки) — возвращает `{status: error, reason: refactor_required, notes: "<что именно мешает, какой компонент>"}`, чтобы оркестратор/пользователь приняли решение создать отдельную REFACTOR-задачу.
+- **Write** — `swift-toolkit:swift-tester`. Implements the phases from `Plan.md` step by step, updating the progress table after each phase. Artifacts: test code in the project + test helpers/fixtures/mocks where needed. **Does NOT modify production code.** If the code under test turns out to be untestable without refactoring (tight coupling, singletons, missing protocols for mocking) — returns `{status: error, reason: refactor_required, notes: "<what specifically blocks, which component>"}` so the orchestrator/user can decide to create a separate REFACTOR task.
 
-  Если в args передан `start_phase=<phase_id>` — `swift-toolkit:swift-tester` получает эту фазу как точку старта в промпте Task tool. Уже завершённые фазы (статус `✅` в `Plan.md`) пропускаются, не переделываются. Прогресс-таблица обновляется только для новых/изменённых фаз.
+  If `start_phase=<phase_id>` was passed in args — `swift-toolkit:swift-tester` receives that phase as the start point in the Task-tool prompt. Already-completed phases (status `✅` in `Plan.md`) are skipped, not redone. The progress table is updated only for new / changed phases.
 
-- **Validation** — XcodeBuildMCP `test_sim` **обязателен** (запуск всех новых тестов). Все добавленные тесты должны быть зелёными с первого запуска. При обнаружении flaky-теста — повторный прогон 3 раза, факт нестабильности фиксируется в `Validation.md` (имя теста, частота падений, гипотеза причины). mobile MCP опционально — только для UI-тестов, требующих визуальной проверки. Артефакт: `Validation.md` с логом тестов, статистикой по flaky и итоговым вердиктом.
+- **Validation** — XcodeBuildMCP `test_sim` is **mandatory** (run all newly added tests). Every added test must pass on first run (green). If a flaky test is detected — re-run 3 times; the instability is recorded in `Validation.md` (test name, failure rate, hypothesized cause). mobile MCP is optional — only for UI tests requiring visual verification. Artifact: `Validation.md` with the test log, flaky-test stats, and the final verdict.
 
-- **Review** — `swift-toolkit:swift-reviewer` (если `need_review=true` в args). **Особенность для TEST-профиля:** ревью оценивает качество **тестов**, а не production-кода — наличие edge-case покрытия, осмысленность assertions (не «assert true == true»), отсутствие моков для логики, которая должна тестироваться напрямую, изолированность тестов друг от друга, читаемость и поддерживаемость. Артефакт: `Review.md`, **первая строка обязательно** `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (это поле — общий контракт между workflow-* и оркестратором; используется также в `swift-toolkit:workflow-review` для auto-move в DONE/).
+- **Review** — `swift-toolkit:swift-reviewer` (if `need_review=true` in args). **Special case for the TEST profile:** the review evaluates the quality of the **tests**, not production code — edge-case coverage, meaningful assertions (no "assert true == true"), absence of mocks for logic that should be tested directly, isolation of tests from each other, readability and maintainability. Artifact: `Review.md`, **first line is required** to be `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (this field is the shared contract between workflow-* and the orchestrator; it is also used by `swift-toolkit:workflow-review` for auto-move into DONE/).
 
-- **Done** — финальный отчёт `Done.md`: что покрыто тестами (список компонентов и сценариев), какое покрытие достигнуто (если измеряется coverage), список использованных фреймворков, валидация (зелёные ли все добавленные тесты, есть ли flaky), возражения (если пользователь настоял на спорном решении — например, отказе от тестирования какого-то критичного пути).
+- **Done** — final report `Done.md`: what is now covered (list of components and scenarios), what coverage was achieved (if measured), the list of frameworks used, validation status (are all added tests green, any flaky), and objections (if the user insisted on a contested decision — e.g. declining to test a critical path).
 
-## 3. Manual режим
+## 3. Manual mode
 
-После каждой завершённой стадии оркестратор задаёт пользователю `AskUserQuestion`: «<stage> готова. Перейти к следующей? [Yes / Edit / No]».
+After each completed stage the orchestrator asks the user via `AskUserQuestion` using the `stage_done_prompt` key from `locales/<lang>.md`, with placeholder `{stage}`.
 
-Workflow-test **не делает `AskUserQuestion` сам** — он возвращает управление оркестратору после завершения стадии (см. секцию 5, Контракт выхода) с `next_recommended_action`. Решение о паузе, диалоге и обсуждениях, которые пишутся в `Questions.md`, — зона ответственности оркестратора.
+Workflow-test **does NOT call `AskUserQuestion` itself** — it returns control to the orchestrator after a stage completes (see section 5, Output Contract) with `next_recommended_action`. The decision to pause, continue, or capture discussions in `Questions.md` is the orchestrator's responsibility.
 
-Если хост-CLI не поддерживает `AskUserQuestion`, оркестратор использует текстовый fallback (нумерованные варианты + парсинг ответа). Это его ответственность, не workflow-test.
+If the host CLI does not support `AskUserQuestion`, the orchestrator uses a textual fallback (numbered options + reply parsing). That is the orchestrator's responsibility, not workflow-test's.
 
-## 4. Auto режим
+## 4. Auto mode
 
-Без пауз между стадиями. Workflow-test последовательно проходит стадии в пределах `stage_scope` и возвращает финальный результат оркестратору одним выходом.
+No pauses between stages. Workflow-test runs the stages sequentially within `stage_scope` and returns the final result to the orchestrator in a single output.
 
-Единственное согласование, которое всегда требуется независимо от режима — финальный коммит, если оркестратор инициирует commit-flow. Это тоже ответственность оркестратора, не workflow-test.
+The only step that always requires confirmation regardless of mode is the final commit, when the orchestrator initiates the commit flow. That is again the orchestrator's responsibility, not workflow-test's.
 
-## 5. Контракт выхода
+## 5. Output Contract
 
-После каждой стадии (в `manual` режиме) или после полного прохода (в `auto` режиме) workflow-test возвращает в оркестратор JSON-подобную структуру:
+After each stage (in `manual` mode) or after a full pass (in `auto` mode), workflow-test returns a JSON-like structure to the orchestrator:
 
 ```
 {
   status: ok | error | cancelled | interrupted,
   last_completed_stage: Analyze | Plan | Write | Validation | Review | Done,
-  artifact_path: <путь к финальному артефакту, например Tasks/ACTIVE/001-test/Done.md>,
+  artifact_path: <path to the final artifact, e.g. Tasks/ACTIVE/001-test/Done.md>,
   next_recommended_action: continue | stop | ask_user,
-  notes: <свободный текст, опциональный>
+  notes: <free-form text, optional>
 }
 ```
 
-Семантика полей:
-- `status=ok` — стадия завершена корректно.
-- `status=error` — произошла ошибка (включая «empty required field», некорректный контракт, фатальный сбой субагента, `refactor_required` на стадии Write).
-- `status=cancelled` — пользователь явно отказался продолжать (нажал «No» в AUQ оркестратора, и тот передал отказ дальше). Штатный исход, не считается ошибкой.
-- `status=interrupted` — выполнение прервано техническим сбоем или внешним сигналом (не по решению пользователя): обрыв связи с субагентом, таймаут, недоступность tool. Требует диагностики на стороне оркестратора.
-- `last_completed_stage` — последняя реально завершённая стадия (не та, на которой остановились с ошибкой).
-- `artifact_path` — путь к ключевому артефакту последней стадии (`Research.md`, `Plan.md`, `Validation.md`, `Review.md`, `Done.md`). Стадия Write не имеет собственного `.md` артефакта — указывает на `Plan.md` (с обновлённой прогресс-таблицей).
-- `next_recommended_action=continue` — можно сразу запускать следующую стадию; `stop` — естественный финиш (Done) или фатальная ошибка; `ask_user` — нужно подтверждение пользователя перед продолжением (например, после Review с `CHANGES_REQUESTED` или после `refactor_required` на Write).
-- `notes` — короткое свободное описание (например, «test_sim failed: 2 of 17 tests red», «refactor_required: NetworkClient is a singleton without protocol»).
+Field semantics:
+- `status=ok` — the stage finished correctly.
+- `status=error` — an error occurred (including reasons such as the locale key `status_error_empty_required_field`, an invalid contract, a fatal subagent failure, or `refactor_required` from the Write stage).
+- `status=cancelled` — the user explicitly declined to continue (the orchestrator forwarded a `No` from its AUQ; rendered to the user via locale key `status_cancelled_user_no`). A normal outcome, not an error.
+- `status=interrupted` — execution was interrupted by a technical fault or external signal (not by user decision): subagent disconnect, timeout, tool unavailable. Requires diagnostics on the orchestrator side.
+- `last_completed_stage` — the last stage that actually finished (not the one execution stopped on with an error).
+- `artifact_path` — path to the key artifact of the last stage (`Research.md`, `Plan.md`, `Validation.md`, `Review.md`, `Done.md`). The Write stage has no dedicated `.md` artifact — points to `Plan.md` (with the updated progress table).
+- `next_recommended_action=continue` — the next stage may start immediately; `stop` — natural finish (Done) or a fatal error; `ask_user` — confirmation is needed before continuing (e.g. after a Review with `CHANGES_REQUESTED`, or after `refactor_required` from Write).
+- `notes` — short free-form description (e.g. the examples in locale keys `notes_test_failed_example` and `notes_refactor_required_example`).
 
-На основании этого оркестратор решает: продолжить, прервать, спросить пользователя.
+Based on this, the orchestrator decides: continue, abort, or ask the user.
 
-## 6. Что workflow-test НЕ делает
+## 6. What workflow-test does NOT do
 
-- НЕ маршрутизирует — выбор профиля сделан в оркестраторе до вызова.
-- НЕ читает `Task.md` для определения стека/режима — всё пришло в `args`.
-- НЕ дёргает `task-new` или `task-move` — это не его зона.
-- НЕ принимает решения о пропуске стадий — оркестратор уже передал `start_stage`, `end_stage`, `stage_scope`.
-- НЕ создаёт бэкапы в `_archive/` — это сделал оркестратор до передачи управления; пути уже в `archive_paths`.
-- НЕ задаёт `AskUserQuestion` — это делает оркестратор между стадиями в `manual` режиме.
-- НЕ согласует коммит с пользователем — этим занимается оркестратор после возврата `next_recommended_action`.
-- НЕ изменяет production-код. Если тестируемый код не testable без рефакторинга — возвращает `{status: error, reason: refactor_required}`, не правит сам.
-- НЕ принимает решения о метриках покрытия (coverage thresholds, целевые проценты) — это зона оркестратора/пользователя; workflow-test только пишет тесты по плану и фиксирует фактическое покрытие в `Done.md`.
+- Does NOT route — profile selection happens in the orchestrator before the call.
+- Does NOT read `Task.md` to determine stack/mode — everything arrives in `args`.
+- Does NOT trigger `task-new` or `task-move` — that is not its scope.
+- Does NOT decide to skip stages — the orchestrator already passed `start_stage`, `end_stage`, `stage_scope`.
+- Does NOT create backups in `_archive/` — the orchestrator did so before handing off control; the paths are already in `archive_paths`.
+- Does NOT call `AskUserQuestion` — the orchestrator does that between stages in `manual` mode.
+- Does NOT confirm the commit with the user — the orchestrator handles that after a `next_recommended_action` return.
+- Does NOT modify production code. If the code under test is not testable without refactoring — returns `{status: error, reason: refactor_required}`; does not patch on its own.
+- Does NOT decide on coverage metrics (coverage thresholds, target percentages) — that's the orchestrator's / user's domain; workflow-test only writes tests per the plan and records the actual coverage in `Done.md`.

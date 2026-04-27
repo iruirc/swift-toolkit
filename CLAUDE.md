@@ -1,51 +1,39 @@
-# CLAUDE.md — Swift Toolkit
+# CLAUDE.md — swift-toolkit (plugin repo)
 
-> Project-level конфиг для Swift/Apple проекта (iOS/macOS app или SPM package).
-> Скопируй в корень своего проекта и заполни секции "Стек" и "Режим".
-> Логика оркестрации задач, профилей и стадий — в скиллах swift-toolkit:* (см. секцию "Оркестрация" ниже).
+> This is the repo of the swift-toolkit Claude Code plugin.
+> User-project templates live in `templates/claude-md/{en,ru}.md` (NOT here).
+> This file just configures Claude when it works on the plugin itself.
 
-## Персонализация
+## Language
 
-- Язык общения: русский
-- **Имею право не соглашаться** с решениями пользователя. Если решение ведёт к костылю, дыре в безопасности или техдолгу — ОБЯЗАН возразить и предложить альтернативу.
-- **Качество и security > скорость.** Не принимать "потом поправим", "сойдёт для MVP", "это временно".
-- **Долгосрочная польза > быстрый результат.** Выбирать решения, которые масштабируются и поддерживаются.
-- Если пользователь настаивает на костыльном решении — чётко обозначить риски и зафиксировать в Done.md → Возражения.
+en
 
-## Стек
+## Persona
 
-- UI: <SwiftUI | UIKit | AppKit>
-- Async: <async/await | Combine | RxSwift>
-- DI: <Swinject | Factory-паттерн (см. skill di-module-assembly) | manual>
-- Архитектура: <MVVM+Coordinator | VIPER | Clean Architecture | MVC>
-- Платформа: <iOS 16+ | macOS 13+ | iOS+macOS>
-- Тесты: <XCTest | Quick+Nimble>
+- This repo's source-of-truth language is English. All files outside `docs/` and explicit translated mirrors must be in English.
+- User-facing strings produced by skills are localized via `skills/<name>/locales/<lang>.md`. Editing localized strings requires updating every locale file with parity.
+- When changing a skill body, never inline a localized string — always reference a locale key.
 
-## Режим
+## Repository layout
 
-manual
+- `agents/` — Claude Code subagents (8 swift-* agents)
+- `skills/` — Claude Code skills (32+ skills, organized by topic)
+  - process skills: `orchestrator`, `workflow-*`, `task-*`, `swift-setup`, `swift-lang`
+  - knowledge skills: `arch-*`, `persistence-*`, `net-*`, `di-*`, etc.
+  - each localized skill has `locales/{en,ru}.md`
+- `commands/` — slash commands (one Markdown file per command)
+- `templates/claude-md/` — CLAUDE.md templates copied into user projects (`en.md`, `ru.md`)
+- `docs/` — free-form reference notes and superpowers plans/specs (any language)
+- `.claude-plugin/` — plugin manifests (`plugin.json`, `marketplace.json`)
 
-## Модули
+## Conventions
 
-(опционально: список модулей с per-module стеком, например: "- Core: /Packages/Core — Combine, manual DI")
+- See `docs/superpowers/specs/2026-04-27-i18n-conventions.md` for the i18n convention reference.
+- See `docs/superpowers/plans/2026-04-27-i18n-localization.md` for the i18n migration plan and progress.
 
-## Пути
+## When working on this repo
 
-(опционально: "- Источники: /Sources", "- Тесты: /Tests")
-
-## Оркестрация
-
-Полная карта скиллов и связей между группами — см. README репозитория swift-toolkit (раздел «Skills as a system»).
-
-Логика маршрутизации задач, профилей и стадий вынесена в скиллы:
-
-- `swift-toolkit:orchestrator` — выбирает профиль по `TASK_TYPE`, определяет точку старта, диспетчеризует стадии
-- `swift-toolkit:workflow-feature|bug|refactor|test|review|epic` — процедуры профилей
-- `swift-toolkit:task-new|task-move|task-status` — управление задачами
-- `swift-toolkit:swift-setup` — настройка swift-toolkit в существующем проекте (CLAUDE.md из шаблона + Tasks/)
-
-Слэш-команды:
-- управление задачами: `/task-new`, `/task-run`, `/task-continue`, `/task-redo`, `/task-restart`, `/task-move`, `/task-status`
-- сетап toolkit-а: `/swift-init` (новый проект с нуля), `/swift-setup` (подключить toolkit к существующему проекту)
-
-NL-фразы продолжают работать как и раньше: `создай задачу: ...`, `запусти 001`, `продолжи 001`, `перемести 001 в DONE`, `статус 001`, `переделай план для 001`, `настрой swift-toolkit`, и т.д. — соответствующий скилл активируется по триггерам в своём `description`.
+- Adding a new user-facing string: add the key to BOTH `locales/en.md` AND `locales/ru.md` for the affected skill, then reference the key from the skill body. Run a parity check (`diff <(grep '^## ' .../en.md | sort) <(grep '^## ' .../ru.md | sort)`) — must be empty.
+- Adding a new skill that has user-facing strings: include `locales/en.md` and `locales/ru.md`. Body must contain the `## Language Resolution` section verbatim.
+- Adding a new command: bilingual `description:` line. Body in English.
+- Adding a new agent: bilingual triggers in `description:` field.

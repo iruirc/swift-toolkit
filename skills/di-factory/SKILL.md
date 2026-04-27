@@ -10,26 +10,26 @@ This skill provides Factory-specific guidelines: `Container`/`SharedContainer` m
 > **Versions assumed:** Factory 2.5+ (`FactoryKit` is the canonical module name; older code may still import `Factory`). Swift 5.10+, iOS 13+. The Swift Testing trait API requires Factory 2.5+.
 
 > **Related skills:**
-> - `di-composition-root` — где живёт Container, как стартует bootstrap, sync vs async, scopes как стратегия (Factory покрывает только сам контейнер; CR — это где он создаётся и эксплуатируется)
-> - `di-module-assembly` — как Coordinator-ы получают зависимости через `CoordinatorFactory` / `ModuleFactory`. С Factory эти Factory-объекты сами разрешают зависимости через `Container.shared.foo()` или принимают `Container` в init — но архитектурный pattern идентичен Swinject-варианту
-> - `di-swinject` — альтернативный DI-framework. Сравнительная таблица в конце этого скилла
-> - `pkg-spm-design` — Factory, как и Swinject, **нельзя импортировать в main target SPM-пакета**. Модульные `extension Container` per feature живут в **app target**, см. раздел «Modular Containers» ниже
-> - `arch-tca` — TCA использует свою `@Dependency` систему, не смешивай с Factory в TCA-фичах
+> - `di-composition-root` — where the Container lives, how bootstrap starts, sync vs async, scopes as a strategy (Factory only covers the container itself; the CR is where it's created and operated)
+> - `di-module-assembly` — how Coordinators get dependencies via `CoordinatorFactory` / `ModuleFactory`. With Factory those Factory objects either resolve dependencies via `Container.shared.foo()` or accept a `Container` in init — but the architectural pattern is identical to the Swinject variant
+> - `di-swinject` — alternative DI framework. Comparison table at the end of this skill
+> - `pkg-spm-design` — Factory, just like Swinject, **must not be imported into the main target of an SPM package**. Modular `extension Container` per feature lives in the **app target**, see "Modular Containers" section below
+> - `arch-tca` — TCA uses its own `@Dependency` system; don't mix it with Factory inside TCA features
 
 ## When to Use
 
 **Factory is the right choice when:**
-- Хочется compile-time safety регистраций (factory не существует → код не компилируется)
-- Нужен property-wrapper стиль (`@Injected`) вместо ручного resolve
-- Современный SwiftUI app, активно используется `@Observable` / Observation
-- Нужны контексты (preview/test/debug overrides) из коробки
-- Граф средний (10–100 сервисов) — Factory масштабируется лучше manual, но без рантайм-overhead Swinject
+- You want compile-time safety on registrations (factory missing → code won't compile)
+- You want a property-wrapper style (`@Injected`) instead of manual resolve
+- A modern SwiftUI app, with active use of `@Observable` / Observation
+- You need contexts (preview/test/debug overrides) out of the box
+- The graph is medium-sized (10–100 services) — Factory scales better than manual without Swinject's runtime overhead
 
 **Consider alternatives:**
-- < 10 сервисов, монолит → Manual DI на `lazy var` (см. `di-composition-root`, секция «Manual DI»)
-- Legacy на Swinject, переписывать дороже → Оставить Swinject (см. `di-swinject`)
-- TCA-фича целиком → используй `@Dependency` от Point-Free, не Factory
-- Нужны runtime-зарегистрированные factories с произвольными аргументами и поиском по имени → Swinject (`name:` параметр и autoregister)
+- < 10 services, monolith → Manual DI on `lazy var` (see `di-composition-root`, "Manual DI" section)
+- Legacy on Swinject, rewriting is more expensive → Stick with Swinject (see `di-swinject`)
+- A whole TCA feature → use `@Dependency` by Point-Free, not Factory
+- Need runtime-registered factories with arbitrary arguments and name-based lookup → Swinject (`name:` parameter and autoregister)
 
 ## Installation
 
@@ -45,15 +45,15 @@ Swift Package Manager:
 ```
 
 ```swift
-import FactoryKit            // в production-коде (НЕ `import Factory` — это устаревшее имя)
-import FactoryTesting        // в test-таргетах (даёт `.container` Suite trait для Swift Testing)
+import FactoryKit            // in production code (NOT `import Factory` — that's the deprecated name)
+import FactoryTesting        // in test targets (provides the `.container` Suite trait for Swift Testing)
 ```
 
 ## Core Concepts
 
 ### Container
 
-Регистрации живут как **computed properties в extension Container**. Каждое такое свойство возвращает `Factory<T>`, который умеет резолвить инстанс. Сам `Container` — это финальный класс с `static let shared`, но его можно (и нужно) **наследовать/иметь свой** для модульности — см. ниже «Modular Containers».
+Registrations live as **computed properties in extension Container**. Each such property returns a `Factory<T>` that knows how to resolve an instance. The `Container` itself is a final class with `static let shared`, but you can (and should) **subclass / have your own** for modularity — see "Modular Containers" below.
 
 ```swift
 import FactoryKit
@@ -73,43 +73,43 @@ extension Container {
 }
 ```
 
-**Что важно:**
-- `self { … }` — синтаксический сахар над `Factory(self) { … }`. Используй короткую форму.
-- Имя свойства **становится ключом** регистрации (`StaticString = #function`). Не переименовывай в production без миграции — старые `register` overrides потеряются.
-- Граф собирается **через тот же `self`** внутри замыкания: `self.networkClient()`. НЕ через `Container.shared.networkClient()` — иначе сломается изоляция при создании отдельного `Container()` для тестов или модулей.
+**What matters:**
+- `self { … }` is syntactic sugar over `Factory(self) { … }`. Use the short form.
+- The property name **becomes the registration key** (`StaticString = #function`). Don't rename it in production without a migration — old `register` overrides will be lost.
+- The graph is wired **through the same `self`** inside the closure: `self.networkClient()`. NOT through `Container.shared.networkClient()` — otherwise isolation breaks when a separate `Container()` is created for tests or modules.
 
 ### Factory<T>
 
-`Factory<T>` — value-type, не сам инстанс. Резолвится через `callAsFunction`:
+`Factory<T>` is a value type, not the instance itself. It's resolved via `callAsFunction`:
 
 ```swift
-let service = Container.shared.userService()    // эквивалент .resolve()
+let service = Container.shared.userService()    // equivalent to .resolve()
 ```
 
-Создание `Factory` дёшево; реальный инстанс возникает только при вызове.
+Creating a `Factory` is cheap; the actual instance only appears on call.
 
 ### Composition Root
 
-Factory **не отменяет Composition Root** — она его реализует через `Container`. CR-логика (где создаётся `Container`, что в нём зарегистрировано, когда стартует bootstrap) — в скилле `di-composition-root`.
+Factory **does not replace the Composition Root** — it implements it via a `Container`. CR logic (where the `Container` is created, what's registered in it, when bootstrap runs) lives in the `di-composition-root` skill.
 
 ```swift
 // SceneDelegate / @main App
 @main
 struct MyApp: App {
     init() {
-        Container.shared.bootstrap()    // см. AutoRegistering ниже
+        Container.shared.bootstrap()    // see AutoRegistering below
     }
     var body: some Scene { … }
 }
 ```
 
-**Никогда не дёргай `Container.shared` из доменных слоёв** — только через `@Injected` или явный конструктор. Иначе получаешь Service Locator (см. Common Mistakes).
+**Never reach for `Container.shared` from domain layers** — only via `@Injected` or an explicit constructor. Otherwise you get a Service Locator (see Common Mistakes).
 
 ## Resolution: Property Wrappers
 
 ### `@Injected` — eager, sync
 
-Резолвится **в момент создания владельца**. Используй для обязательных зависимостей.
+Resolved **at the moment the owner is created**. Use for required dependencies.
 
 ```swift
 final class ProfileViewModel: ObservableObject {
@@ -123,31 +123,31 @@ final class ProfileViewModel: ObservableObject {
 }
 ```
 
-`\.userService` — KeyPath на свойство `Container.userService`.
+`\.userService` is a KeyPath to the `Container.userService` property.
 
 ### `@LazyInjected` — lazy, sync
 
-Резолвится при первом обращении. Используй когда зависимость нужна не всегда или владелец создаётся часто.
+Resolved on first access. Use when the dependency isn't always needed or the owner is created frequently.
 
 ```swift
 final class AuthService {
     @LazyInjected(\.biometricAuthenticator) private var biometric
-    // BiometricAuthenticator создаётся только если действительно вызвали биометрию
+    // BiometricAuthenticator is created only if biometrics is actually invoked
 }
 ```
 
 ### `@WeakLazyInjected` — weak reference
 
-Используй для **разрыва циклов** или для опционально-кэшируемых ресурсов.
+Use to **break cycles** or for optionally-cached resources.
 
 ```swift
 final class CoordinatorRoot {
     @WeakLazyInjected(\.imageCache) private var imageCache: ImageCache?
-    // imageCache живёт пока его держит кто-то другой
+    // imageCache lives while someone else retains it
 }
 ```
 
-### `@InjectedObservable` — для @Observable view models (Factory 2.4+)
+### `@InjectedObservable` — for @Observable view models (Factory 2.4+)
 
 ```swift
 @Observable
@@ -161,55 +161,55 @@ struct ContentView: View {
 }
 ```
 
-`@ObservationIgnored` обязателен на `@Injected` внутри `@Observable` класса — иначе свойство станет частью граф изменений, и каждый resolve будет триггерить обновление UI.
+`@ObservationIgnored` is mandatory on `@Injected` inside an `@Observable` class — otherwise the property becomes part of the change graph and every resolve triggers a UI update.
 
-### Direct resolution (без property wrappers)
+### Direct resolution (no property wrappers)
 
-Когда `@Injected` не подходит (`ParameterFactory`, не-объект, ручная сборка):
+When `@Injected` doesn't fit (`ParameterFactory`, non-object, manual assembly):
 
 ```swift
 let service = Container.shared.userService()
-let detail = Container.shared.detailViewModel(itemId)   // см. ParameterFactory
+let detail = Container.shared.detailViewModel(itemId)   // see ParameterFactory
 ```
 
 ## Scopes
 
-Scope управляется модификатором после `self { … }`. По умолчанию — `.unique` (новый инстанс на каждый resolve).
+Scope is controlled by a modifier after `self { … }`. Default is `.unique` (a new instance on every resolve).
 
-| Scope | Поведение | Когда использовать |
+| Scope | Behavior | When to use |
 |---|---|---|
-| `.unique` (default) | Новый инстанс каждый раз | ViewModels, Coordinators, stateful |
-| `.singleton` | Один глобальный инстанс **на весь процесс** (не привязан к Container) | Один внешний ресурс (Keychain wrapper) |
-| `.cached` | Один инстанс **на этот Container**, до `reset()` | Сервисы (NetworkClient, Database) |
-| `.shared` | Weak: жив пока кто-то держит strong; иначе пересоздаётся | Опциональные shared caches |
-| `.graph` | Один инстанс **в рамках одного top-level resolve** | Shared state в графе одной фичи |
+| `.unique` (default) | New instance every time | ViewModels, Coordinators, stateful |
+| `.singleton` | One global instance **per process** (not bound to the Container) | A single external resource (Keychain wrapper) |
+| `.cached` | One instance **per this Container**, until `reset()` | Services (NetworkClient, Database) |
+| `.shared` | Weak: alive while someone holds a strong reference; otherwise recreated | Optional shared caches |
+| `.graph` | One instance **within a single top-level resolve** | Shared state inside a single feature's graph |
 
 ```swift
 extension Container {
     var networkClient: Factory<HTTPClient> {
-        self { URLSessionHTTPClient() }.cached         // singleton-внутри-этого-Container
+        self { URLSessionHTTPClient() }.cached         // singleton-within-this-Container
     }
     var keychainStorage: Factory<KeychainStorage> {
-        self { KeychainStorage(service: "...") }.singleton  // глобально на процесс
+        self { KeychainStorage(service: "...") }.singleton  // process-global
     }
     var imageCache: Factory<ImageCache> {
         self { ImageCache() }.shared                   // weak
     }
     var profileViewModel: Factory<ProfileViewModel> {
-        self { ProfileViewModel() }                    // .unique по умолчанию
+        self { ProfileViewModel() }                    // .unique by default
     }
 }
 ```
 
 **`.cached` vs `.singleton`:**
-- `.cached` — инстанс живёт в `Container.shared` (или другом `Container`), очищается через `reset()`. **Это то, что обычно нужно** для тестируемости.
-- `.singleton` — инстанс **переживает** `Container.reset()`. Используй только для системных ресурсов, у которых разрушение опасно (Keychain handle, OSLog subsystem).
+- `.cached` — the instance lives in `Container.shared` (or another `Container`), cleared via `reset()`. **This is what you usually want** for testability.
+- `.singleton` — the instance **survives** `Container.reset()`. Use only for system resources whose destruction is dangerous (Keychain handle, OSLog subsystem).
 
-**Time-to-live:** `self { … }.singleton.timeToLive(60 * 5)` — пересоздаст инстанс через N секунд. Полезно для токенов / коротких кэшей.
+**Time-to-live:** `self { … }.singleton.timeToLive(60 * 5)` — recreates the instance after N seconds. Useful for tokens / short-lived caches.
 
 ## Parameterized Factories
 
-Когда инстанс требует runtime-параметр (id экрана, конфиг flow):
+When the instance requires a runtime parameter (screen id, flow config):
 
 ```swift
 extension Container {
@@ -224,7 +224,7 @@ extension Container {
 let vm = Container.shared.detailViewModel("item-123")
 ```
 
-**Несколько параметров** — через tuple:
+**Multiple parameters** — via tuple:
 
 ```swift
 extension Container {
@@ -238,18 +238,18 @@ extension Container {
 let vm = Container.shared.chatViewModel(("room-1", "user-42"))
 ```
 
-**Ограничения:**
-- `@Injected` НЕ работает с `ParameterFactory` — нет способа передать параметры до инициализации wrapper-а. Используй `Container.shared.foo(arg)` напрямую или явно прокинь зависимость через init.
-- Кэширование (`.cached`/`.singleton`) по умолчанию **игнорирует параметры** — тот же инстанс вернётся для разных id. Для key-by-parameters используй `scopeOnParameters` (Factory 2.5+).
+**Limitations:**
+- `@Injected` does NOT work with `ParameterFactory` — there's no way to pass parameters before the wrapper is initialized. Use `Container.shared.foo(arg)` directly or pass the dependency explicitly through init.
+- Caching (`.cached`/`.singleton`) by default **ignores parameters** — the same instance is returned for different ids. For key-by-parameters use `scopeOnParameters` (Factory 2.5+).
 
-### ParameterFactory vs функция-фабрика
+### ParameterFactory vs factory function
 
-`ParameterFactory` — каноничный путь от автора Factory. Используй её **по умолчанию**: получаешь скоупы (`.cached.scopeOnParameters`), контексты (`.onTest`/`.onPreview`), `register` override в тестах, единый стиль с остальными `var foo: Factory<...>`.
+`ParameterFactory` is the canonical path the author recommends. Use it **by default**: you get scopes (`.cached.scopeOnParameters`), contexts (`.onTest`/`.onPreview`), `register` overrides in tests, and a uniform style with the rest of your `var foo: Factory<...>`.
 
-Простая функция-фабрика — только когда **ничего из перечисленного не нужно** и хочется именованных аргументов:
+A plain factory function — only when **none of the above is needed** and you want named arguments:
 
 ```swift
-// Допустимо ТОЛЬКО если: нет нужды в .cached/.shared, нет .onTest override, нет register-моков
+// Acceptable ONLY when: no need for .cached/.shared, no .onTest override, no register-based mocks
 extension Container {
     func chatViewModel(roomId: String, userId: String) -> ChatViewModel {
         ChatViewModel(roomId: roomId, userId: userId, chat: self.chatService())
@@ -257,19 +257,19 @@ extension Container {
 }
 ```
 
-| Критерий | `ParameterFactory` | Функция-фабрика |
+| Criterion | `ParameterFactory` | Factory function |
 |---|---|---|
-| Скоупы (`.cached`, `.singleton`) | ✅ через `scopeOnParameters` | ❌ всегда новый инстанс |
-| Контексты (`.onTest`, `.onPreview`) | ✅ | ❌ |
-| `register` override в тестах | ✅ | ❌ — только подменой реализации |
-| Именованные аргументы | ❌ — tuple для 2+ | ✅ |
-| Подходит для | ViewModels с runtime id, любой prod-кейс | Однострочные factory без жизненного цикла |
+| Scopes (`.cached`, `.singleton`) | ✅ via `scopeOnParameters` | ❌ always a new instance |
+| Contexts (`.onTest`, `.onPreview`) | ✅ | ❌ |
+| `register` override in tests | ✅ | ❌ — only by swapping the implementation |
+| Named arguments | ❌ — tuple for 2+ | ✅ |
+| Suited for | ViewModels with runtime ids, any prod case | One-liner factories with no lifecycle |
 
-**Правило:** если есть хоть один параметр и нужны кэш/контекст/моки — `ParameterFactory`. Иначе — выбор по эстетике API.
+**Rule:** if there's at least one parameter and you need cache/context/mocks — `ParameterFactory`. Otherwise — choose by API aesthetics.
 
 ## AutoRegistering — Bootstrap Hook
 
-Если нужно выполнить код **один раз перед первой резолюцией** (зарегистрировать дефолты, прочитать config, подключить контексты):
+If you need to run code **once before the first resolution** (register defaults, read config, hook up contexts):
 
 ```swift
 extension Container: AutoRegistering {
@@ -286,22 +286,22 @@ extension Container: AutoRegistering {
 }
 ```
 
-`autoRegister()` вызывается лениво при первом resolve и только один раз на инстанс `Container`.
+`autoRegister()` is called lazily on the first resolve and only once per `Container` instance.
 
-**Используй для:**
-- Дефолтных override'ов в DEBUG/Test/Preview
-- Регистрации factory-методов из подмодулей (см. ниже)
-- Конфигурации, которая зависит от bundle / env
+**Use it for:**
+- Default overrides in DEBUG/Test/Preview
+- Registering factory methods from sub-modules (see below)
+- Configuration that depends on bundle / env
 
-**НЕ используй для:**
-- Тяжёлой инициализации (БД, сеть) — должно быть в `bootstrap()` CR
-- Бизнес-логики
+**Do NOT use it for:**
+- Heavy initialization (DB, network) — that belongs in CR `bootstrap()`
+- Business logic
 
-## Modular Containers (организация в app target)
+## Modular Containers (organization in the app target)
 
-> **Сначала правило:** `import FactoryKit` **в SPM-пакете запрещён** — той же ригидной нормой, что и Swinject. Это требование `pkg-spm-design` (универсальное правило 1). Пакет всегда принимает зависимости через `init(dependencies:)`. То, что описано ниже — **организация в app target**, а не в SPM-пакетах.
+> **Rule first:** `import FactoryKit` **inside an SPM package is forbidden** — by the same rigid rule that applies to Swinject. This is required by `pkg-spm-design` (universal rule 1). A package always accepts its dependencies through `init(dependencies:)`. What's described below is **organization in the app target**, not in SPM packages.
 
-Главный modular-pattern Factory: один `Container.shared`, регистрации разбиты по файлам в app target — по одному файлу на feature/слой:
+The main modular pattern with Factory: one `Container.shared`, registrations split into files in the app target — one file per feature/layer:
 
 ```
 App/
@@ -315,12 +315,12 @@ App/
 └── ...
 ```
 
-Каждый файл — `extension Container` со своими свойствами:
+Each file is an `extension Container` with its own properties:
 
 ```swift
 // App/Composition/Container+Profile.swift
 import FactoryKit
-import ProfileFeature       // SPM package — без Factory внутри
+import ProfileFeature       // SPM package — no Factory inside
 
 extension Container {
     var profileService: Factory<ProfileServiceProtocol> {
@@ -346,13 +346,13 @@ extension Container {
 }
 ```
 
-`Container.shared.profileModule()` работает в host app, в превью и в тестах. Внутри SPM-пакета `ProfileFeature` нет ни строчки про Factory — он принимает свои зависимости через `init(dependencies: ProfileFeatureDependencies)`.
+`Container.shared.profileModule()` works in the host app, in previews, and in tests. The `ProfileFeature` SPM package contains zero lines about Factory — it accepts its dependencies via `init(dependencies: ProfileFeatureDependencies)`.
 
-**Минус:** все extension'ы делят один namespace `Container`. Конфликт имён — UB (одно из свойств молча перекроет другое, потому что ключ — имя свойства). Решение: префиксы по фиче (`profileService`, `profileViewModel`) или своя `SharedContainer` (см. ниже).
+**Downside:** all extensions share one `Container` namespace. A name collision is undefined behavior (one property silently overrides another, because the key is the property name). Solution: feature prefixes (`profileService`, `profileViewModel`) or your own `SharedContainer` (see below).
 
-### Свой `SharedContainer` (для очень больших app)
+### Custom `SharedContainer` (for very large apps)
 
-Когда монорепо разрастается до десятков фич и риск name-collision реальный:
+When the monorepo grows to dozens of features and the name-collision risk is real:
 
 ```swift
 // App/Composition/ProfileContainer.swift
@@ -370,27 +370,27 @@ extension ProfileContainer {
 ```
 
 ```swift
-// Использование
+// Usage
 let svc = ProfileContainer.shared.service()
-// или с property wrapper:
+// or with a property wrapper:
 @Injected(\ProfileContainer.service) var service
 ```
 
-`@Injected(\KeyPath)` поддерживает любой `SharedContainer`, не только базовый `Container`. Этот файл тоже **в app target**, не в пакете.
+`@Injected(\KeyPath)` supports any `SharedContainer`, not just the base `Container`. This file also lives **in the app target**, not in a package.
 
-### Когда что выбирать
+### When to pick which
 
-| Ситуация | Выбор |
+| Situation | Pick |
 |---|---|
-| Одна команда, < 30 фич | `extension Container` с префиксами в одном namespace |
-| Несколько команд / 30+ фич / реальный риск name-collision | Свой `SharedContainer` per feature group |
-| SPM-пакет (любой архетип) | Никогда не Factory внутри. `init(dependencies:)` + регистрация в app target |
+| One team, < 30 features | `extension Container` with prefixes in a single namespace |
+| Multiple teams / 30+ features / real risk of name collisions | A custom `SharedContainer` per feature group |
+| SPM package (any archetype) | Never Factory inside. `init(dependencies:)` + registration in the app target |
 
-См. также `pkg-spm-design` секцию про **library/feature archetypes** — там описан общий контракт, как пакет принимает зависимости через `init`, который работает с любым DI-фреймворком (Swinject / Factory / manual).
+See also `pkg-spm-design`'s **library/feature archetypes** section — it describes the general contract for how a package accepts dependencies through `init`, which works with any DI framework (Swinject / Factory / manual).
 
 ## Contexts (preview / test / debug overrides)
 
-Factory умеет переопределять регистрацию **в зависимости от контекста запуска** без модификации production-кода:
+Factory can override registrations **based on the launch context** without modifying production code:
 
 ```swift
 extension Container: AutoRegistering {
@@ -401,26 +401,26 @@ extension Container: AutoRegistering {
             .onDebug { VerboseAnalytics() }
             .onSimulator { SimulatorOnlyAnalytics() }
 
-        // Аргументы запуска: -mockMode 1
+        // Launch arguments: -mockMode 1
         networkClient.onArg("mockMode") { MockHTTPClient() }
     }
 }
 ```
 
-| Modifier | Когда срабатывает |
+| Modifier | When it triggers |
 |---|---|
 | `.onTest { … }` | XCTest / Swift Testing process |
 | `.onPreview { … }` | SwiftUI Preview (`XCODE_RUNNING_FOR_PREVIEWS == 1`) |
 | `.onDebug { … }` | DEBUG build |
 | `.onSimulator { … }` | iOS Simulator |
-| `.onDevice { … }` | Реальное устройство |
+| `.onDevice { … }` | Real device |
 | `.onArg("name") { … }` | Launch argument `-name 1` |
 
-Контексты **аддитивны** — можно chained несколько. Production-замыкание (то, что в `self { … }`) — fallback, если ни один context не активен.
+Contexts are **additive** — several can be chained. The production closure (the one inside `self { … }`) is the fallback if no context is active.
 
 ## Coordinator and Module Assembly
 
-Архитектурный pattern (`AppDependencies` → `CoordinatorFactory` → `ModuleFactory`) **не меняется** — только реализация `AppDependencyContainer`. См. `di-module-assembly` для полного примера. Различие с Swinject:
+The architectural pattern (`AppDependencies` → `CoordinatorFactory` → `ModuleFactory`) **doesn't change** — only the `AppDependencyContainer` implementation does. See `di-module-assembly` for the full example. The difference vs Swinject:
 
 ```swift
 // Swinject
@@ -438,15 +438,15 @@ final class AppDependencyContainer: AppDependencies {
 }
 ```
 
-**Coordinator-ы НЕ дёргают `Container.shared` напрямую** — они получают `CoordinatorFactory` и `ModuleFactory` через init. Это сохраняет тестируемость и компилируемую цепочку зависимостей. См. `di-module-assembly`, секция «CoordinatorFactory».
+**Coordinators do NOT touch `Container.shared` directly** — they receive `CoordinatorFactory` and `ModuleFactory` via init. This preserves testability and the compile-checked dependency chain. See `di-module-assembly`, "CoordinatorFactory" section.
 
-> **Срез внутри ModuleFactory.** Иногда соблазнительно дать `ModuleFactory` напрямую вызывать `Container.shared.foo()` и убрать фасад `AppDependencyContainer`. Не делай так: это маскирует Service Locator, ломает тесты Coordinator-а (нет init-инъекции — нет mock-а) и обнуляет compile-time видимость dependency surface. Pattern одинаков на 1, 5 и 50 экранов — затраты на фасад окупаются с первой регрессии.
+> **Shortcut inside ModuleFactory.** It can be tempting to let `ModuleFactory` call `Container.shared.foo()` directly and drop the `AppDependencyContainer` facade. Don't do this: it disguises a Service Locator, breaks Coordinator tests (no init injection — no mock), and zeroes out compile-time visibility of the dependency surface. The pattern is the same on 1, 5, and 50 screens — the cost of the facade pays for itself the first time you have a regression.
 
 ## Testing
 
 ### Unit Tests — Direct Injection (preferred)
 
-Как и со Swinject — для ViewModel-ов прямой `init(...)` с моками лучше всего:
+As with Swinject — for ViewModels, a direct `init(...)` with mocks is best:
 
 ```swift
 final class ProfileViewModelTests: XCTestCase {
@@ -461,15 +461,15 @@ final class ProfileViewModelTests: XCTestCase {
 }
 ```
 
-Это работает только если ViewModel принимает зависимости через init. Для случая `@Injected` — см. ниже.
+This only works if the ViewModel accepts dependencies via init. For the `@Injected` case — see below.
 
-### Override через `register` — для @Injected
+### Override via `register` — for @Injected
 
 ```swift
 final class ProfileViewModelTests: XCTestCase {
     override func setUp() {
         super.setUp()
-        Container.shared.reset()        // КРИТИЧНО: иначе override из прошлого теста утечёт
+        Container.shared.reset()        // CRITICAL: otherwise an override from a previous test leaks in
     }
 
     override func tearDown() {
@@ -482,7 +482,7 @@ final class ProfileViewModelTests: XCTestCase {
             MockUserService(result: .success(.fixture))
         }
 
-        let sut = ProfileViewModel()    // @Injected подхватит mock
+        let sut = ProfileViewModel()    // @Injected picks up the mock
 
         await sut.load()
         XCTAssertEqual(sut.state, .loaded(.fixture))
@@ -492,7 +492,7 @@ final class ProfileViewModelTests: XCTestCase {
 
 ### Swift Testing — `.container` trait (Factory 2.5+)
 
-`FactoryTesting` даёт Suite-trait, который автоматически делает scoped Container per test. Не нужно вручную звать `reset()`:
+`FactoryTesting` provides a Suite trait that automatically scopes a Container per test. No manual `reset()` calls are needed:
 
 ```swift
 import Testing
@@ -522,22 +522,22 @@ struct ProfileViewModelTests {
 }
 ```
 
-Каждый `@Test` получает свежий `Container.shared` (через `@TaskLocal`). Тесты могут гоняться **параллельно** без интерференции — это главный аргумент перейти на Swift Testing для Factory-проектов.
+Each `@Test` gets a fresh `Container.shared` (via `@TaskLocal`). Tests can run **in parallel** without interference — that's the main argument for moving Factory projects to Swift Testing.
 
 ### Reset gotchas
 
-| Сценарий | Поведение |
+| Scenario | Behavior |
 |---|---|
-| `.unique` | Никаких кэшей — `reset()` ни на что не влияет |
-| `.cached` | Сбрасывается через `Container.shared.reset()` |
-| `.singleton` | НЕ сбрасывается обычным `reset()`. Используй `reset(options: .all)` |
-| Override через `register` | Сбрасывается обычным `reset()` |
+| `.unique` | No caches — `reset()` doesn't affect anything |
+| `.cached` | Cleared via `Container.shared.reset()` |
+| `.singleton` | NOT cleared by a plain `reset()`. Use `reset(options: .all)` |
+| Override via `register` | Cleared by a plain `reset()` |
 
-**Правило:** в `setUp` всегда `Container.shared.reset(options: .all)`, в `tearDown` — то же самое. Иначе тест-leak гарантирован.
+**Rule:** in `setUp` always call `Container.shared.reset(options: .all)`, in `tearDown` — the same. Otherwise test leaks are guaranteed.
 
 ### Preview overrides
 
-**Preferred — централизованно** через `.onPreview` в `autoRegister()`. Один источник правды на все `#Preview`-ы, не мусорит сами View-файлы:
+**Preferred — centralized** via `.onPreview` inside `autoRegister()`. One source of truth for all `#Preview`s, doesn't pollute the View files themselves:
 
 ```swift
 extension Container: AutoRegistering {
@@ -548,11 +548,11 @@ extension Container: AutoRegistering {
 }
 
 #Preview {
-    ProfileView()    // мок подхватится автоматически
+    ProfileView()    // mock is picked up automatically
 }
 ```
 
-**Локальный override** (одноразовая вариация в конкретном `#Preview`) — через `.preview` modifier (Factory 2.4+) или `register`:
+**Local override** (a one-off variation in a specific `#Preview`) — via the `.preview` modifier (Factory 2.4+) or `register`:
 
 ```swift
 #Preview("Loading state") {
@@ -561,15 +561,15 @@ extension Container: AutoRegistering {
 }
 ```
 
-`return` нужен, потому что в теле `#Preview` появилось statement до View.
+`return` is required because there's now a statement before the View in the `#Preview` body.
 
 ## Concurrency (Swift 6 / Strict Concurrency)
 
-`Container` — `Sendable`. Регистрация и резолв thread-safe (внутренний lock). Но **сам инстанс**, который ты возвращаешь, должен быть Sendable / правильно изолирован — Factory не делает магии.
+`Container` is `Sendable`. Registration and resolve are thread-safe (internal lock). But **the instance you return** must be Sendable / properly isolated — Factory does not perform magic.
 
 ### `@MainActor` view models
 
-Изолируй сам **класс ViewModel**, а не свойство в `Container`. Закрытие фабрики помечается `@MainActor in`, чтобы инициализация прошла на главной очереди:
+Isolate the **ViewModel class itself**, not the property in `Container`. The factory closure is annotated `@MainActor in` so initialization runs on the main queue:
 
 ```swift
 @MainActor
@@ -583,11 +583,11 @@ extension Container {
 }
 ```
 
-**Почему НЕ `@MainActor` на самом `var`:** если пометить свойство `@MainActor`, доступ к нему (включая `Container.shared.contentViewModel`) требует MainActor-контекста — это ломает резолв из background-задач, миграций, `URLSession.delegate`. Изоляция должна жить **на типе, который её требует** (ViewModel), а не на регистрации.
+**Why NOT `@MainActor` on the `var` itself:** if you mark the property `@MainActor`, accessing it (including `Container.shared.contentViewModel`) requires a MainActor context — that breaks resolution from background tasks, migrations, `URLSession.delegate`. Isolation should live **on the type that requires it** (the ViewModel), not on the registration.
 
-Если Swift 6 ругается на резолв из nonisolated кода — значит, ты резолвишь MainActor-тип не там, где надо. Подними резолв в MainActor-зону (например, в `View.task`/`onAppear`), а не помечай регистрацию.
+If Swift 6 complains about resolving from nonisolated code — that means you're resolving a MainActor-bound type in the wrong place. Move the resolve into a MainActor zone (e.g. `View.task`/`onAppear`) instead of annotating the registration.
 
-### `@Injected` в `@Observable` классах
+### `@Injected` in `@Observable` classes
 
 ```swift
 @MainActor
@@ -600,52 +600,52 @@ final class FeatureViewModel {
 }
 ```
 
-`@ObservationIgnored` — обязателен. Без него каждое `@Injected` свойство станет наблюдаемым, и SwiftUI будет лишний раз перерисовывать view.
+`@ObservationIgnored` is mandatory. Without it every `@Injected` property becomes observable, and SwiftUI will redraw the view unnecessarily.
 
-### `nonisolated` Factory из global actor контекста
+### `nonisolated` Factory from a global-actor context
 
-Если регистрация чистая (нет UI), оставь её nonisolated — иначе вся фича приедет на MainActor:
+If the registration is pure (no UI), keep it nonisolated — otherwise the whole feature ends up on MainActor:
 
 ```swift
 extension Container {
     var repository: Factory<RepositoryProtocol> {
-        self { Repository(client: self.apiClient()) }.cached     // nonisolated → ОК
+        self { Repository(client: self.apiClient()) }.cached     // nonisolated → OK
     }
 }
 ```
 
 ## Common Mistakes
 
-### 1. `Container.shared` из доменного слоя — Service Locator
+### 1. `Container.shared` from the domain layer — Service Locator
 
 ```swift
 // ❌ Anti-pattern
 final class ProfileService {
     func load() {
-        let analytics = Container.shared.analytics()     // скрытая зависимость
+        let analytics = Container.shared.analytics()     // hidden dependency
     }
 }
 
-// ✅ Correct: явный init OR @Injected на верхнем уровне (ViewModel/Coordinator)
+// ✅ Correct: explicit init OR @Injected at the top level (ViewModel/Coordinator)
 final class ProfileService {
     private let analytics: AnalyticsProtocol
     init(analytics: AnalyticsProtocol) { self.analytics = analytics }
 }
 ```
 
-`@Injected` допустим в **слое presentation/ViewModel/Coordinator**, где владеет графом фичи. Сервисы и репозитории должны принимать зависимости явно через init.
+`@Injected` is acceptable in the **presentation/ViewModel/Coordinator layer**, which owns the feature's graph. Services and repositories must accept dependencies explicitly via init.
 
-### 2. Resolve через `Container.shared` внутри Factory-замыкания
+### 2. Resolving via `Container.shared` inside a Factory closure
 
 ```swift
-// ❌ Ломает modular containers и тесты
+// ❌ Breaks modular containers and tests
 extension Container {
     var profileService: Factory<ProfileService> {
         self { ProfileService(api: Container.shared.apiClient()) }
     }
 }
 
-// ✅ Используй self
+// ✅ Use self
 extension Container {
     var profileService: Factory<ProfileService> {
         self { ProfileService(api: self.apiClient()) }
@@ -653,12 +653,12 @@ extension Container {
 }
 ```
 
-Если кто-то создаст отдельный `Container()` для тестов, в первом варианте `apiClient` придёт из `.shared` — тест-изоляция сломана.
+If someone creates a separate `Container()` for tests, in the first variant `apiClient` will come from `.shared` — test isolation is broken.
 
-### 3. `.singleton` для ViewModel — общий state между экранами
+### 3. `.singleton` for a ViewModel — shared state across screens
 
 ```swift
-// ❌ Все экраны увидят одно и то же state
+// ❌ All screens see the same state
 extension Container {
     var profileViewModel: Factory<ProfileViewModel> {
         self { ProfileViewModel() }.singleton
@@ -673,21 +673,21 @@ extension Container {
 }
 ```
 
-### 4. Забыл `reset()` в setUp
+### 4. Forgot `reset()` in setUp
 
 ```swift
-// ❌ Тесты влияют друг на друга
+// ❌ Tests influence each other
 final class Tests: XCTestCase {
     func test_a() {
         Container.shared.foo.register { MockA() }
         // …
     }
     func test_b() {
-        // MockA из test_a всё ещё активен → test_b непредсказуем
+        // MockA from test_a is still active → test_b is unpredictable
     }
 }
 
-// ✅ ВСЕГДА reset
+// ✅ ALWAYS reset
 final class Tests: XCTestCase {
     override func setUp() {
         super.setUp()
@@ -696,12 +696,12 @@ final class Tests: XCTestCase {
 }
 ```
 
-Лучше — Swift Testing с `@Suite(.container)`, тогда reset не нужен.
+Better — Swift Testing with `@Suite(.container)`, then no reset is needed.
 
-### 5. `@Injected` в `@Observable` без `@ObservationIgnored`
+### 5. `@Injected` in `@Observable` without `@ObservationIgnored`
 
 ```swift
-// ❌ Каждый resolve триггерит UI update
+// ❌ Every resolve triggers a UI update
 @Observable
 final class ViewModel {
     @Injected(\.service) var service
@@ -714,10 +714,10 @@ final class ViewModel {
 }
 ```
 
-### 6. ParameterFactory + `.cached` без `scopeOnParameters`
+### 6. ParameterFactory + `.cached` without `scopeOnParameters`
 
 ```swift
-// ❌ Тот же инстанс для разных itemId
+// ❌ Same instance for different itemIds
 extension Container {
     var detailViewModel: ParameterFactory<String, DetailViewModel> {
         self { DetailViewModel(itemId: $0) }.cached
@@ -726,54 +726,54 @@ extension Container {
 
 let vm1 = Container.shared.detailViewModel("a")
 let vm2 = Container.shared.detailViewModel("b")
-// vm1 === vm2, оба смотрят на itemId "a"
+// vm1 === vm2, both look at itemId "a"
 
-// ✅ Либо .unique, либо scopeOnParameters
+// ✅ Either .unique, or scopeOnParameters
 self { DetailViewModel(itemId: $0) }.cached.scopeOnParameters
 ```
 
-### 7. Импорт `Factory` вместо `FactoryKit`
+### 7. Importing `Factory` instead of `FactoryKit`
 
 ```swift
-// ❌ Старое имя, deprecation warnings
+// ❌ Old name, deprecation warnings
 import Factory
 
 // ✅
 import FactoryKit
 ```
 
-### 8. `register` в production-коде вне `autoRegister()` или тестов
+### 8. `register` in production code outside `autoRegister()` or tests
 
 ```swift
-// ❌ Где-то в SceneDelegate
+// ❌ Somewhere in SceneDelegate
 Container.shared.networkClient.register { CustomClient() }
 
-// Вызвалось ОДИН раз — но любой следующий reset() вернёт оригинал
+// Was called ONCE — but any subsequent reset() returns the original
 ```
 
-Override-ы должны быть либо в `autoRegister()` (через context-modifiers), либо в тестах. Иначе ты борешься с lifecycle reset-а.
+Overrides should live either in `autoRegister()` (via context modifiers) or in tests. Otherwise you're fighting the reset lifecycle.
 
-### 9. Конфликт имён в multi-package setup
+### 9. Name collisions in a multi-package setup
 
-Два пакета объявили `extension Container { var apiClient: Factory<…> }` с разной реализацией → одно молча перекрыло другое. Проверь grep `var .*: Factory<` по всем пакетам или используй Опцию Б (свой `Container` на пакет).
+Two packages declare `extension Container { var apiClient: Factory<…> }` with different implementations → one silently overrides the other. Grep for `var .*: Factory<` across all packages or use Option B (your own `Container` per package).
 
-### 10. `@Injected` сервисов в SwiftUI `View`
+### 10. `@Injected` services in a SwiftUI `View`
 
 ```swift
-// ❌ Сервис напрямую в View — скрытая зависимость, View нельзя превьюить с моком без AutoRegistering-хака
+// ❌ Service directly in the View — hidden dependency, the View can't be previewed with a mock without an AutoRegistering hack
 struct ProfileView: View {
     @Injected(\.userService) var userService
     @Injected(\.analytics) var analytics
     var body: some View { … }
 }
 
-// ✅ DI оседает на ViewModel; View получает её через @InjectedObservable или @State
+// ✅ DI lands on the ViewModel; the View receives it via @InjectedObservable or @State
 struct ProfileView: View {
     @InjectedObservable(\.profileViewModel) var viewModel
     var body: some View { … }
 }
 
-// ✅ Композируемые компоненты — через init, никакого DI:
+// ✅ Composable components — via init, no DI:
 struct ProfileHeaderView: View {
     let user: User
     let onEdit: () -> Void
@@ -781,40 +781,40 @@ struct ProfileHeaderView: View {
 }
 ```
 
-**Правило:**
-- Сервисы (`UserService`, `Analytics`, `Repository`) — **никогда** в `View`. Только в ViewModel через `@Injected` + `@ObservationIgnored`.
-- `@InjectedObservable` для root ViewModel экрана — допустимо.
-- Компонуемые subview'и — `let`/`@Binding` через init. DI = головная боль для preview и snapshot-тестов.
+**Rule:**
+- Services (`UserService`, `Analytics`, `Repository`) — **never** in a `View`. Only in the ViewModel via `@Injected` + `@ObservationIgnored`.
+- `@InjectedObservable` for the screen's root ViewModel — acceptable.
+- Composable subviews — `let`/`@Binding` via init. DI = a headache for previews and snapshot tests.
 
 ## Swinject vs Factory: feature comparison
 
-| Аспект | Swinject | Factory |
+| Aspect | Swinject | Factory |
 |---|---|---|
-| Регистрация | `container.register(Foo.self) { _ in Foo() }` — runtime, в Assembly | `extension Container { var foo: Factory<Foo> { self { Foo() } } }` — compile-time свойство |
-| Type-safety | Runtime: пропущенная регистрация → `resolve(...)!` краш | Compile-time: factory не существует → код не компилируется |
-| Биндинг | По типу + опционально `name: String` | По KeyPath на свойство `Container` |
-| Резолв в коде | `container.resolve(Foo.self)!` или ручные wrapper-ы | `Container.shared.foo()` или `@Injected(\.foo)` |
-| Property wrappers | Нет встроенных (нужно писать свои) | First-class: `@Injected`, `@LazyInjected`, `@WeakLazyInjected`, `@InjectedObservable` |
-| SwiftUI / Observation | Ручная интеграция (`StateObject`, EnvironmentObject) | `@InjectedObservable` + `@ObservationIgnored` из коробки |
-| Скоупы | `.transient`, `.container`, `.weak`, `.graph`, custom | `.unique`, `.cached`, `.singleton`, `.shared`, `.graph`, `.timeToLive`, `.scopeOnParameters` |
-| Параметры в фабрике | `register { (_, arg: String) in … }`, до 9 args | `ParameterFactory<P, T>`, для 2+ — tuple |
-| Контексты (test/preview/debug) | Нет — собирай сам через `#if DEBUG` + флаги | `.onTest` / `.onPreview` / `.onDebug` / `.onSimulator` / `.onArg` |
-| Bootstrap-хук | Конфигурируешь Assembly + assembler в CR | `AutoRegistering.autoRegister()` лениво на первый resolve |
-| Modular setup | `Assembly` per module + `assembler.apply([...])` | `extension Container` per файл, опционально свой `SharedContainer` |
-| SPM-пакет | DI-фреймворк **запрещён** в main target → `init(dependencies:)` | То же ограничение → `init(dependencies:)` |
-| Тест-изоляция | Свежий `Container()` на каждый тест ИЛИ ручной reset Assembly | `Container.shared.reset(options: .all)` ИЛИ `@Suite(.container)` (FactoryTesting) для параллельных Swift Testing |
-| Override моков | `container.register(Foo.self) { _ in Mock() }` (поверх) | `Container.shared.foo.register { Mock() }` |
-| Производительность | Runtime dictionary lookup + рефлексия | Static dispatch через property + closure |
-| Async / Sendable | Не Sendable из коробки, ручная синхронизация | Container Sendable, register/resolve thread-safe |
-| Зрелость | Старее, шире boilerplate, нативно для UIKit-эпохи | Современнее, заточен под SwiftUI/Observation/Swift 6 |
+| Registration | `container.register(Foo.self) { _ in Foo() }` — runtime, in an Assembly | `extension Container { var foo: Factory<Foo> { self { Foo() } } }` — compile-time property |
+| Type-safety | Runtime: missing registration → `resolve(...)!` crash | Compile-time: factory missing → code doesn't compile |
+| Binding | By type + optional `name: String` | By KeyPath to a `Container` property |
+| Resolve in code | `container.resolve(Foo.self)!` or hand-written wrappers | `Container.shared.foo()` or `@Injected(\.foo)` |
+| Property wrappers | None built-in (you'd write your own) | First-class: `@Injected`, `@LazyInjected`, `@WeakLazyInjected`, `@InjectedObservable` |
+| SwiftUI / Observation | Manual integration (`StateObject`, EnvironmentObject) | `@InjectedObservable` + `@ObservationIgnored` out of the box |
+| Scopes | `.transient`, `.container`, `.weak`, `.graph`, custom | `.unique`, `.cached`, `.singleton`, `.shared`, `.graph`, `.timeToLive`, `.scopeOnParameters` |
+| Parameters in factory | `register { (_, arg: String) in … }`, up to 9 args | `ParameterFactory<P, T>`, for 2+ — tuple |
+| Contexts (test/preview/debug) | None — assemble your own via `#if DEBUG` + flags | `.onTest` / `.onPreview` / `.onDebug` / `.onSimulator` / `.onArg` |
+| Bootstrap hook | Configure Assembly + assembler in the CR | `AutoRegistering.autoRegister()` lazily on first resolve |
+| Modular setup | `Assembly` per module + `assembler.apply([...])` | `extension Container` per file, optionally a custom `SharedContainer` |
+| SPM package | DI framework **forbidden** in main target → `init(dependencies:)` | Same restriction → `init(dependencies:)` |
+| Test isolation | Fresh `Container()` per test OR manual Assembly reset | `Container.shared.reset(options: .all)` OR `@Suite(.container)` (FactoryTesting) for parallel Swift Testing |
+| Mock overrides | `container.register(Foo.self) { _ in Mock() }` (on top) | `Container.shared.foo.register { Mock() }` |
+| Performance | Runtime dictionary lookup + reflection | Static dispatch via property + closure |
+| Async / Sendable | Not Sendable out of the box, manual synchronization | Container is Sendable, register/resolve thread-safe |
+| Maturity | Older, more boilerplate, native to the UIKit era | Newer, tailored for SwiftUI/Observation/Swift 6 |
 
-**Когда что выбирать:**
+**When to pick which:**
 
 - **Greenfield SwiftUI** + iOS 16+ + `@Observable` → **Factory**
-- **Существующий Swinject** в production → не мигрируй ради миграции; см. Migration ниже только если есть конкретная боль (тесты, Swift 6, SwiftUI integration)
-- Нужны **именованные регистрации одного типа** (`name: "primary" / "fallback"`) или autoregister-плагины → Swinject
-- Нужны контексты (preview/test/debug overrides) **без своего scaffolding** → Factory
-- Команда из бывших Spring/Dagger → Swinject ближе ментально (Assembly = Module)
+- **Existing Swinject** in production → don't migrate for the sake of migration; see Migration below only if there's specific pain (tests, Swift 6, SwiftUI integration)
+- Need **named registrations of the same type** (`name: "primary" / "fallback"`) or autoregister plugins → Swinject
+- Need contexts (preview/test/debug overrides) **without your own scaffolding** → Factory
+- Team coming from Spring/Dagger → Swinject is mentally closer (Assembly = Module)
 
 ## Migration: Swinject → Factory
 
@@ -826,29 +826,29 @@ struct ProfileHeaderView: View {
 | `.inObjectScope(.weak)` | `.shared` |
 | `.inObjectScope(.graph)` | `.graph` |
 | `container.resolve(Foo.self)!` | `Container.shared.foo()` |
-| `r.resolve(Foo.self, name: "x")` | Свой ключ через KeyPath или отдельный `var fooX: Factory<Foo>` |
+| `r.resolve(Foo.self, name: "x")` | A custom key via KeyPath or a separate `var fooX: Factory<Foo>` |
 | `Assembly.assemble(container:)` | `extension Container` per feature + `AutoRegistering` |
 | `register(Foo.self) { (_, arg: String) in … }` | `var foo: ParameterFactory<String, Foo>` |
 
-**Стратегия миграции:**
-1. Переписать сервисы и регистрации feature за фичей (Container extension рядом со старой Assembly).
-2. Coordinator-ы оставить как есть — они работают через `AppDependencyContainer` (см. `di-module-assembly`); только реализация фасада меняется.
-3. Не оставляй mixed (часть Swinject + часть Factory) дольше одного спринта — два DI-фреймворка одновременно = двойная сложность тестов.
+**Migration strategy:**
+1. Rewrite services and registrations feature by feature (Container extension next to the old Assembly).
+2. Leave Coordinators alone — they work through `AppDependencyContainer` (see `di-module-assembly`); only the facade implementation changes.
+3. Don't keep a mixed state (some Swinject + some Factory) longer than one sprint — two DI frameworks at once = double the test complexity.
 
 ## Debugging Tips
 
-> **Версия API:** примеры ниже опираются на internal `ContainerManager` API из Factory 2.5+. Имена/сигнатуры могут меняться между минорными релизами — сверяйся с README репозитория, если что-то перестало компилироваться.
+> **API version:** the examples below rely on the internal `ContainerManager` API from Factory 2.5+. Names/signatures may change between minor releases — check the repository README if something stops compiling.
 
 ```swift
-// Список зарегистрированных factory-ключей (debug only)
+// List of registered factory keys (debug only)
 #if DEBUG
 Container.shared.manager.registrations.keys.forEach { print($0) }
 #endif
 
-// Decorator — log каждый resolve
+// Decorator — log every resolve
 Container.shared.manager.decorator { resolved in
     print("Resolved: \(type(of: resolved))")
 }
 ```
 
-Decorator вызывается на КАЖДЫЙ resolve — выключай в production.
+The decorator is invoked on EVERY resolve — turn it off in production.

@@ -1,87 +1,103 @@
 ---
 name: workflow-review
-description: "Воркфлоу профиля REVIEW: одиночный проход swift-toolkit:swift-reviewer + auto-move в DONE/ при APPROVED. Активируется swift-toolkit:orchestrator-ом, не вызывается пользователем напрямую."
+description: |
+  REVIEW profile workflow: a single pass through swift-toolkit:swift-reviewer plus auto-move into DONE/ on APPROVED. Activated by swift-toolkit:orchestrator; not invoked by the user directly.
+  Use when (en): orchestrator dispatches a task with [TASK_TYPE]=REVIEW
+  Use when (ru): оркестратор диспетчеризует задачу с [TASK_TYPE]=REVIEW
 ---
 
 # Workflow Review
 
-Профильный воркфлоу для задач с `[TASK_TYPE] = REVIEW`. Структурно проще остальных воркфлоу: одна содержательная стадия (Review) и детерминированная пост-стадия Auto-move, маршрутизация по полю `[REVIEW_STATUS]`. Скилл получает уже резолвленный контракт от оркестратора и не пытается доразрешать параметры самостоятельно.
+The profile workflow for tasks with `[TASK_TYPE] = REVIEW`. Structurally simpler than the others: a single substantive stage (Review) and a deterministic post-stage Auto-move that routes by the `[REVIEW_STATUS]` field. The skill receives an already-resolved contract from the orchestrator and does not try to re-resolve any parameter on its own.
 
-## 1. Контракт входа
+## Language Resolution
 
-Скилл вызывается `swift-toolkit:orchestrator`-ом через `Skill` tool с структурированными `args` в формате `key=value`, разделённых только переводом строки.
+Before producing any user-facing string:
 
-Структура полей описана в `swift-toolkit:orchestrator` (раздел **Outbound Contract**). Workflow-review принимает все поля заполненными — invariant.
+1. Read `CLAUDE.md` from the project root.
+2. Find the `## Language` section.
+3. Take the first non-empty line in that section, lowercase and trim it. That is `<lang>`.
+4. If `<lang>` is `en` or `ru`, use it. Otherwise default to `en`.
+5. Read this skill's `locales/<lang>.md`. Look up keys by H2 header.
+6. If a key is missing, fall back to the same key in `locales/en.md`. If still missing, that's a bug — fail loudly with key name.
 
-Если пришло пустое обязательное поле — workflow-review не пытается восстановить, а возвращает `{status: error, reason: missing field <name>}` обратно в оркестратор.
+Caching: resolve `<lang>` once per skill invocation; do not re-read CLAUDE.md per string.
 
-Особенности профиля REVIEW (отличия от других воркфлоу):
-- `start_stage` — всегда `Review` (других стадий нет; иные значения — ошибка контракта).
-- `end_stage` — всегда `Review` или `null` (auto-move — это не стадия профиля, а пост-обработка артефакта).
-- `stage_scope` — всегда `single` (workflow никогда не «продолжается» дальше; auto-move применяется автоматически по результату Review, см. секцию 2).
-- `start_phase` — не используется (внутри Review нет фаз).
-- `need_test`, `need_review` — игнорируются: сам этот профиль и есть ревью; повторно `swift-toolkit:swift-reviewer` себя не вызывает, а тесты выполняются в воркфлоу-донорах (FEATURE/BUG/REFACTOR/TEST).
-- `mode` — `manual` / `auto` (см. секции 3 и 4): влияет только на согласование auto-move.
-- `stack`, `archive_paths` — стандартно (контекст для `swift-toolkit:swift-reviewer` и информация о бэкапах, сделанных оркестратором).
+## 1. Input Contract
+
+The skill is invoked by `swift-toolkit:orchestrator` via the `Skill` tool with structured `args` in `key=value` form, separated only by newlines.
+
+The field structure is documented in `swift-toolkit:orchestrator` (section **Outbound Contract**). Workflow-review accepts every field already filled — invariant.
+
+If a required field arrives empty — workflow-review does not try to recover. It returns `{status: error, reason: status_error_empty_required_field}` (the `reason` value is taken from a locale key) back to the orchestrator.
+
+REVIEW-profile specifics (differences from other workflows):
+- `start_stage` — always `Review` (no other stages exist; any other value is a contract error).
+- `end_stage` — always `Review` or `null` (auto-move is not a profile stage but a post-processing step on the artifact).
+- `stage_scope` — always `single` (the workflow never "continues" further; auto-move applies automatically based on the Review result, see section 2).
+- `start_phase` — not used (Review has no phases).
+- `need_test`, `need_review` — ignored: this profile IS the review; `swift-toolkit:swift-reviewer` does not call itself recursively, and tests run inside the donor workflows (FEATURE/BUG/REFACTOR/TEST).
+- `mode` — `manual` / `auto` (see sections 3 and 4): only affects whether auto-move is confirmed with the user.
+- `stack`, `archive_paths` — standard (context for `swift-toolkit:swift-reviewer` and information about backups created by the orchestrator).
 
 ## 2. Stages
 
-- **Review** — `swift-toolkit:swift-reviewer`. Артефакт: `Review.md` в папке задачи. **Обязательная первая строка** артефакта: `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` — это контракт со всеми воркфлоу и оркестратором. Тело `Review.md`: что сделано хорошо, что требует изменений (по severity), открытые вопросы. Подробное описание выходного формата — в `agents/swift-reviewer.md`.
+- **Review** — `swift-toolkit:swift-reviewer`. Artifact: `Review.md` in the task folder. **Mandatory first line** of the artifact: `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` — this is the contract shared with every workflow and the orchestrator. Body of `Review.md`: what was done well, what needs changes (by severity), open questions. The detailed output format is described in `agents/swift-reviewer.md`.
 
-- **Auto-move** — детерминированная пост-стадия. Workflow читает первую строку `Review.md` строго как поле `[REVIEW_STATUS] = <value>` (regex на «начинается с `[REVIEW_STATUS] =`», парсинг значения по «=»). Substring-поиск по телу `Review.md` запрещён. Возможные значения и действия:
-  - `APPROVED` → вызвать `swift-toolkit:task-move` для перемещения папки задачи в `Tasks/DONE/`. Если задача уже в `Tasks/DONE/` — остаётся (idempotent).
-  - `CHANGES_REQUESTED` → задача остаётся в `Tasks/ACTIVE/`. В `Done.md` (или, если его нет, в отдельной заметке `ChangesRequested.md` рядом с `Review.md`) добавляется секция «Ждёт доработки» со списком конкретных пунктов из `Review.md` (severity Critical/Major).
-  - `DISCUSSION` → задача остаётся в `Tasks/ACTIVE/`. Создаётся (или дополняется) `Questions.md` секцией `## <ISO-дата> — Discussion from Review` с цитатами/ссылками на спорные пункты `Review.md`.
-  - Любое другое значение или отсутствие первой строки в требуемом формате → `{status: error, reason: "invalid or missing [REVIEW_STATUS] in Review.md"}`.
+- **Auto-move** — a deterministic post-stage. The workflow reads the first line of `Review.md` strictly as the field `[REVIEW_STATUS] = <value>` (regex: starts with `[REVIEW_STATUS] =`, value parsed by `=`). Substring search inside the body of `Review.md` is forbidden. Possible values and actions:
+  - `APPROVED` → call `swift-toolkit:task-move` to relocate the task folder into `Tasks/DONE/`. If the task is already in `Tasks/DONE/` — leave it (idempotent).
+  - `CHANGES_REQUESTED` → the task stays in `Tasks/ACTIVE/`. A section under the literal English heading `## Awaiting changes` is added to `Done.md` (or, if `Done.md` is absent, to a separate `ChangesRequested.md` next to `Review.md`), listing the concrete points (Critical/Major severity) from `Review.md`. The heading stays English regardless of the active language — it is a stable structural anchor, not a localized label; the bullet items below it are agent-composed prose and follow the user's natural language.
+  - `DISCUSSION` → the task stays in `Tasks/ACTIVE/`. A `Questions.md` is created (or extended) with a section `## <ISO-date> — Discussion from Review` quoting/linking the disputed points from `Review.md`.
+  - Any other value, or missing first line in the required format → `{status: error, reason: "invalid or missing [REVIEW_STATUS] in Review.md"}`.
 
-## 3. Manual режим
+## 3. Manual mode
 
-После завершения стадии Review оркестратор задаёт пользователю `AskUserQuestion`: «Apply auto-move per `[REVIEW_STATUS]=<value>`? [Yes / Modify / No]».
+After the Review stage completes, the orchestrator asks the user via `AskUserQuestion` using the `auto_move_prompt` key from `locales/<lang>.md`, with placeholder `{status}` (the parsed `[REVIEW_STATUS]` value).
 
-- `Yes` — workflow-review выполняет auto-move согласно секции 2.
-- `Modify` — пользователь правит `Review.md` (например, меняет статус или формулировки), после чего оркестратор перезапускает workflow-review со стадии Review (`action=redo`, `stage_scope=single`).
-- `No` — auto-move пропускается; задача остаётся на месте без записей в `Done.md`/`Questions.md`. В выходе фиксируется `notes: "auto-move skipped by user"`.
+- `Yes` — workflow-review performs auto-move per section 2.
+- `Modify` — the user edits `Review.md` (e.g. changes the status or wording); the orchestrator then re-runs workflow-review starting at the Review stage (`action=redo`, `stage_scope=single`).
+- `No` — auto-move is skipped; the task stays where it is, with no entries written to `Done.md` / `Questions.md`. The output records `notes` rendered from key `status_cancelled_user_no`.
 
-Workflow-review **сам `AskUserQuestion` не вызывает** — после Review он возвращает управление оркестратору с `next_recommended_action=ask_user`. Решение о паузе и текстовых fallback-ах — зона оркестратора.
+Workflow-review **does NOT call `AskUserQuestion` itself** — after Review it returns control to the orchestrator with `next_recommended_action=ask_user`. The decision to pause or fall back to text input is the orchestrator's domain.
 
-## 4. Auto режим
+## 4. Auto mode
 
-Без пауз. Auto-move выполняется немедленно после завершения Review согласно секции 2, без согласования с пользователем. Workflow-review возвращает один финальный результат с уже применённым auto-move.
+No pauses. Auto-move runs immediately after Review per section 2, with no user confirmation. Workflow-review returns a single final result with auto-move already applied.
 
-Финальный коммит, если оркестратор инициирует commit-flow, согласуется с пользователем независимо от режима — это ответственность оркестратора.
+The final commit, if the orchestrator initiates the commit flow, is confirmed with the user regardless of mode — that is the orchestrator's responsibility.
 
-## 5. Контракт выхода
+## 5. Output Contract
 
-После Review (в `manual` режиме) и после Auto-move (в обоих режимах) workflow-review возвращает в оркестратор JSON-подобную структуру:
+After Review (in `manual` mode) and after Auto-move (in both modes), workflow-review returns a JSON-like structure to the orchestrator:
 
 ```
 {
   status: ok | error | cancelled | interrupted,
   last_completed_stage: Review | AutoMove,
-  artifact_path: <путь к Review.md>,
+  artifact_path: <path to Review.md>,
   next_recommended_action: stop,
-  notes: "[REVIEW_STATUS]=<value>; auto-move: <moved-to-DONE | kept-in-ACTIVE-with-ChangesRequested | kept-in-ACTIVE-with-Questions | skipped-by-user | not-yet-applied>"
+  notes: rendered from locale key `notes_template` with placeholders {status}, {action} where {action} ∈ {moved-to-DONE | kept-in-ACTIVE-with-ChangesRequested | kept-in-ACTIVE-with-Questions | skipped-by-user | not-yet-applied}
 }
 ```
 
-Семантика полей:
-- `status=ok` — стадия завершена корректно.
-- `status=error` — ошибка контракта (например, некорректный `start_stage`, отсутствует/некорректен `[REVIEW_STATUS]`, фатальный сбой `swift-toolkit:swift-reviewer` или `task-move`).
-- `status=cancelled` — пользователь явно отказался продолжать (нажал «No» в AUQ оркестратора). Штатный исход.
-- `status=interrupted` — выполнение прервано техническим сбоем или внешним сигналом.
-- `last_completed_stage` — `Review`, если auto-move ещё не применён (manual-пауза перед AUQ); `AutoMove`, если auto-move применён или явно пропущен пользователем.
-- `artifact_path` — путь к `Review.md` (он остаётся ключевым артефактом профиля даже после перемещения папки в `Tasks/DONE/`).
-- `next_recommended_action` — **всегда `stop`**: REVIEW заканчивает цикл и не передаёт управление другим воркфлоу.
-- `notes` — фактическое значение `[REVIEW_STATUS]` и совершённое действие auto-move (или причина пропуска).
+Field semantics:
+- `status=ok` — the stage finished correctly.
+- `status=error` — a contract error (e.g. invalid `start_stage`, missing/invalid `[REVIEW_STATUS]`, fatal failure of `swift-toolkit:swift-reviewer` or `task-move`).
+- `status=cancelled` — the user explicitly declined to continue (rendered to the user via locale key `status_cancelled_user_no`). A normal outcome.
+- `status=interrupted` — execution was interrupted by a technical fault or external signal.
+- `last_completed_stage` — `Review` if auto-move has not yet been applied (manual pause before AUQ); `AutoMove` if auto-move has been applied or explicitly skipped by the user.
+- `artifact_path` — path to `Review.md` (which remains the profile's key artifact even after the folder is moved into `Tasks/DONE/`).
+- `next_recommended_action` — **always `stop`**: REVIEW concludes its cycle and never hands control to another workflow.
+- `notes` — the actual `[REVIEW_STATUS]` value and the auto-move action taken (or the reason it was skipped), rendered from `notes_template` in the locale.
 
-## 6. Что workflow-review НЕ делает
+## 6. What workflow-review does NOT do
 
-- НЕ запускает другие воркфлоу. Если `[REVIEW_STATUS] = CHANGES_REQUESTED`, workflow-review **не инициирует** workflow-feature / workflow-bug / workflow-refactor для устранения замечаний — решение об этом принимает пользователь (например, через `task-new` или `action=redo` на исходной задаче).
-- НЕ изменяет код проекта. Единственные допустимые изменения файловой системы — `Review.md`, `Done.md` / `ChangesRequested.md`, `Questions.md` и перемещение папки задачи через `task-move`.
-- НЕ парсит `Review.md` по содержимому — auto-move решает только по структурированному полю `[REVIEW_STATUS]` в первой строке. Substring-поиск («approved», «LGTM», «changes requested» в теле) запрещён как ненадёжный.
-- НЕ переключает свой `stage_scope` — он всегда `single`. Любые `forward` / `all` от оркестратора игнорируются (возврат `{status: error, reason: "stage_scope must be single for REVIEW"}`).
-- НЕ маршрутизирует — выбор профиля сделан в оркестраторе до вызова.
-- НЕ читает `Task.md` для определения стека/режима — всё пришло в `args`.
-- НЕ создаёт бэкапы в `_archive/` — это сделал оркестратор до передачи управления; пути уже в `archive_paths`.
-- НЕ задаёт `AskUserQuestion` — это делает оркестратор перед auto-move в `manual` режиме.
-- НЕ согласует коммит с пользователем — этим занимается оркестратор после возврата `next_recommended_action`.
+- Does NOT start other workflows. If `[REVIEW_STATUS] = CHANGES_REQUESTED`, workflow-review **does not initiate** workflow-feature / workflow-bug / workflow-refactor to address the comments — that decision is the user's (e.g. through `task-new` or `action=redo` on the original task).
+- Does NOT modify project code. The only filesystem changes allowed are `Review.md`, `Done.md` / `ChangesRequested.md`, `Questions.md`, and moving the task folder via `task-move`.
+- Does NOT parse `Review.md` by content — auto-move decides only by the structured `[REVIEW_STATUS]` field on the first line. Substring search ("approved", "LGTM", "changes requested" in the body) is forbidden as unreliable.
+- Does NOT switch its `stage_scope` — it is always `single`. Any `forward` / `all` from the orchestrator is ignored (return `{status: error, reason: "stage_scope must be single for REVIEW"}`).
+- Does NOT route — profile selection happens in the orchestrator before the call.
+- Does NOT read `Task.md` to determine stack/mode — everything arrives in `args`.
+- Does NOT create backups in `_archive/` — the orchestrator did so before handing off control; the paths are already in `archive_paths`.
+- Does NOT call `AskUserQuestion` — the orchestrator does that before auto-move in `manual` mode.
+- Does NOT confirm the commit with the user — the orchestrator handles that after a `next_recommended_action` return.

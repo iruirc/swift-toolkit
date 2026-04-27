@@ -5,8 +5,8 @@ description: "Use when working with RxSwift — a binding/event-stream tool, not
 
 # RxSwift Patterns & Best Practices
 
-> **Категория:** binding/event-stream framework, **не** архитектурный паттерн.
-> RxSwift — это «провода» между слоями (View ↔ ViewModel, Service ↔ Repository), а не способ организовать сами слои. Архитектуру выбирай отдельно: `arch-mvvm` / `arch-clean` / `arch-viper` / `arch-tca` — RxSwift можно использовать с любой из них (для TCA это редкий выбор).
+> **Category:** binding/event-stream framework, **not** an architectural pattern.
+> RxSwift is the "wiring" between layers (View ↔ ViewModel, Service ↔ Repository), not a way to organize the layers themselves. Pick the architecture separately: `arch-mvvm` / `arch-clean` / `arch-viper` / `arch-tca` — RxSwift can be used with any of them (for TCA this is a rare choice).
 
 This skill provides guidelines for using RxSwift effectively in iOS applications.
 

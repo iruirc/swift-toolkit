@@ -34,7 +34,7 @@ Fix: **a typed boundary (`HTTPClient` / `APIClient` protocols) with all cross-cu
 ## Layering
 
 ```
-View / ViewModel              ← никогда не трогает HTTP напрямую
+View / ViewModel              ← never touches HTTP directly
         │
         ▼
 Repository (Domain DTO ↔ API DTO mapping, cache, error mapping)

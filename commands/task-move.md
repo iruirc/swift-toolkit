@@ -1,8 +1,8 @@
 ---
-description: Переместить задачу в другой статус
+description: "Move a task to a different status / Переместить задачу в другой статус"
 argument-hint: <id> <STATUS>
 ---
 
-Активируй `swift-toolkit:task-move` с аргументами: $ARGUMENTS
+Activate `swift-toolkit:task-move` with arguments: $ARGUMENTS
 
-STATUS — один из: TODO, ACTIVE, DONE, BACKLOG, RESEARCH, CHECK, UNABLE_FIX (для root задач — физическое перемещение); для step-задач — изменение поля `[STATUS]` в Task.md без перемещения.
+STATUS — one of: TODO, ACTIVE, DONE, BACKLOG, RESEARCH, CHECK, UNABLE_FIX (for root tasks — physical move); for step tasks — change of the `[STATUS]` field in Task.md without moving the folder.

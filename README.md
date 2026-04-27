@@ -1,135 +1,148 @@
 # swift-toolkit
 
-Набор скиллов, агентов и слэш-команд для Claude Code, превращающий ассистента в дисциплинированного iOS/macOS-разработчика. Покрывает архитектурный выбор, реализацию по паттерну, DI, cross-cutting слои (errors / network / persistence), модуляризацию через SPM и оркестрацию задач (FEATURE / BUG / REFACTOR / TEST / REVIEW / EPIC).
+A set of skills, agents, and slash commands for Claude Code that turn the assistant into a disciplined iOS/macOS developer. Covers architectural choice, pattern-driven implementation, DI, cross-cutting layers (errors / network / persistence), modularization via SPM, and task orchestration (FEATURE / BUG / REFACTOR / TEST / REVIEW / EPIC).
 
-## Подключение
+## Setup
 
-- **Новый проект с нуля** — `/swift-init` (создаёт iOS/macOS app или SPM-пакет, заполняет `CLAUDE.md`, разворачивает `Tasks/`).
-- **Существующий проект** — `/swift-setup` (копирует шаблон `CLAUDE.md`, заполняет стек через диалог, создаёт `Tasks/`).
-- Дальше — управление задачами через слэш-команды (`/task-new`, `/task-run`, `/task-continue`, `/task-redo`, `/task-restart`, `/task-move`, `/task-status`) или NL-фразы («создай задачу: …», «запусти 001», «продолжи 001», «статус 001»).
+- **New project from scratch** — `/swift-init` (creates an iOS/macOS app or an SPM package, fills in `CLAUDE.md`, lays down the `Tasks/` structure).
+- **Existing project** — `/swift-setup` (copies the `CLAUDE.md` template, fills the stack via dialog, creates `Tasks/`).
+- From there — manage tasks via slash commands (`/task-new`, `/task-run`, `/task-continue`, `/task-redo`, `/task-restart`, `/task-move`, `/task-status`) or NL phrases ("create task: …", "run 001", "continue 001", "status 001").
 
 ---
 
 ## Skills as a system
 
-Скиллы лежат плоско в `skills/`, но логически разбиваются на **семь групп**. Связи между группами не произвольны: одни решения принимаются независимо друг от друга (parallel decisions), другие — последовательно (выбор архитектуры → конкретные паттерны).
+The skills live flat under `skills/`, but logically split into **seven groups**. The links between groups are not arbitrary: some decisions are independent of each other (parallel decisions), others are sequential (architecture choice → concrete patterns).
 
-### 0. Meta — точка входа
+### 0. Meta — entry point
 
-| Skill | Назначение |
+| Skill | Purpose |
 |---|---|
-| [`architecture-choice`](skills/architecture-choice/SKILL.md) | Компас: 5 осей (команда / срок жизни / сложность домена / UI-фреймворк / тесты) → одна из 9 строк Decision Matrix. Указывает на конкретный `arch-*`, не заменяет его. Запускается один раз на проект. |
+| [`architecture-choice`](skills/architecture-choice/SKILL.md) | A compass: 5 axes (team / lifetime / domain complexity / UI framework / tests) → one of 9 rows in the Decision Matrix. Points to a specific `arch-*`; does not replace it. Run once per project. |
 
-**Запускать первым** при бутстрапе или крупном рефакторинге, если `CLAUDE.md → ## Стек` пуст.
+**Run first** during bootstrap or a major refactor, if `CLAUDE.md → ## Stack` is empty.
 
-### 1. Архитектурные паттерны (выбираешь **один** на проект)
+### 1. Architectural patterns (pick **one** per project)
 
-| Skill | Когда |
+| Skill | When |
 |---|---|
-| [`arch-mvc`](skills/arch-mvc/SKILL.md) | Прототипы, мелкие CRUD-утилиты, маленькая команда. Содержит триггеры миграции на MVVM/VIPER. |
-| [`arch-mvvm`](skills/arch-mvvm/SKILL.md) | Default для большинства команд. 5 binding-подходов (Closures / Combine / async-await / `@Observable` / RxSwift). |
-| [`arch-viper`](skills/arch-viper/SKILL.md) | Очень большие команды, строгий контракт между ролями. Default Interactor — async/await. |
-| [`arch-clean`](skills/arch-clean/SKILL.md) | Сложный домен, длинный срок жизни, явные Use Cases, тестируемость каждого слоя. |
-| [`arch-tca`](skills/arch-tca/SKILL.md) | SwiftUI-only, fluent team, state machines, exhaustive testing. Заменяет и архитектуру, и навигацию. |
+| [`arch-mvc`](skills/arch-mvc/SKILL.md) | Prototypes, small CRUD utilities, small teams. Includes triggers for migration to MVVM/VIPER. |
+| [`arch-mvvm`](skills/arch-mvvm/SKILL.md) | Default for most teams. 5 binding flavors (Closures / Combine / async-await / `@Observable` / RxSwift). |
+| [`arch-viper`](skills/arch-viper/SKILL.md) | Very large teams, strict role contracts. Default Interactor — async/await. |
+| [`arch-clean`](skills/arch-clean/SKILL.md) | Complex domain, long lifetime, explicit Use Cases, layer-by-layer testability. |
+| [`arch-tca`](skills/arch-tca/SKILL.md) | SwiftUI-only, fluent team, state machines, exhaustive testing. Replaces both architecture and navigation. |
 
-### 2. Навигация (выбираешь по UI-фреймворку, **независимо** от архитектуры)
+### 2. Navigation (pick by UI framework, **independent** of architecture)
 
-| Skill | Когда |
+| Skill | When |
 |---|---|
-| [`arch-coordinator`](skills/arch-coordinator/SKILL.md) | UIKit-first проекты. Child-coordinators, Router, deep links, hybrid с SwiftUI через `UIHostingController`. |
-| [`arch-swiftui-navigation`](skills/arch-swiftui-navigation/SKILL.md) | SwiftUI-first проекты. `NavigationStack` + `NavigationPath`, `@Observable Router`, `@Environment`-навигация, hybrid с UIKit. |
+| [`arch-coordinator`](skills/arch-coordinator/SKILL.md) | UIKit-first projects. Child coordinators, Router, deep links, hybrid with SwiftUI via `UIHostingController`. |
+| [`arch-swiftui-navigation`](skills/arch-swiftui-navigation/SKILL.md) | SwiftUI-first projects. `NavigationStack` + `NavigationPath`, `@Observable Router`, `@Environment`-driven navigation, hybrid with UIKit. |
 
-> TCA свою навигацию покрывает сам (`@Presents`, `StackState`/`StackAction`) — `arch-coordinator` / `arch-swiftui-navigation` не нужны.
+> TCA covers its own navigation (`@Presents`, `StackState`/`StackAction`) — `arch-coordinator` / `arch-swiftui-navigation` are not needed.
 
-### 3. DI (parallel decision: container vs manual + конкретная библиотека)
+### 3. DI (parallel decision: container vs manual + a specific library)
 
-| Skill | Назначение |
+| Skill | Purpose |
 |---|---|
-| [`di-composition-root`](skills/di-composition-root/SKILL.md) | **Где** собирается граф (SceneDelegate / AppDelegate / `@main App`). Сравнение container vs manual, sync/async bootstrap, scope strategies. DI-framework agnostic. |
-| [`di-module-assembly`](skills/di-module-assembly/SKILL.md) | Factory-паттерн (CoordinatorFactory / ModuleFactory) — связывает DI с Coordinator-ами без Service Locator. |
-| [`di-swinject`](skills/di-swinject/SKILL.md) | Swinject-специфика: scopes, registrations, Assembly. |
+| [`di-composition-root`](skills/di-composition-root/SKILL.md) | **Where** the graph is assembled (SceneDelegate / AppDelegate / `@main App`). Container vs manual comparison, sync/async bootstrap, scope strategies. DI-framework agnostic. |
+| [`di-module-assembly`](skills/di-module-assembly/SKILL.md) | Factory pattern (CoordinatorFactory / ModuleFactory) — links DI to coordinators without a Service Locator. |
+| [`di-swinject`](skills/di-swinject/SKILL.md) | Swinject specifics: scopes, registrations, Assembly. |
 | [`di-factory`](skills/di-factory/SKILL.md) | FactoryKit (hmlongco): property-wrapper injection, scopes, modular containers, contexts. |
-| [`pkg-spm-design`](skills/pkg-spm-design/SKILL.md) | Границы SPM-пакетов (Feature / Library / API-Contract / Engine-SDK). Когда выносить и что делать публичным. |
+| [`pkg-spm-design`](skills/pkg-spm-design/SKILL.md) | SPM package boundaries (Feature / Library / API-Contract / Engine-SDK). When to extract and what to make public. |
 
-### 4. Cross-cutting слои (нужны почти всегда, **независимо** от архитектуры)
+### 4. Cross-cutting layers (needed almost always, **independent** of architecture)
 
-| Skill | Назначение |
+| Skill | Purpose |
 |---|---|
-| [`error-architecture`](skills/error-architecture/SKILL.md) | Per-layer error types, маппинг между слоями, presentation strategy, PII-safe logging, retry/cancellation. |
-| [`net-architecture`](skills/net-architecture/SKILL.md) | `HTTPClient` protocol как boundary, framework comparison (URLSession/Alamofire/Moya/Get), interceptors, retry, pagination, WebSocket, кэш. |
-| [`net-openapi`](skills/net-openapi/SKILL.md) | `swift-openapi-generator`: SPM-плагин, обёртка генерируемого `Client` в свой `APIClient`, custom transport, mocking. |
-| [`persistence-architecture`](skills/persistence-architecture/SKILL.md) | Repository как граница, выбор хранилища (Core Data / SwiftData / GRDB / Realm / UserDefaults / files / Keychain), threading, reactive queries, CloudKit, encryption. |
-| [`persistence-migrations`](skills/persistence-migrations/SKILL.md) | Миграции схем (CD lightweight/heavyweight, SwiftData VersionedSchema, GRDB DatabaseMigrator, Realm migrationBlock), Codable evolution, backup, telemetry. |
-| [`concurrency-architecture`](skills/concurrency-architecture/SKILL.md) | Размещение Swift Concurrency по слоям: где `@MainActor`, когда custom `actor`, кому принадлежит `Task`, как cancellation проходит через слои, в какой роли живёт `async let` / `TaskGroup`. Архитектурное измерение; language-level вопросы (Sendable, Swift 6 migration) — к внешнему скиллу `swift-concurrency:swift-concurrency` (AvdLee). |
+| [`error-architecture`](skills/error-architecture/SKILL.md) | Per-layer error types, mapping between layers, presentation strategy, PII-safe logging, retry/cancellation. |
+| [`net-architecture`](skills/net-architecture/SKILL.md) | `HTTPClient` protocol as the boundary, framework comparison (URLSession/Alamofire/Moya/Get), interceptors, retry, pagination, WebSocket, caching. |
+| [`net-openapi`](skills/net-openapi/SKILL.md) | `swift-openapi-generator`: SPM plugin, wrapping the generated `Client` in your own `APIClient`, custom transport, mocking. |
+| [`persistence-architecture`](skills/persistence-architecture/SKILL.md) | Repository as the boundary, choosing the storage (Core Data / SwiftData / GRDB / Realm / UserDefaults / files / Keychain), threading, reactive queries, CloudKit, encryption. |
+| [`persistence-migrations`](skills/persistence-migrations/SKILL.md) | Schema migrations (CD lightweight/heavyweight, SwiftData VersionedSchema, GRDB DatabaseMigrator, Realm migrationBlock), Codable evolution, backup, telemetry. |
+| [`concurrency-architecture`](skills/concurrency-architecture/SKILL.md) | Placement of Swift Concurrency across layers: where `@MainActor` lives, when to use a custom `actor`, who owns a `Task`, how cancellation propagates between layers, where `async let` / `TaskGroup` belong. An architectural concern; language-level questions (Sendable, Swift 6 migration) belong to the external `swift-concurrency:swift-concurrency` skill (AvdLee). |
 
-### 5. Binding tools — **не архитектуры**, а инструменты внутри них
+### 5. Binding tools — **not architectures**, just tools used inside them
 
-| Skill | Назначение |
+| Skill | Purpose |
 |---|---|
-| [`reactive-combine`](skills/reactive-combine/SKILL.md) | Combine как event-stream / UI-binding инструмент. Архитектура выбирается отдельно (`arch-mvvm` / `arch-clean` / `arch-tca`). |
-| [`reactive-rxswift`](skills/reactive-rxswift/SKILL.md) | RxSwift как event-stream / UI-binding инструмент. Архитектура выбирается отдельно (`arch-mvvm` / `arch-clean` / `arch-viper`). |
+| [`reactive-combine`](skills/reactive-combine/SKILL.md) | Combine as an event-stream / UI-binding tool. The architecture is chosen separately (`arch-mvvm` / `arch-clean` / `arch-tca`). |
+| [`reactive-rxswift`](skills/reactive-rxswift/SKILL.md) | RxSwift as an event-stream / UI-binding tool. The architecture is chosen separately (`arch-mvvm` / `arch-clean` / `arch-viper`). |
 
-### 6. Оркестрация задач (внутренняя «кухня» toolkit-а)
+### 6. Task orchestration (the toolkit's internal "kitchen")
 
-| Skill | Назначение |
+| Skill | Purpose |
 |---|---|
-| [`orchestrator`](skills/orchestrator/SKILL.md) | Маршрутизирует запрос в нужный профильный воркфлоу, резолвит точку старта, управляет стадиями. |
-| `workflow-feature` / `workflow-bug` / `workflow-refactor` / `workflow-test` / `workflow-review` / `workflow-epic` | Процедуры профилей (Research → Plan → Execute → Validation → Review → Done). Активируются `orchestrator`-ом, не вызываются напрямую. |
-| `task-new` / `task-move` / `task-status` | Ведение `Tasks/` (создание, перенос между статусами, прогресс). |
-| `swift-setup` | Настройка toolkit-а в существующем проекте. |
+| [`orchestrator`](skills/orchestrator/SKILL.md) | Routes a request to the right profile workflow, resolves the start point, manages stages. |
+| `workflow-feature` / `workflow-bug` / `workflow-refactor` / `workflow-test` / `workflow-review` / `workflow-epic` | Profile procedures (Research → Plan → Execute → Validation → Review → Done). Activated by the `orchestrator`; not invoked directly. |
+| `task-new` / `task-move` / `task-status` | Tending `Tasks/` (creation, status moves, progress). |
+| `swift-setup` | Sets up the toolkit in an existing project. |
+| `swift-lang` | Switches the project's prompt language (en / ru). |
 
 ---
 
-## Как группы связаны
+## How the groups connect
 
 ```
-                  architecture-choice (meta, один раз на проект)
+                  architecture-choice (meta, once per project)
                             │
                             ▼
               ┌─────────────┴─────────────┐
               │                           │
-        arch-* (один)              parallel decisions:
+        arch-* (one)               parallel decisions:
               │                    ─────────────────────
               │                     • DI (di-*)
               │                     • Navigation (arch-coordinator | arch-swiftui-navigation)
               │                     • Modularization (pkg-spm-design)
               │                     • Cross-cutting (error- / net- / persistence-)
               ▼                     • Binding (reactive-*)
-        Реализация фич
+        Feature implementation
               │
               ▼
         orchestrator + workflow-* + task-*
 ```
 
-**Ключевые правила:**
+**Key rules:**
 
-- `architecture-choice` — мета-уровень. Запускается один раз. Дальше работают конкретные `arch-*`.
-- `arch-coordinator` ↔ `arch-swiftui-navigation` — выбираются по UI-фреймворку, **не** по архитектуре. Можно сменить навигацию, не трогая `arch-mvvm`.
-- DI — отдельное решение от архитектуры. Любой `arch-*` совместим с любым `di-*` (или с manual graph).
-- `reactive-combine` / `reactive-rxswift` — это **инструменты**, а не архитектуры. Не путать с `arch-*`.
-- Cross-cutting (`error-architecture`, `net-architecture`, `persistence-architecture`, `concurrency-architecture`) — нужны независимо от выбранного `arch-*`.
-- `concurrency-architecture` отвечает за **размещение** примитивов по слоям; для **языковой** части (Sendable, isolation rules, Swift 6 migration, actor reentrancy) подключается внешний скилл `swift-concurrency:swift-concurrency` (см. [AvdLee/Swift-Concurrency-Agent-Skill](https://github.com/AvdLee/Swift-Concurrency-Agent-Skill) — устанавливается отдельно как Agent Skill / плагин).
-- TCA — исключение: заменяет и архитектуру, и навигацию (свои `@Presents` / `StackState`).
+- `architecture-choice` is meta-level. Run once. After that, the concrete `arch-*` skills take over.
+- `arch-coordinator` ↔ `arch-swiftui-navigation` — picked by UI framework, **not** by architecture. Navigation can be swapped without touching `arch-mvvm`.
+- DI is a separate decision from architecture. Any `arch-*` is compatible with any `di-*` (or with a manual graph).
+- `reactive-combine` / `reactive-rxswift` are **tools**, not architectures. Don't confuse them with `arch-*`.
+- Cross-cutting (`error-architecture`, `net-architecture`, `persistence-architecture`, `concurrency-architecture`) are needed regardless of the chosen `arch-*`.
+- `concurrency-architecture` covers the **placement** of primitives across layers; for the **language** layer (Sendable, isolation rules, Swift 6 migration, actor reentrancy) plug in the external `swift-concurrency:swift-concurrency` skill (see [AvdLee/Swift-Concurrency-Agent-Skill](https://github.com/AvdLee/Swift-Concurrency-Agent-Skill) — installed separately as an Agent Skill / plugin).
+- TCA is the exception: it replaces both architecture and navigation (its own `@Presents` / `StackState`).
 
 ---
 
-## Агенты
+## Agents
 
-Лежат в `agents/`. Каждый — специализированная роль с собственным набором релевантных скиллов в Skills Reference:
+Live under `agents/`. Each is a specialized role with its own set of relevant skills in the Skills Reference:
 
-| Агент | Роль |
+| Agent | Role |
 |---|---|
-| `swift-init` | Бутстрап нового проекта |
-| `swift-architect` | Дизайн архитектуры и ревью архитектурных решений |
-| `swift-developer` | Реализация фич и багфиксов |
-| `swift-refactorer` | Рефакторинг без изменения поведения |
+| `swift-init` | Bootstrap a new project |
+| `swift-architect` | Architecture design and review |
+| `swift-developer` | Feature implementation and bug fixes |
+| `swift-refactorer` | Refactoring without behavior change |
 | `swift-reviewer` | Code review |
-| `swift-tester` | Генерация unit/integration тестов |
-| `swift-diagnostics` | Поиск багов, репродукция, инструментирование |
-| `swift-security` | OWASP Mobile Top-10 аудит |
+| `swift-tester` | Unit / integration test generation |
+| `swift-diagnostics` | Bug hunting, reproduction, instrumentation |
+| `swift-security` | OWASP Mobile Top-10 audit |
+
+---
+
+## Internationalization
+
+swift-toolkit ships with English source-of-truth and per-language locale files for user-facing prompts. Currently supported: `en`, `ru`.
+
+- The active language is stored in your project's `CLAUDE.md` under `## Language` (set during `/swift-setup`).
+- Switch any time with `/swift-lang en` or `/swift-lang ru`.
+- Skill triggers are bilingual — phrase your request in Russian or English regardless of the active language; only the response language changes.
+
+Adding a new language: see `docs/superpowers/specs/2026-04-27-i18n-conventions.md`.
 
 ---
 
 ## Roadmap
 
-Текущее состояние и пробелы — в [`docs/skills-roadmap.md`](docs/skills-roadmap.md).
+Current state and gaps — in [`docs/skills-roadmap.md`](docs/skills-roadmap.md).

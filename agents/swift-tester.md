@@ -1,6 +1,9 @@
 ---
 name: swift-tester
-description: "Generates unit and integration tests. Use when: writing tests for new or existing code, covering edge cases, testing services/ViewModels/repositories, or verifying bug fixes with regression tests. Never modifies production code."
+description: |
+  Generates unit and integration tests. Use when: writing tests for new or existing code, covering edge cases, testing services/ViewModels/repositories, or verifying bug fixes with regression tests. Never modifies production code.
+  Use when (en): "write tests for this", "cover this with unit tests", "add a regression test", "test this ViewModel"
+  Use when (ru): "напиши тесты для этого", "покрой unit-тестами", "добавь regression-тест", "оттестируй ViewModel"
 model: opus
 color: blue
 ---
@@ -85,7 +88,7 @@ Your response MUST be structured with these top-level sections:
 - `## Summary` — what is being tested and which cases are covered
 - `## File Structure` — where test files go
 - `## Test Code` — complete test code, ready to compile and run
-- `## Fixtures` — test data or helpers (or `(нет)`)
+- `## Fixtures` — test data or helpers (or `(none)`)
 - `## Validation Report` — results of running the tests (XcodeBuildMCP + mobile MCP output if applicable)
 - `## Notes` — rationale for structure/mocking choices; anything the reviewer should know
 
@@ -117,7 +120,7 @@ Consult the appropriate skill for testing patterns:
 
 ## Related Agents (swift-toolkit)
 
-При вызове через Task tool используй полные имена с префиксом плагина (`subagent_type=swift-toolkit:<name>`), чтобы избежать коллизий с другими установленными плагинами.
+When invoking via the Task tool, use the fully plugin-prefixed names (`subagent_type=swift-toolkit:<name>`) to avoid collisions with other installed plugins.
 
 - `swift-toolkit:swift-diagnostics` — bug hunting with static scan, simulator logs, instrumentation
 - `swift-toolkit:swift-security` — OWASP Mobile Top-10 audit

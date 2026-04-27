@@ -5,37 +5,37 @@ description: "Use when implementing classic Apple MVC (Model-View-Controller) in
 
 # MVC (Model-View-Controller) — Apple Flavor
 
-Стандартный паттерн Apple-фреймворков (UIKit, AppKit). View пассивна, Model независима, Controller связывает их и обрабатывает события. Прост, но без дисциплины быстро вырождается в Massive ViewController.
+The standard pattern of Apple's frameworks (UIKit, AppKit). The View is passive, the Model is independent, the Controller wires them together and handles events. Simple, but without discipline it quickly degenerates into a Massive ViewController.
 
 > **Related skills:**
-> - `arch-mvvm` — следующая ступень при росте логики (extract бизнес-логики из VC в ViewModel)
-> - `arch-coordinator` — extract навигации из VC, ортогонален MVC (можно использовать MVC + Coordinator)
-> - `arch-clean`, `arch-viper` — для крупных проектов с явными слоями
+> - `arch-mvvm` — the next step as logic grows (extract business logic from the VC into a ViewModel)
+> - `arch-coordinator` — extract navigation from the VC, orthogonal to MVC (you can use MVC + Coordinator)
+> - `arch-clean`, `arch-viper` — for large projects with explicit layers
 
 ## When Appropriate
 
-| Сценарий | Использовать MVC |
+| Scenario | Use MVC |
 |---|---|
-| Прототип / proof-of-concept | ✅ |
-| App на 1-3 экрана без серьёзной бизнес-логики | ✅ |
-| CRUD-утилита (форма + список) | ✅ |
+| Prototype / proof-of-concept | ✅ |
+| App with 1–3 screens and no serious business logic | ✅ |
+| CRUD utility (form + list) | ✅ |
 | Simple settings / preferences screen | ✅ |
-| Учебный проект, демо | ✅ |
-| App с 5+ экранами и навигацией между фичами | ⚠️ Думай о MVVM+Coordinator |
-| Реактивные потоки данных, сложные состояния | ❌ MVVM/VIPER/Clean |
-| Команда > 2 разработчиков, активная разработка > 6 мес | ❌ MVVM/VIPER/Clean |
+| Learning project, demo | ✅ |
+| App with 5+ screens and navigation between features | ⚠️ Consider MVVM+Coordinator |
+| Reactive data streams, complex state | ❌ MVVM/VIPER/Clean |
+| Team > 2 developers, active development > 6 months | ❌ MVVM/VIPER/Clean |
 
-**Правило:** MVC — это не «упрощённый MVVM». Это паттерн с собственным набором компромиссов. Не стесняйся использовать его для подходящих задач, но и не тяни в проект, который явно из него вырос.
+**Rule:** MVC is not a "simplified MVVM". It's a pattern with its own set of trade-offs. Don't be shy about using it for tasks where it fits, but don't drag it into a project that has clearly outgrown it either.
 
 ## Structure
 
 ```
 Feature/
 ├── FeatureViewController.swift   # Controller
-├── FeatureView.swift             # Custom UIView (опционально)
+├── FeatureView.swift             # Custom UIView (optional)
 ├── Models/
 │   ├── FeatureModel.swift        # Domain entity
-│   └── FeatureModelStore.swift   # Хранение/загрузка модели
+│   └── FeatureModelStore.swift   # Stores/loads the model
 └── Cells/
     └── FeatureItemCell.swift
 ```
@@ -44,10 +44,10 @@ Feature/
 
 ### Model
 
-- Чистые данные и доменная логика
-- Никаких UIKit-импортов (можно `Foundation`)
-- Никаких ссылок на View или Controller
-- Уведомляет об изменениях через `NotificationCenter`, KVO, delegate, или closure
+- Pure data and domain logic
+- No UIKit imports (`Foundation` is fine)
+- No references to View or Controller
+- Notifies about changes via `NotificationCenter`, KVO, delegate, or closure
 
 ```swift
 struct Item {
@@ -76,10 +76,10 @@ final class ItemStore {
 
 ### View
 
-- Только отображение
-- Не знает про Model
-- Сообщает о действиях пользователя через target-action / delegate / closure
-- Custom subview-ы — отдельные UIView, не вшитые в VC
+- Display only
+- Does not know about the Model
+- Reports user actions via target-action / delegate / closure
+- Custom subviews are separate UIViews, not baked into the VC
 
 ```swift
 final class ItemCell: UITableViewCell {
@@ -104,11 +104,11 @@ final class ItemCell: UITableViewCell {
 
 ### Controller (UIViewController)
 
-- Связывает Model и View
-- Подписывается на изменения Model, обновляет View
-- Получает события View, обновляет Model
-- Управляет жизненным циклом экрана (`viewDidLoad`, `viewWillAppear`, ...)
-- Координирует переходы (или делегирует Coordinator-у — см. ниже)
+- Wires together Model and View
+- Subscribes to Model changes, updates the View
+- Receives View events, updates the Model
+- Manages the screen lifecycle (`viewDidLoad`, `viewWillAppear`, ...)
+- Coordinates transitions (or delegates to a Coordinator — see below)
 
 ```swift
 final class ItemListViewController: UIViewController {
@@ -176,25 +176,25 @@ extension ItemListViewController: UITableViewDataSource {
 
 ### View → Controller
 
-| Способ | Когда |
+| Method | When |
 |---|---|
-| **Target-action** | UIControl-наследники (UIButton, UISwitch). `addTarget(_:action:for:)` |
-| **Delegate** | Сложные subview-ы со множеством событий (UITableView, UICollectionView, custom views) |
-| **Closure** | Простой одноразовый callback, особенно в ячейках |
-| **Notification** | Очень редко — когда ничего другого не подходит (системные события: keyboard, app lifecycle) |
+| **Target-action** | UIControl subclasses (UIButton, UISwitch). `addTarget(_:action:for:)` |
+| **Delegate** | Complex subviews with many events (UITableView, UICollectionView, custom views) |
+| **Closure** | Simple one-shot callback, especially in cells |
+| **Notification** | Very rarely — when nothing else fits (system events: keyboard, app lifecycle) |
 
 ### Model → Controller
 
-| Способ | Когда |
+| Method | When |
 |---|---|
-| **Closure** (`onItemsChanged`) | Один наблюдатель, простая зависимость |
-| **Delegate** | Несколько разных событий, один наблюдатель |
-| **NotificationCenter** | Несколько наблюдателей, слабая связанность |
-| **KVO / @Observable** | iOS 17+ — для plain observable полей. Но это уже шаг к MVVM |
+| **Closure** (`onItemsChanged`) | Single observer, simple dependency |
+| **Delegate** | Several distinct events, single observer |
+| **NotificationCenter** | Multiple observers, loose coupling |
+| **KVO / @Observable** | iOS 17+ — for plain observable fields. But that's already a step toward MVVM |
 
-### Controller → Controller (навигация)
+### Controller → Controller (navigation)
 
-В чистом MVC переходы делает сам VC:
+In pure MVC, the VC performs transitions itself:
 
 ```swift
 private func showDetail(for item: Item) {
@@ -203,43 +203,43 @@ private func showDetail(for item: Item) {
 }
 ```
 
-Для проектов 4+ экранов **лучше использовать Coordinator** (см. `arch-coordinator` skill) — он не противоречит MVC и решает проблему расползания навигации по контроллерам.
+For projects with 4+ screens, **prefer using a Coordinator** (see `arch-coordinator` skill) — it does not contradict MVC and solves the problem of navigation logic spreading across controllers.
 
 ## Massive ViewController Anti-Pattern
 
-Без дисциплины VC накапливает всё подряд: data source, бизнес-логику, сетевые запросы, форматирование, навигацию, валидацию. Признаки:
+Without discipline, the VC accumulates everything: data source, business logic, network requests, formatting, navigation, validation. Symptoms:
 
-- VC > 500 строк
-- > 5 ответственностей в одном файле (UI setup, data fetch, validation, navigation, formatting, ...)
-- Тяжело покрыть тестами — приходится поднимать UIKit-стек
-- Дублирование кода между похожими экранами
-- Изменение в одной фиче ломает соседнюю
+- VC > 500 lines
+- > 5 responsibilities in one file (UI setup, data fetch, validation, navigation, formatting, ...)
+- Hard to cover with tests — you have to spin up the UIKit stack
+- Duplicated code between similar screens
+- A change in one feature breaks a neighbor
 
-### Что вытаскивать из VC
+### What to extract from the VC
 
-| Ответственность | Куда |
+| Responsibility | Where |
 |---|---|
-| Сетевые запросы, бизнес-логика | Service / Store / Repository |
-| Сложное форматирование | Formatter / Presenter struct |
-| TableView/CollectionView data source | Отдельный `UITableViewDataSource`-класс |
-| Валидация форм | Validator struct |
-| Навигация между фичами | Coordinator (см. `arch-coordinator`) |
-| Подписки / реактивные потоки | ViewModel — это уже миграция на MVVM |
+| Network requests, business logic | Service / Store / Repository |
+| Complex formatting | Formatter / Presenter struct |
+| TableView/CollectionView data source | Separate `UITableViewDataSource` class |
+| Form validation | Validator struct |
+| Navigation between features | Coordinator (see `arch-coordinator`) |
+| Subscriptions / reactive streams | ViewModel — that's already a migration to MVVM |
 
-Вытаскивание data source и validator — **всё ещё MVC**. Вытаскивание ViewModel — **переход на MVVM**.
+Extracting a data source and a validator is **still MVC**. Extracting a ViewModel is **transitioning to MVVM**.
 
-### Сигналы, что MVC исчерпан
+### Signals that MVC has run out of steam
 
-- Любой VC > 400 строк после вытаскивания data sources
-- Тесты на бизнес-логику требуют поднятия VC и UI
-- Появились реактивные потоки (RxSwift / Combine / async/await) — Controller не справляется с binding
-- Команда > 2 человек активно работает с одним и тем же VC
+- Any VC > 400 lines after data sources are extracted
+- Business logic tests require spinning up the VC and UI
+- Reactive streams (RxSwift / Combine / async/await) appear — the Controller can't handle binding
+- A team of > 2 people is actively working on the same VC
 
-→ Мигрируй на MVVM (см. `arch-mvvm` skill) или MVVM+Coordinator (для крупных).
+→ Migrate to MVVM (see `arch-mvvm` skill) or MVVM+Coordinator (for larger apps).
 
 ## DI
 
-VC получает зависимости через init — никаких синглтонов, никаких `MyService.shared`.
+The VC receives dependencies via init — no singletons, no `MyService.shared`.
 
 ```swift
 final class ItemListViewController: UIViewController {
@@ -254,15 +254,15 @@ final class ItemListViewController: UIViewController {
 }
 ```
 
-Сборку графа делает Composition Root (см. `di-composition-root` skill). Для маленьких MVC-app достаточно manual DI без контейнера.
+The graph is wired up by the Composition Root (see `di-composition-root` skill). For small MVC apps, manual DI without a container is enough.
 
-Storyboard / XIB-based VC не позволяют init-инъекцию напрямую — для них либо property injection после `instantiateViewController`, либо переход на программный init.
+Storyboard / XIB-based VCs don't allow init injection directly — for those, use either property injection after `instantiateViewController`, or switch to a programmatic init.
 
 ## Testing
 
-### Тестирование Model — легко
+### Testing the Model — easy
 
-Model — это plain Swift, тесты обычные:
+The Model is plain Swift; tests are ordinary:
 
 ```swift
 final class ItemStoreTests: XCTestCase {
@@ -279,39 +279,39 @@ final class ItemStoreTests: XCTestCase {
 }
 ```
 
-### Тестирование Controller — сложнее
+### Testing the Controller — harder
 
-Если Controller содержит бизнес-логику — её невозможно протестировать без поднятия VC и UI. Это и есть цена MVC. Способы смягчить:
+If the Controller contains business logic, you can't test it without spinning up the VC and UI. That's the price of MVC. Ways to mitigate:
 
-- Вытащить логику в отдельные классы (Validator, Formatter, Store) — там тесты лёгкие
-- Не тестировать сам Controller — оставить на UI-тесты или snapshot-тесты
-- Если хочется юнит-тестировать логику Controller — это сигнал, что пора в MVVM
+- Extract the logic into separate classes (Validator, Formatter, Store) — tests there are easy
+- Don't test the Controller itself — leave it to UI tests or snapshot tests
+- If you want to unit-test Controller logic — that's a signal it's time to move to MVVM
 
 ## Migration Paths
 
-### MVC → MVVM (постепенно)
+### MVC → MVVM (gradually)
 
-1. Создай `FeatureViewModel` рядом с VC, оставь VC на месте
-2. Перемести бизнес-логику и обработку событий из VC в ViewModel
-3. VC получает `viewModel: FeatureViewModel` в init, делегирует ему действия
-4. Подпишись на изменения ViewModel (closure / Combine / async stream — см. `arch-mvvm`)
-5. Удали из VC всё, кроме UI-кода
+1. Create a `FeatureViewModel` next to the VC, leave the VC in place
+2. Move business logic and event handling from the VC into the ViewModel
+3. The VC receives `viewModel: FeatureViewModel` in init and delegates actions to it
+4. Subscribe to ViewModel changes (closure / Combine / async stream — see `arch-mvvm`)
+5. Strip the VC down to UI code only
 
 ### MVC → MVC + Coordinator
 
-1. Вынеси `pushViewController` / `present` из VC в Coordinator
-2. VC сообщает Coordinator-у о намерении перехода через delegate / closure
-3. Coordinator решает, куда переходить
-4. См. `arch-coordinator` skill
+1. Extract `pushViewController` / `present` from the VC into the Coordinator
+2. The VC reports the navigation intent to the Coordinator via delegate / closure
+3. The Coordinator decides where to go
+4. See `arch-coordinator` skill
 
-Эти миграции **независимы** — можно сначала вынести Coordinator, потом ViewModel, или наоборот.
+These migrations are **independent** — you can extract the Coordinator first, then the ViewModel, or vice versa.
 
 ## Common Mistakes
 
-1. **Massive ViewController** — основная проблема. Применяй extract-стратегии до того, как VC раздуется
-2. **VC знает про конкретные сервисы** — `URLSession.shared.dataTask(...)` в VC = непротестировать. Через DI и протоколы
-3. **Model импортирует UIKit** — отрезает портируемость и тесты. Forматирование `UIColor`, `UIImage` — в VC или отдельном Presenter-е
-4. **Singleton-ы для общения между VC** — `AppState.shared`. Это не MVC, это глобальное состояние. Используй DI
-5. **Storyboard segues для всей навигации** — теряется типобезопасность параметров перехода. Для всего, кроме совсем простых, лучше программный push/present
-6. **Прямые ссылки между VC** — `let parentVC = parent as? ParentVC`. Через delegate или closure
-7. **Бизнес-логика в `prepare(for segue:)`** — segue должна только передать модель в следующий VC, не вычислять её
+1. **Massive ViewController** — the primary problem. Apply extract strategies before the VC balloons
+2. **VC knows about concrete services** — `URLSession.shared.dataTask(...)` inside a VC = untestable. Use DI and protocols
+3. **Model imports UIKit** — kills portability and tests. Formatting with `UIColor`, `UIImage` belongs in the VC or a separate Presenter
+4. **Singletons for inter-VC communication** — `AppState.shared`. That's not MVC, it's global state. Use DI
+5. **Storyboard segues for all navigation** — loses type safety of transition parameters. For anything beyond the very simplest cases, programmatic push/present is better
+6. **Direct references between VCs** — `let parentVC = parent as? ParentVC`. Use delegate or closure instead
+7. **Business logic in `prepare(for segue:)`** — the segue should only pass the model to the next VC, not compute it

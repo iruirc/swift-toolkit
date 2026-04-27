@@ -5,8 +5,8 @@ description: "Use when working with Apple's Combine framework — a binding/even
 
 # Combine Framework Patterns & Best Practices
 
-> **Категория:** binding/event-stream framework, **не** архитектурный паттерн.
-> Combine — это «провода» между слоями (View ↔ ViewModel, Service ↔ Repository), а не способ организовать сами слои. Архитектуру выбирай отдельно: `arch-mvvm` / `arch-clean` / `arch-tca` / `arch-viper` — Combine можно использовать с любой из них.
+> **Category:** binding/event-stream framework, **not** an architectural pattern.
+> Combine is the "wiring" between layers (View ↔ ViewModel, Service ↔ Repository), not a way to organize the layers themselves. Pick the architecture separately: `arch-mvvm` / `arch-clean` / `arch-tca` / `arch-viper` — Combine can be used with any of them.
 
 This skill provides guidelines for using Apple's Combine framework effectively in iOS applications.
 

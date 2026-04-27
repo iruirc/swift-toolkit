@@ -1,99 +1,115 @@
 ---
 name: workflow-bug
-description: "Воркфлоу профиля BUG: Reproduce → Diagnose → Plan → Fix → Validation → Review → Done. Активируется swift-toolkit:orchestrator-ом, не вызывается пользователем напрямую."
+description: |
+  BUG profile workflow: Reproduce → Diagnose → Plan → Fix → Validation → Review → Done. Activated by swift-toolkit:orchestrator; not invoked by the user directly.
+  Use when (en): orchestrator dispatches a task with [TASK_TYPE]=BUG
+  Use when (ru): оркестратор диспетчеризует задачу с [TASK_TYPE]=BUG
 ---
 
 # Workflow Bug
 
-Профильный воркфлоу для задач с `[TASK_TYPE] = BUG`. Реализует последовательность стадий, результат каждой — артефакт-файл в папке задачи. Скилл получает уже резолвленный контракт от оркестратора и не пытается доразрешать параметры самостоятельно.
+The profile workflow for tasks with `[TASK_TYPE] = BUG`. Implements the sequence of stages; the result of each stage is an artifact file inside the task folder. The skill receives an already-resolved contract from the orchestrator and does not try to re-resolve any parameter on its own.
 
-## 1. Контракт входа
+## Language Resolution
 
-Скилл вызывается `swift-toolkit:orchestrator`-ом через `Skill` tool с структурированными `args` в формате `key=value`, разделённых только переводом строки.
+Before producing any user-facing string:
 
-Структура полей описана в `swift-toolkit:orchestrator` (раздел **Outbound Contract**). Workflow-bug принимает все поля заполненными — invariant.
+1. Read `CLAUDE.md` from the project root.
+2. Find the `## Language` section.
+3. Take the first non-empty line in that section, lowercase and trim it. That is `<lang>`.
+4. If `<lang>` is `en` or `ru`, use it. Otherwise default to `en`.
+5. Read this skill's `locales/<lang>.md`. Look up keys by H2 header.
+6. If a key is missing, fall back to the same key in `locales/en.md`. If still missing, that's a bug — fail loudly with key name.
 
-Если пришло пустое обязательное поле — workflow-bug не пытается восстановить, а возвращает `{status: error, reason: missing field <name>}` обратно в оркестратор.
+Caching: resolve `<lang>` once per skill invocation; do not re-read CLAUDE.md per string.
 
-Ключевые поля, которые непосредственно влияют на поведение этого воркфлоу:
-- `start_stage`, `end_stage`, `stage_scope` — определяют, какие стадии исполнять.
-- `start_phase` — точка входа внутри стадии (например, `Fix:phase=2.3`).
-- `mode` — `manual` / `auto` (см. секции 3 и 4).
-- `stack` — передаётся субагентам как контекст.
-- `need_test`, `need_review` — управляют включением `swift-toolkit:swift-tester` и `swift-toolkit:swift-reviewer`.
-- `archive_paths` — пути к уже сделанным бэкапам (бэкап делает оркестратор ДО вызова; workflow-bug их не создаёт).
+## 1. Input Contract
 
-**Диапазон выполнения.** Стадии выполняются в порядке Reproduce → Diagnose → Plan → Fix → Validation → Review → Done, начиная с `start_stage` и до `end_stage` включительно. Если `end_stage=null` — до конца профиля. Если `end_stage` указана и она раньше `start_stage` в порядке — это ошибка контракта, возврат `{status: error, reason: "end_stage before start_stage"}`.
+The skill is invoked by `swift-toolkit:orchestrator` via the `Skill` tool with structured `args` in `key=value` form, separated only by newlines.
 
-**Scope.** `stage_scope` определяет ширину выполнения:
-- `single` — выполняется только `start_stage`, после неё workflow возвращает `{status: ok, last_completed_stage: <start_stage>, next_recommended_action: stop}`. Используется при `action=redo`.
-- `forward` — выполняется `start_stage` и все последующие до `end_stage` (или до конца профиля). Используется при `action=run`/`continue`/`restart`.
-- `all` — эквивалент `forward` с `start_stage = первая стадия профиля`. Используется при `action=restart-full`.
+The field structure is documented in `swift-toolkit:orchestrator` (section **Outbound Contract**). Workflow-bug accepts every field already filled — invariant.
+
+If a required field arrives empty — workflow-bug does not try to recover. It returns `{status: error, reason: status_error_empty_required_field}` (the `reason` value is taken from the locale key in `locales/<lang>.md`) back to the orchestrator.
+
+The fields that directly drive this workflow's behavior:
+- `start_stage`, `end_stage`, `stage_scope` — determine which stages run.
+- `start_phase` — entry point inside a stage (e.g. `Fix:phase=2.3`).
+- `mode` — `manual` / `auto` (see sections 3 and 4).
+- `stack` — passed to subagents as context.
+- `need_test`, `need_review` — gate the inclusion of `swift-toolkit:swift-tester` and `swift-toolkit:swift-reviewer`.
+- `archive_paths` — paths to backups already created (the orchestrator made them BEFORE the call; workflow-bug does not create them).
+
+**Execution range.** Stages run in the order Reproduce → Diagnose → Plan → Fix → Validation → Review → Done, starting at `start_stage` and continuing through `end_stage` inclusive. If `end_stage=null` — through the end of the profile. If `end_stage` is set but precedes `start_stage` in order, that is a contract error: return `{status: error, reason: "end_stage before start_stage"}`.
+
+**Scope.** `stage_scope` controls execution width:
+- `single` — only `start_stage` runs; afterwards the workflow returns `{status: ok, last_completed_stage: <start_stage>, next_recommended_action: stop}`. Used for `action=redo`.
+- `forward` — `start_stage` plus every subsequent stage up to `end_stage` (or to the end of the profile). Used for `action=run`/`continue`/`restart`.
+- `all` — equivalent to `forward` with `start_stage = first stage of the profile`. Used for `action=restart-full`.
 
 ## 2. Stages
 
-- **Reproduce** — `swift-toolkit:swift-diagnostics`. Артефакт: `Reproduce.md` (или раздел в `Research.md`) с шагами воспроизведения, минимальным reproducer-ом, частотой проявления (всегда / иногда / при условии X). Цель — зафиксировать детерминированный сценарий, на который потом будет опираться Validation.
+- **Reproduce** — `swift-toolkit:swift-diagnostics`. Artifact: `Reproduce.md` (or a section in `Research.md`) with reproduction steps, a minimal reproducer, and the manifestation frequency (always / sometimes / under condition X). Goal: pin down a deterministic scenario that Validation can later rely on.
 
-- **Diagnose** — консилиум: `swift-toolkit:swift-diagnostics` + `swift-toolkit:swift-architect` (через Task tool параллельно или последовательно по решению оркестратора). Артефакт: `Research.md` с root cause analysis, картой затронутых компонентов, оценкой scope фикса и связанных рисков.
+- **Diagnose** — a panel: `swift-toolkit:swift-diagnostics` + `swift-toolkit:swift-architect` (via the Task tool, in parallel or sequentially as the orchestrator decides). Artifact: `Research.md` with root cause analysis, a map of affected components, an estimate of fix scope, and the related risks.
 
-- **Plan** — `swift-toolkit:swift-architect`. Артефакт: `Plan.md` с прогресс-таблицей фаз (см. State Detection в orchestrator: статусы ✅/🔄/⬜/⏸/🚫/⊘). План включает: точечный фикс, регрессионный тест (если `need_test=true`), миграционные/совместимостные шаги при необходимости.
+- **Plan** — `swift-toolkit:swift-architect`. Artifact: `Plan.md` with a phase progress table (see `State Detection` in orchestrator: statuses ✅/🔄/⬜/⏸/🚫/⊘). The plan covers: the focused fix, a regression test (if `need_test=true`), and migration / compatibility steps if needed.
 
-- **Fix** — `swift-toolkit:swift-developer` + `swift-toolkit:swift-tester` (если `need_test=true` — для бага regression test обязателен: он закрывает сценарий из Reproduce.md и предотвращает повторное появление). Поэтапно реализует фазы из Plan.md, обновляя прогресс-таблицу после каждой фазы. Артефакты: исходный код в проекте + regression test.
+- **Fix** — `swift-toolkit:swift-developer` + `swift-toolkit:swift-tester` (if `need_test=true` — for a bug, a regression test is mandatory: it locks in the scenario from `Reproduce.md` and prevents recurrence). Implements the phases from `Plan.md` step by step, updating the progress table after each phase. Artifacts: source code in the project + a regression test.
 
-  Если в args передан `start_phase=<phase_id>` — `swift-toolkit:swift-developer` получает эту фазу как точку старта в промпте Task tool. Уже завершённые фазы (статус `✅` в `Plan.md`) пропускаются, не переделываются. Прогресс-таблица обновляется только для новых/изменённых фаз.
+  If `start_phase=<phase_id>` was passed in args — `swift-toolkit:swift-developer` receives that phase as the start point in the Task-tool prompt. Already-completed phases (status `✅` in `Plan.md`) are skipped, not redone. The progress table is updated only for new / changed phases.
 
-- **Validation** — XcodeBuildMCP (`build_sim`, `test_sim`) + mobile MCP **обязательно**: верификация фикса на реальном симуляторе/устройстве с повтором сценария воспроизведения из `Reproduce.md`. Без подтверждения «баг больше не воспроизводится» Validation не считается пройденной. Артефакт: `Validation.md` с логом сборки/тестов, повтором сценария воспроизведения и итоговым вердиктом.
+- **Validation** — XcodeBuildMCP (`build_sim`, `test_sim`) + mobile MCP **mandatory**: verify the fix on a real simulator/device by replaying the reproduction scenario from `Reproduce.md`. Validation is not considered passed without an explicit agent-composed statement that the bug no longer reproduces (free-form content written into `Validation.md` in the user's language; not a template). Artifact: `Validation.md` with the build/test log, the replay of the reproduction scenario, and the final verdict.
 
-- **Review** — `swift-toolkit:swift-reviewer` (если `need_review=true` в args). Артефакт: `Review.md`, **первая строка обязательно** `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (это поле — общий контракт между workflow-* и оркестратором; используется также в `swift-toolkit:workflow-review` для auto-move в DONE/).
+- **Review** — `swift-toolkit:swift-reviewer` (if `need_review=true` in args). Artifact: `Review.md`, **first line is required** to be `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (this field is the shared contract between workflow-* and the orchestrator; it is also used by `swift-toolkit:workflow-review` for auto-move into DONE/).
 
-- **Done** — финальный отчёт `Done.md`: что исправлено, какой regression test добавлен, валидация (статус сборки/тестов + результат повтора сценария воспроизведения), возражения (если пользователь настоял на спорном решении).
+- **Done** — final report `Done.md`: what was fixed, which regression test was added, validation status (build/test result + outcome of the reproduction replay), and objections (if the user insisted on a contested decision).
 
-## 3. Manual режим
+## 3. Manual mode
 
-После каждой завершённой стадии оркестратор задаёт пользователю `AskUserQuestion`: «<stage> готова. Перейти к следующей? [Yes / Edit / No]».
+After each completed stage the orchestrator asks the user via `AskUserQuestion` using the `stage_done_prompt` key from `locales/<lang>.md`, with placeholder `{stage}`.
 
-Workflow-bug **не делает `AskUserQuestion` сам** — он возвращает управление оркестратору после завершения стадии (см. секцию 5, Контракт выхода) с `next_recommended_action`. Решение о паузе, диалоге и обсуждениях, которые пишутся в `Questions.md`, — зона ответственности оркестратора.
+Workflow-bug **does NOT call `AskUserQuestion` itself** — it returns control to the orchestrator after a stage completes (see section 5, Output Contract) with `next_recommended_action`. The decision to pause, continue, or capture discussions in `Questions.md` is the orchestrator's responsibility.
 
-Если хост-CLI не поддерживает `AskUserQuestion`, оркестратор использует текстовый fallback (нумерованные варианты + парсинг ответа). Это его ответственность, не workflow-bug.
+If the host CLI does not support `AskUserQuestion`, the orchestrator uses a textual fallback (numbered options + reply parsing). That is the orchestrator's responsibility, not workflow-bug's.
 
-## 4. Auto режим
+## 4. Auto mode
 
-Без пауз между стадиями. Workflow-bug последовательно проходит стадии в пределах `stage_scope` и возвращает финальный результат оркестратору одним выходом.
+No pauses between stages. Workflow-bug runs the stages sequentially within `stage_scope` and returns the final result to the orchestrator in a single output.
 
-Единственное согласование, которое всегда требуется независимо от режима — финальный коммит, если оркестратор инициирует commit-flow. Это тоже ответственность оркестратора, не workflow-bug.
+The only step that always requires confirmation regardless of mode is the final commit, when the orchestrator initiates the commit flow. That is again the orchestrator's responsibility, not workflow-bug's.
 
-## 5. Контракт выхода
+## 5. Output Contract
 
-После каждой стадии (в `manual` режиме) или после полного прохода (в `auto` режиме) workflow-bug возвращает в оркестратор JSON-подобную структуру:
+After each stage (in `manual` mode) or after a full pass (in `auto` mode), workflow-bug returns a JSON-like structure to the orchestrator:
 
 ```
 {
   status: ok | error | cancelled | interrupted,
   last_completed_stage: Reproduce | Diagnose | Plan | Fix | Validation | Review | Done,
-  artifact_path: <путь к финальному артефакту, например Tasks/ACTIVE/001-bug/Done.md>,
+  artifact_path: <path to the final artifact, e.g. Tasks/ACTIVE/001-bug/Done.md>,
   next_recommended_action: continue | stop | ask_user,
-  notes: <свободный текст, опциональный>
+  notes: <free-form text, optional>
 }
 ```
 
-Семантика полей:
-- `status=ok` — стадия завершена корректно.
-- `status=error` — произошла ошибка (включая «empty required field», некорректный контракт, фатальный сбой субагента).
-- `status=cancelled` — пользователь явно отказался продолжать (нажал «No» в AUQ оркестратора, и тот передал отказ дальше). Штатный исход, не считается ошибкой.
-- `status=interrupted` — выполнение прервано техническим сбоем или внешним сигналом (не по решению пользователя): обрыв связи с субагентом, таймаут, недоступность tool. Требует диагностики на стороне оркестратора.
-- `last_completed_stage` — последняя реально завершённая стадия (не та, на которой остановились с ошибкой).
-- `artifact_path` — путь к ключевому артефакту последней стадии (`Reproduce.md`, `Research.md`, `Plan.md`, `Validation.md`, `Review.md`, `Done.md`).
-- `next_recommended_action=continue` — можно сразу запускать следующую стадию; `stop` — естественный финиш (Done) или фатальная ошибка; `ask_user` — нужно подтверждение пользователя перед продолжением (например, после Review с `CHANGES_REQUESTED`).
-- `notes` — короткое свободное описание (например, «build_sim failed: SwiftCompile error in FooView.swift:42»).
+Field semantics:
+- `status=ok` — the stage finished correctly.
+- `status=error` — an error occurred (including reasons such as the locale key `status_error_empty_required_field`, an invalid contract, or a fatal subagent failure).
+- `status=cancelled` — the user explicitly declined to continue (the orchestrator forwarded a `No` from its AUQ; rendered to the user via locale key `status_cancelled_user_no`). A normal outcome, not an error.
+- `status=interrupted` — execution was interrupted by a technical fault or external signal (not by user decision): subagent disconnect, timeout, tool unavailable. Requires diagnostics on the orchestrator side.
+- `last_completed_stage` — the last stage that actually finished (not the one execution stopped on with an error).
+- `artifact_path` — path to the key artifact of the last stage (`Reproduce.md`, `Research.md`, `Plan.md`, `Validation.md`, `Review.md`, `Done.md`).
+- `next_recommended_action=continue` — the next stage may start immediately; `stop` — natural finish (Done) or a fatal error; `ask_user` — confirmation is needed before continuing (e.g. after a Review with `CHANGES_REQUESTED`).
+- `notes` — short free-form description (e.g. the example in locale key `notes_build_failed_example`).
 
-На основании этого оркестратор решает: продолжить, прервать, спросить пользователя.
+Based on this, the orchestrator decides: continue, abort, or ask the user.
 
-## 6. Что workflow-bug НЕ делает
+## 6. What workflow-bug does NOT do
 
-- НЕ маршрутизирует — выбор профиля сделан в оркестраторе до вызова.
-- НЕ читает `Task.md` для определения стека/режима — всё пришло в `args`.
-- НЕ дёргает `task-new` или `task-move` — это не его зона.
-- НЕ принимает решения о пропуске стадий — оркестратор уже передал `start_stage`, `end_stage`, `stage_scope`.
-- НЕ создаёт бэкапы в `_archive/` — это сделал оркестратор до передачи управления; пути уже в `archive_paths`.
-- НЕ задаёт `AskUserQuestion` — это делает оркестратор между стадиями в `manual` режиме.
-- НЕ согласует коммит с пользователем — этим занимается оркестратор после возврата `next_recommended_action`.
+- Does NOT route — profile selection happens in the orchestrator before the call.
+- Does NOT read `Task.md` to determine stack/mode — everything arrives in `args`.
+- Does NOT trigger `task-new` or `task-move` — that is not its scope.
+- Does NOT decide to skip stages — the orchestrator already passed `start_stage`, `end_stage`, `stage_scope`.
+- Does NOT create backups in `_archive/` — the orchestrator did so before handing off control; the paths are already in `archive_paths`.
+- Does NOT call `AskUserQuestion` — the orchestrator does that between stages in `manual` mode.
+- Does NOT confirm the commit with the user — the orchestrator handles that after a `next_recommended_action` return.

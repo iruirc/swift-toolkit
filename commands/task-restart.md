@@ -1,12 +1,12 @@
 ---
-description: Перезапустить задачу с этапа до конца (с архивацией)
+description: "Restart a task from a stage to the end (with archival) / Перезапустить задачу с этапа до конца (с архивацией)"
 argument-hint: <id> <stage> | --full
 ---
 
-Активируй `swift-toolkit:orchestrator` с action=restart.
+Activate `swift-toolkit:orchestrator` with action=restart.
 
-Парсинг $ARGUMENTS:
-- `<id> <stage>` → start_stage = <stage>, stage_scope=forward (архивирует stage и все последующие)
-- `<id> --full` → action=restart-full, stage_scope=all (полный сброс, архивирует ВСЕ артефакты включая Done.md)
+$ARGUMENTS parsing:
+- `<id> <stage>` → start_stage = <stage>, stage_scope=forward (archives stage and all subsequent)
+- `<id> --full` → action=restart-full, stage_scope=all (full reset, archives ALL artifacts including Done.md)
 
-В manual режиме — AskUserQuestion перед архивированием. Для `--full` дополнительное подтверждение если задача в DONE/.
+In manual mode — AskUserQuestion before archiving. For `--full` an additional confirmation if the task is in DONE/.

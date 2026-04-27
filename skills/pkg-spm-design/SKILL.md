@@ -5,68 +5,68 @@ description: "Use when designing or reviewing Swift Package boundaries — what 
 
 # SPM Package Design
 
-Каждый Swift-пакет нужно проектировать осознанно. Универсального шаблона нет — есть **4 архетипа**, и под каждый свои правила публичности, инициализации и взаимодействия с host-приложением.
+Every Swift package needs to be designed deliberately. There is no universal template — there are **4 archetypes**, and each has its own rules for visibility, initialization, and how it talks to the host application.
 
 > **Related skills:**
-> - `di-composition-root` — куда host-app встраивает пакет при сборке графа
-> - `di-module-assembly` — Factory-паттерн внутри Feature-пакета и в host-app
-> - `di-swinject` — если в host-app выбран Swinject как DI-framework (но **не** в самом пакете)
-> - `di-factory` — если в host-app выбран Factory (hmlongco). Правило «не импортируй DI в пакет» применяется и к Factory; модульные `extension Container` per feature живут в **app target**, см. `di-factory` секцию «Modular Containers»
+> - `di-composition-root` — where the host app plugs the package into when wiring its graph
+> - `di-module-assembly` — Factory pattern inside a Feature package and inside the host app
+> - `di-swinject` — if Swinject is the chosen DI framework in the host app (but **not** inside the package itself)
+> - `di-factory` — if Factory (hmlongco) is the chosen DI framework in the host app. The "do not import a DI framework in a package" rule applies to Factory too; modular `extension Container` per feature lives in the **app target**, see the `di-factory` "Modular Containers" section
 
-## Decision tree: какой это пакет?
+## Decision tree: which kind of package is this?
 
 ```dot
 digraph package_type {
-    "У пакета есть UI/поведение и runtime-состояние?" [shape=diamond];
-    "Только утилиты, типы, статические функции?" [shape=diamond];
-    "Только контракты/DTO без реализации?" [shape=diamond];
-    "Большая SDK с фасадом + публичными типами для расширения?" [shape=diamond];
+    "Does the package have UI/behavior and runtime state?" [shape=diamond];
+    "Only utilities, types, static functions?" [shape=diamond];
+    "Only contracts/DTOs without an implementation?" [shape=diamond];
+    "Large SDK with a facade + public types for extension?" [shape=diamond];
 
     "Feature package" [shape=box, color=blue];
     "Library package" [shape=box, color=green];
     "API/Contract package" [shape=box, color=purple];
     "Engine/SDK package" [shape=box, color=orange];
 
-    "У пакета есть UI/поведение и runtime-состояние?" -> "Feature package" [label="да"];
-    "У пакета есть UI/поведение и runtime-состояние?" -> "Только утилиты, типы, статические функции?" [label="нет"];
-    "Только утилиты, типы, статические функции?" -> "Library package" [label="да"];
-    "Только утилиты, типы, статические функции?" -> "Только контракты/DTO без реализации?" [label="нет"];
-    "Только контракты/DTO без реализации?" -> "API/Contract package" [label="да"];
-    "Только контракты/DTO без реализации?" -> "Большая SDK с фасадом + публичными типами для расширения?" [label="нет"];
-    "Большая SDK с фасадом + публичными типами для расширения?" -> "Engine/SDK package" [label="да"];
+    "Does the package have UI/behavior and runtime state?" -> "Feature package" [label="yes"];
+    "Does the package have UI/behavior and runtime state?" -> "Only utilities, types, static functions?" [label="no"];
+    "Only utilities, types, static functions?" -> "Library package" [label="yes"];
+    "Only utilities, types, static functions?" -> "Only contracts/DTOs without an implementation?" [label="no"];
+    "Only contracts/DTOs without an implementation?" -> "API/Contract package" [label="yes"];
+    "Only contracts/DTOs without an implementation?" -> "Large SDK with a facade + public types for extension?" [label="no"];
+    "Large SDK with a facade + public types for extension?" -> "Engine/SDK package" [label="yes"];
 }
 ```
 
-## Универсальные правила (для всех типов)
+## Universal rules (for all types)
 
-1. **Никогда не импортируй DI-framework** в main target пакета — ни Swinject, ни Factory (FactoryKit), ни Resolver, ни Needle, ни Cleanse. Это создаёт жёсткую связку: host обязан использовать тот же фреймворк той же мажорной версии.
-   - **Исключение:** test target пакета может импортировать DI-framework для построения mock-графа в integration-тестах.
-   - **Про Factory отдельно:** хотя его `extension Container` pattern технически выглядит привлекательно для модульной организации, помещать `import FactoryKit` в SPM-пакет — то же нарушение правила, что и Swinject. Модульные `extension Container { var foo: Factory<Foo> }` per feature живут в **app target** (например, файлы `Container+ProfileFeature.swift`, `Container+SettingsFeature.swift`), а не в SPM-пакетах. См. `di-factory`, секцию «Modular Containers».
-2. **Минимизируй `public`** — всё, что не нужно за пределами пакета, держим `internal`. Каждый `public` — это публичный контракт, который ломать нельзя без major version bump.
-3. **Domain-пакеты не зависят от UIKit/SwiftUI/AppKit** — Models, Engine, бизнес-логика должны быть платформо-независимыми. UI-зависимости только в Feature-пакетах.
-4. **Никаких глобальных синглтонов** в пакете — это превращает пакет в Service Locator и убивает testability.
-5. **Тесты пакета — рядом с пакетом**, не в host-app. SPM сам поддерживает test target в `Package.swift`.
+1. **Never import a DI framework** in the main target of a package — neither Swinject, nor Factory (FactoryKit), nor Resolver, nor Needle, nor Cleanse. It creates a hard coupling: the host is forced to use the same framework at the same major version.
+   - **Exception:** the package's test target may import a DI framework to build a mock graph for integration tests.
+   - **About Factory specifically:** even though its `extension Container` pattern looks attractive for modular organization, putting `import FactoryKit` into an SPM package is the same rule violation as Swinject. Modular `extension Container { var foo: Factory<Foo> }` per feature lives in the **app target** (e.g. files like `Container+ProfileFeature.swift`, `Container+SettingsFeature.swift`), not in SPM packages. See `di-factory`, "Modular Containers" section.
+2. **Minimize `public`** — anything not needed outside the package stays `internal`. Every `public` is a public contract that can't be broken without a major version bump.
+3. **Domain packages don't depend on UIKit/SwiftUI/AppKit** — Models, Engine, business logic must be platform-independent. UI dependencies belong only in Feature packages.
+4. **No global singletons** in the package — that turns the package into a Service Locator and destroys testability.
+5. **Package tests live next to the package**, not in the host app. SPM supports test targets directly in `Package.swift`.
 
 ---
 
 ## 1. Feature package
 
-**Что это:** Инкапсулирует целую UI-фичу (плеер, облачный браузер, чекаут) с собственным UI, поведением и runtime-состоянием.
+**What it is:** Encapsulates a whole UI feature (player, cloud browser, checkout) with its own UI, behavior, and runtime state.
 
-**Примеры:** `vsdc-iOS-Player`, `vsdc-iOS-cloudBrowser`.
+**Examples:** `vsdc-iOS-Player`, `vsdc-iOS-cloudBrowser`.
 
-### Структура
+### Structure
 
 ```
 MyFeature/
 ├── Sources/
 │   └── MyFeature/
 │       ├── Public/
-│       │   ├── MyFeatureModule.swift           # public class — единственная точка входа
-│       │   ├── MyFeatureDependencies.swift     # public struct — что нужно от host-а
-│       │   └── MyFeatureOutput.swift           # public protocol — обратная связь к host-у
+│       │   ├── MyFeatureModule.swift           # public class — the single entry point
+│       │   ├── MyFeatureDependencies.swift     # public struct — what's needed from the host
+│       │   └── MyFeatureOutput.swift           # public protocol — feedback to the host
 │       └── Internal/
-│           ├── MyFeatureContainer.swift        # internal — ручная фабрика без DI-framework
+│           ├── MyFeatureContainer.swift        # internal — manual factory without a DI framework
 │           ├── Assembly/
 │           │   └── MyFeatureAssembly.swift     # internal — wires View+ViewModel
 │           ├── View/
@@ -76,16 +76,16 @@ MyFeature/
     └── MyFeatureTests/
 ```
 
-### Правила
+### Rules
 
-1. **Один public Module-класс** — единственная runtime-точка входа. Всё остальное создаётся через него.
+1. **One public Module class** — the only runtime entry point. Everything else is created through it.
    ```swift
    public final class MyFeatureModule {
        public init(dependencies: MyFeatureDependencies)
        public func createMainScreen(output: MyFeatureOutput) -> UIViewController
    }
    ```
-2. **Public `Dependencies` — struct, не protocol.** Struct даёт named-init без conformance gymnastics в host-е:
+2. **Public `Dependencies` — a struct, not a protocol.** A struct gives you a named init without conformance gymnastics on the host side:
    ```swift
    public struct MyFeatureDependencies {
        public let userService: UserServiceAPI
@@ -96,8 +96,8 @@ MyFeature/
        }
    }
    ```
-3. **Public `Output` — protocol.** Один protocol для всех обратных сигналов host-у (закрыть фичу, отправить событие, попросить навигацию).
-4. **Внутренний Container — БЕЗ DI-framework.** Просто struct/class с `make...()` методами:
+3. **Public `Output` — a protocol.** A single protocol for all feedback signals to the host (close the feature, send an event, ask for navigation).
+4. **Internal Container — WITHOUT a DI framework.** Just a struct/class with `make...()` methods:
    ```swift
    final class MyFeatureContainer {
        let deps: MyFeatureDependencies
@@ -109,11 +109,11 @@ MyFeature/
        private func makeHelper() -> Helper { Helper(logger: deps.logger) }
    }
    ```
-5. **Все типы кроме Module/Dependencies/Output — `internal`.** Если host хочет использовать что-то напрямую — это либо API-контракт (вынести в API-пакет), либо плохая граница (Module не справляется со своей задачей фасада).
+5. **All types except Module/Dependencies/Output are `internal`.** If the host wants to use something directly — that's either an API contract (move it into an API package) or a bad boundary (the Module isn't doing its facade job).
 
-### Как host подключает Feature-пакет
+### How the host integrates a Feature package
 
-См. `di-composition-root` — host-app в `AppDependencyContainer+MyFeature.swift` extension собирает `Dependencies` из своего DI-контейнера и создаёт `Module`:
+See `di-composition-root` — in `AppDependencyContainer+MyFeature.swift` extension the host app builds `Dependencies` from its DI container and creates the `Module`:
 
 ```swift
 extension AppDependencyContainer {
@@ -127,42 +127,42 @@ extension AppDependencyContainer {
 }
 ```
 
-Host знает о Swinject, пакет — нет.
+The host knows about Swinject; the package does not.
 
 ---
 
 ## 2. Library package
 
-**Что это:** Набор переиспользуемых типов, протоколов, утилит, статических функций. **Нет единой точки входа** и нет runtime-состояния (или оно изолировано в отдельных независимых типах).
+**What it is:** A collection of reusable types, protocols, utilities, and static functions. **No single entry point** and no runtime state (or it's isolated inside separate, independent types).
 
-**Примеры:** `vsdcEditorCommon` (рендер-слои, gesture strategies, log), `vsdcCommonServices`, `vsdcLogger`, `vsdcNetwork`.
+**Examples:** `vsdcEditorCommon` (render layers, gesture strategies, log), `vsdcCommonServices`, `vsdcLogger`, `vsdcNetwork`.
 
-### Структура
+### Structure
 
 ```
 MyLibrary/
 ├── Sources/
 │   └── MyLibrary/
-│       ├── Models/                              # public — DTO, value types
+│       ├── Models/                              # public — DTOs, value types
 │       │   ├── User.swift
 │       │   └── Settings.swift
-│       ├── Protocols/                           # public — контракты
+│       ├── Protocols/                           # public — contracts
 │       │   └── LoggerAPI.swift
-│       ├── Implementations/                     # public — конкретные реализации
+│       ├── Implementations/                     # public — concrete implementations
 │       │   └── ConsoleLogger.swift
-│       ├── Utilities/                           # public — статические функции, extensions
+│       ├── Utilities/                           # public — static functions, extensions
 │       │   └── String+Validation.swift
-│       └── Internal/                            # internal — для своих нужд
+│       └── Internal/                            # internal — for the package's own needs
 │           └── Helpers/
 └── Tests/
     └── MyLibraryTests/
 ```
 
-### Правила
+### Rules
 
-1. **НЕТ единой точки входа.** Любой публичный тип — независимая единица, которую host использует прямо.
-2. **`public` — всё, что нужно извне.** Не пытайся «спрятать» библиотечные типы за фасадом — это анти-паттерн для library-пакета.
-3. **Опциональный namespace-`enum`** для группировки констант или статических фабрик:
+1. **NO single entry point.** Any public type is an independent unit the host uses directly.
+2. **`public` — anything that needs to be available externally.** Don't try to "hide" library types behind a facade — that's an anti-pattern for a Library package.
+3. **Optional namespace `enum`** for grouping constants or static factories:
    ```swift
    public enum MyLibraryConstants {
        public static let defaultTimeout: TimeInterval = 30
@@ -171,22 +171,22 @@ MyLibrary/
        public static func make(level: LogLevel) -> LoggerAPI { ... }
    }
    ```
-   Это **namespace**, не facade — он не владеет состоянием.
-4. **Каждый публичный тип создаётся через свой init.** Никаких `Dependencies` структур и `Module`-фасадов.
-5. **Stateless по умолчанию.** Если тип хранит состояние — host сам решает, как его шарить (singleton в host-DI или transient).
+   This is a **namespace**, not a facade — it owns no state.
+4. **Each public type is created via its own init.** No `Dependencies` structs, no `Module` facades.
+5. **Stateless by default.** If a type holds state — the host decides how to share it (singleton in the host DI or transient).
 
-### Как host подключает Library-пакет
+### How the host integrates a Library package
 
-Просто импортирует и использует напрямую — в любом месте, где нужно:
+It just imports and uses things directly — wherever needed:
 
 ```swift
 import MyLibrary
 
 let logger = ConsoleLogger(level: .debug)
-let isValid = "test@example.com".isValidEmail  // extension из библиотеки
+let isValid = "test@example.com".isValidEmail  // extension from the library
 ```
 
-В `AppDependencyContainer` библиотечные типы регистрируются как обычные сервисы:
+In `AppDependencyContainer`, library types are registered as ordinary services:
 
 ```swift
 container.register(LoggerAPI.self) { _ in ConsoleLogger(level: .info) }
@@ -197,92 +197,92 @@ container.register(LoggerAPI.self) { _ in ConsoleLogger(level: .info) }
 
 ## 3. API / Contract package
 
-**Что это:** Чистые контракты — protocols, DTO, enums — **без реализации**. Используется для разрыва циклических зависимостей между пакетами.
+**What it is:** Pure contracts — protocols, DTOs, enums — **without implementation**. Used to break cyclic dependencies between packages.
 
-**Примеры:** `vsdcCloudClientAPI` (интерфейсы для облачного клиента, реализация — в `vsdcCloudClient`).
+**Examples:** `vsdcCloudClientAPI` (interfaces for the cloud client; implementation in `vsdcCloudClient`).
 
-### Структура
+### Structure
 
 ```
 MyServiceAPI/
 ├── Sources/
 │   └── MyServiceAPI/
-│       ├── MyServiceAPI.swift           # public protocol — главный контракт
-│       ├── DTOs/                         # public — структуры данных
+│       ├── MyServiceAPI.swift           # public protocol — main contract
+│       ├── DTOs/                         # public — data structures
 │       │   ├── Request.swift
 │       │   └── Response.swift
-│       ├── Errors/                       # public — типизированные ошибки
+│       ├── Errors/                       # public — typed errors
 │       │   └── MyServiceError.swift
-│       └── Events/                       # public — публичные события
+│       └── Events/                       # public — public events
 │           └── MyServiceEvent.swift
 └── Tests/
-    └── MyServiceAPITests/                # тесты структур данных, валидации DTO
+    └── MyServiceAPITests/                # tests of data structures, DTO validation
 ```
 
-### Правила
+### Rules
 
-1. **Только public.** Никакого internal — пакет существует для других пакетов.
-2. **Только структуры данных, протоколы и енумы.** Никаких классов с поведением, никаких моков, никаких реализаций.
-3. **Не зависит ни от чего, кроме Foundation.** Если контракт зависит от UIKit/Combine/3rd-party — это уже не «чистый контракт», и переделать.
-4. **Mutable state запрещён.** Никаких `var` в DTO без явной причины (struct с let-полями).
-5. **Версионируется отдельно от реализации.** Это позволяет менять реализацию без bump major-версии API.
+1. **Public only.** No internal — the package exists for other packages.
+2. **Only data structures, protocols, and enums.** No classes with behavior, no mocks, no implementations.
+3. **Depends on nothing but Foundation.** If the contract depends on UIKit/Combine/3rd-party — it's no longer a "pure contract"; rework it.
+4. **Mutable state is forbidden.** No `var` in DTOs without a clear reason (struct with `let` fields).
+5. **Versioned independently of the implementation.** This lets you change implementation without bumping the major version of the API.
 
-### Зачем нужен
+### Why it exists
 
-- **Разрыв циклов:** `vsdcCloudClient` зависит от `vsdcNetwork`, `vsdcNetwork` хочет вызывать что-то облачное → оба зависят от `vsdcCloudClientAPI`, реализация не циклится.
-- **Test doubles:** Mock-реализации в тестах живут в test-пакете, импортируют только API.
-- **Подмена реализаций:** В разных средах (production / staging / dev) одна и та же API имеет разные конкретные реализации.
+- **Cycle breaking:** `vsdcCloudClient` depends on `vsdcNetwork`, `vsdcNetwork` wants to invoke something cloud-related → both depend on `vsdcCloudClientAPI`, the implementation no longer cycles.
+- **Test doubles:** Mock implementations in tests live in a test package and import only the API.
+- **Implementation swapping:** In different environments (production / staging / dev) the same API has different concrete implementations.
 
 ---
 
 ## 4. Engine / SDK package
 
-**Что это:** Большая подсистема с **гибридным API** — фасад для основных операций + публичные типы для расширения/наблюдения.
+**What it is:** A large subsystem with a **hybrid API** — a facade for primary operations + public types for extension/observation.
 
-**Примеры:** `vsdcMetalRenderEngine`, `vsdcStoreKit`.
+**Examples:** `vsdcMetalRenderEngine`, `vsdcStoreKit`.
 
-### Структура
+### Structure
 
 ```
 MyEngine/
 ├── Sources/
 │   └── MyEngine/
 │       ├── Public/
-│       │   ├── MyEngine.swift                # public class — фасад
-│       │   ├── MyEngineDependencies.swift    # public struct — внешние зависимости
-│       │   ├── Configuration/                # public — настройки фасада
-│       │   ├── Models/                       # public — типы для использования
-│       │   ├── Protocols/                    # public — точки расширения
-│       │   └── Events/                       # public — наблюдаемые события
+│       │   ├── MyEngine.swift                # public class — facade
+│       │   ├── MyEngineDependencies.swift    # public struct — external dependencies
+│       │   ├── Configuration/                # public — facade settings
+│       │   ├── Models/                       # public — types to be consumed
+│       │   ├── Protocols/                    # public — extension points
+│       │   └── Events/                       # public — observable events
 │       └── Internal/
 │           └── ...
 └── Tests/
 ```
 
-### Правила
+### Rules
 
-1. **Один public Engine-класс** как главный фасад — для типичных сценариев использования.
-2. **Public Models/Protocols** — для случаев, когда host хочет идти глубже фасада (расширить, отнаследоваться, подписаться).
-3. **`Dependencies` опционально:** если Engine нужны внешние сервисы — да; если самодостаточен (Metal, StoreKit) — нет.
-4. **Публичный API двухуровневый:**
-   - Уровень 1 (фасад): `engine.render(frame:)`, `engine.purchase(product:)` — для 80% юзкейсов
-   - Уровень 2 (типы): `RenderPass`, `PurchaseObserver` — для оставшихся 20% продвинутых сценариев
-5. **Документируй разделение** в README пакета — host должен сразу видеть, какой уровень API использовать.
+1. **One public Engine class** as the main facade — for typical usage scenarios.
+2. **Public Models/Protocols** — for cases where the host wants to go deeper than the facade (extend, subclass, subscribe).
+3. **`Dependencies` is optional:** if the Engine needs external services — yes; if it's self-contained (Metal, StoreKit) — no.
+4. **The public API is two-tiered:**
+   - Tier 1 (facade): `engine.render(frame:)`, `engine.purchase(product:)` — for 80% of use cases
+   - Tier 2 (types): `RenderPass`, `PurchaseObserver` — for the remaining 20% advanced scenarios
+5. **Document the split** in the package README — the host should see immediately which API tier to use.
 
-### Когда выбирать Engine, а не Feature
+### When to pick Engine, not Feature
 
-| Признак | Feature | Engine/SDK |
+| Trait | Feature | Engine/SDK |
 |---|---|---|
-| Имеет UI | Да (целая фича) | Опционально (UI — на стороне host-а) |
-| Закрытое поведение | Да (host не вмешивается) | Нет (host расширяет) |
-| Несколько сценариев использования | Один main flow | Много вариантов |
-| Стабильность API | Может меняться по бизнесу | Должен быть стабильным надолго |
+| Has UI | Yes (a whole feature) | Optional (UI lives on the host side) |
+| Closed behavior | Yes (host doesn't intrude) | No (host extends it) |
+| Multiple usage scenarios | One main flow | Many variants |
+| API stability | May change with the business | Must be stable for a long time |
 
 ---
 
 ## Cross-package dependencies
 
-Граф зависимостей между пакетами должен быть **DAG** (направленный без циклов). Типовая иерархия в большом проекте:
+The dependency graph between packages must be a **DAG** (directed, acyclic). Typical hierarchy in a large project:
 
 ```
                           [App]
@@ -300,32 +300,32 @@ MyEngine/
                        [Foundation]
 ```
 
-Правила направления:
-- **App** может зависеть от всех типов
-- **Feature** может зависеть от Library, API, Engine — но **не от других Feature** (используй API-контракт для связи)
-- **Engine** может зависеть от Library, API — не от Feature, не от других Engine (циклы)
-- **Library** может зависеть только от API и Foundation
-- **API** не зависит ни от чего, кроме Foundation
+Direction rules:
+- **App** can depend on all types
+- **Feature** can depend on Library, API, Engine — but **not on other Features** (use an API contract to connect them)
+- **Engine** can depend on Library, API — not on Features, not on other Engines (cycles)
+- **Library** can only depend on API and Foundation
+- **API** depends on nothing but Foundation
 
-Если нужна связь Feature↔Feature — выноси контракт в API-пакет, обе фичи зависят от API.
+If a Feature↔Feature link is needed — extract the contract into an API package, both features depend on the API.
 
 ## Common Mistakes
 
-1. **Один Module-фасад в library-пакете** — заставляет host тащить через 5 уровней вложенности то, что должно быть прямым импортом.
-2. **DI-framework в `Package.swift`** — самая частая ошибка. См. универсальное правило 1.
-3. **UIKit в Domain/Library пакете** — не даст переиспользовать пакет в macOS app или CLI.
-4. **`public` без причины** — каждый лишний public — это публичный контракт, который придётся поддерживать.
-5. **Реализация и API в одном пакете, когда нужны циклы** — выноси API в отдельный пакет.
-6. **`@_exported import`** — анти-паттерн, прячет реальные зависимости host-а от его dependency manager.
-7. **Test-helpers в main target** — добавляются в production binary. Выноси в отдельный test-utility пакет (`MyLibraryTestUtils`) или в `Tests/MyLibraryTests/Support/`.
+1. **A single Module facade in a library package** — forces the host to drag things through five layers of nesting that should be a direct import.
+2. **A DI framework in `Package.swift`** — the most frequent mistake. See universal rule 1.
+3. **UIKit in a Domain/Library package** — won't let you reuse the package in a macOS app or CLI.
+4. **`public` without a reason** — every extra public is a public contract you'll have to support.
+5. **Implementation and API in one package when you need cycles** — extract the API into a separate package.
+6. **`@_exported import`** — anti-pattern; hides the host's real dependencies from its dependency manager.
+7. **Test helpers in the main target** — they get added to the production binary. Move them into a separate test-utility package (`MyLibraryTestUtils`) or into `Tests/MyLibraryTests/Support/`.
 
-## Quick checklist при создании нового пакета
+## Quick checklist when creating a new package
 
-- [ ] Определён архетип (Feature / Library / API / Engine)
-- [ ] `Package.swift` не зависит ни от одного DI-framework
-- [ ] Минимизирован public surface
-- [ ] Domain/Models не зависят от UIKit/SwiftUI
-- [ ] Нет глобальных синглтонов
-- [ ] Test target присутствует в `Package.swift`
-- [ ] README объясняет архетип и точку входа
-- [ ] Зависимости от других пакетов формируют DAG (без циклов)
+- [ ] Archetype is identified (Feature / Library / API / Engine)
+- [ ] `Package.swift` does not depend on any DI framework
+- [ ] Public surface is minimized
+- [ ] Domain/Models don't depend on UIKit/SwiftUI
+- [ ] No global singletons
+- [ ] Test target is present in `Package.swift`
+- [ ] README explains the archetype and the entry point
+- [ ] Dependencies on other packages form a DAG (no cycles)
