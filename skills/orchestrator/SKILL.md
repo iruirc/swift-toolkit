@@ -16,14 +16,14 @@ The skill itself does not perform the work of stages — it only resolves parame
 
 Before producing any user-facing string:
 
-1. Read `CLAUDE.md` from the project root.
+1. Read `CLAUDE-swift-toolkit.md` from the project root.
 2. Find the `## Language` section.
 3. Take the first non-empty line in that section, lowercase and trim it. That is `<lang>`.
 4. If `<lang>` is `en` or `ru`, use it. Otherwise default to `en`.
 5. Read this skill's `locales/<lang>.md`. Look up keys by H2 header.
 6. If a key is missing, fall back to the same key in `locales/en.md`. If still missing, that's a bug — fail loudly with key name.
 
-Caching: resolve `<lang>` once per skill invocation; do not re-read CLAUDE.md per string.
+Caching: resolve `<lang>` once per skill invocation; do not re-read CLAUDE-swift-toolkit.md per string.
 
 ## Tool Loading (preamble)
 
@@ -46,8 +46,8 @@ The minimum viable input is just `task_id`. All other fields are optional and re
 | `task_id` | string | NL/$ARGUMENTS (e.g. `026`, `137`, `001-foo`) | **required** — error using key `error_no_task_id` |
 | `action` | enum: `run` / `continue` / `redo` / `restart` / `restart-full` | parsed from the command (see triggers table) | `run` for a bare "run/do/execute N", `continue` for "continue N" |
 | `stage_target` | string (profile stage name) | required for `redo` / `restart`, or for `--from` / `--to` modifiers under `run` | not needed for `run` / `continue` / `restart-full` without modifiers |
-| `mode_override` | enum: `manual` / `auto` | explicit "automatically" / "step-by-step" in the request | resolved from Task.md → CLAUDE.md → `manual` |
-| `stack_override` | string | stack explicitly named in the request | resolved from Task.md → CLAUDE.md → imports → AskUserQuestion |
+| `mode_override` | enum: `manual` / `auto` | explicit "automatically" / "step-by-step" in the request | resolved from Task.md → CLAUDE-swift-toolkit.md → `manual` |
+| `stack_override` | string | stack explicitly named in the request | resolved from Task.md → CLAUDE-swift-toolkit.md → imports → AskUserQuestion |
 
 **Invariant:** the orchestrator does NOT crash on missing optional fields. It resolves them in the Resolution Algorithm and only then hands the fully populated contract to workflow-*.
 
@@ -99,14 +99,14 @@ Algorithm:
 3. Resolve mode (priority high→low):
    mode_override (NL: "automatically" / "step-by-step")
    > Task.md [WORKFLOW_MODE]
-   > CLAUDE.md "## Mode"
+   > CLAUDE-swift-toolkit.md "## Mode"
    > "manual" (default)
 
 4. Resolve stack (priority high→low):
    stack_override (explicit in the request)
    > Task.md "## 4. [Stack]"
-   > CLAUDE.md "## Modules" (if the task's files fall into one of the listed modules)
-   > CLAUDE.md "## Stack"
+   > CLAUDE-swift-toolkit.md "## Modules" (if the task's files fall into one of the listed modules)
+   > CLAUDE-swift-toolkit.md "## Stack"
    > auto-detection by imports of the affected files
    > AskUserQuestion (last fallback)
 
@@ -233,4 +233,4 @@ The workflow-* subagent receives:
 3. Stack: the `stack` value from the Outbound Contract.
 4. Mode: `mode` from the Outbound Contract.
 
-**The stack does not need to be re-sent in full text:** the skill does not `Read` the project-level `CLAUDE.md` — stack, mode, and paths come from the context Claude Code typically loads at session start (when `CLAUDE.md` is present at the project root). The orchestrator parses this already-loaded context to resolve priorities.
+**The stack does not need to be re-sent in full text:** the skill does not `Read` `CLAUDE-swift-toolkit.md` — stack, mode, and paths come from the context Claude Code typically loads at session start (when `CLAUDE.md` is present at the project root and imports `CLAUDE-swift-toolkit.md` via `@./`). The orchestrator parses this already-loaded context to resolve priorities.
