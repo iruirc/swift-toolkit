@@ -1,8 +1,9 @@
-# CLAUDE.md — Swift Toolkit
+# CLAUDE-swift-toolkit.md — Конфигурация Swift Toolkit
 
-> Project-level конфиг для Swift/Apple проекта (iOS/macOS app или SPM package).
-> Скопируй в корень своего проекта и заполни секции "Stack" и "Mode".
-> Логика оркестрации задач — в скиллах swift-toolkit:* (см. секцию "Orchestration" ниже).
+> Toolkit-owned файл конфигурации для Swift/Apple-проекта. Создаётся и обновляется через `swift-setup`.
+> **Не редактируй вручную без необходимости** — повторный запуск `swift-setup` может перезаписать изменения (с бэкапом).
+> Пользовательские project-инструкции живут в `CLAUDE.md`. Этот файл автоматически попадает в контекст Claude через `@./CLAUDE-swift-toolkit.md`.
+> Логика оркестрации задач — в скиллах `swift-toolkit:*` (см. "Orchestration" ниже).
 
 ## Language
 

@@ -1,7 +1,8 @@
-# CLAUDE.md — Swift Toolkit
+# CLAUDE-swift-toolkit.md — Swift Toolkit Configuration
 
-> Project-level config for a Swift/Apple project (iOS/macOS app or SPM package).
-> Copy this file into the root of your project and fill in the "Stack" and "Mode" sections.
+> Toolkit-owned configuration for a Swift/Apple project. Created and updated by `swift-setup`.
+> **Do not edit by hand unless you know what you're doing** — running `swift-setup` again may overwrite your changes (after backup).
+> User-owned project instructions live in `CLAUDE.md`. This file is auto-imported into Claude's context via `@./CLAUDE-swift-toolkit.md`.
 > Task-orchestration logic is in the `swift-toolkit:*` skills (see "Orchestration" below).
 
 ## Language
