@@ -4,7 +4,7 @@
 Не Swift-проект (не найден `.xcodeproj`, `.xcworkspace` или `Package.swift`). Для генерации нового используй `@swift-toolkit:swift-init`.
 
 ## error_template_not_found
-Шаблон CLAUDE.md плагина не найден. Проверь установку swift-toolkit (`~/.claude/plugins/cache/` или `~/.claude/plugins/marketplaces/`).
+Шаблон CLAUDE-swift-toolkit.md плагина не найден. Проверь установку swift-toolkit (`~/.claude/plugins/cache/` или `~/.claude/plugins/marketplaces/`).
 
 ## auq_existing_claude_md
 В проекте уже есть `CLAUDE.md`. Что сделать?
@@ -39,7 +39,7 @@ Dependency Injection
 ## report_success_template
 ✅ swift-toolkit настроен в этом проекте.
 
-CLAUDE.md создан со стеком:
+CLAUDE-swift-toolkit.md создан со стеком:
   - UI: {q1}
   - Async: {q2}
   - DI: {q3}
@@ -70,3 +70,29 @@ Tasks/ структура: {tasks_status}
 
 ## auq_lang_options
 en | ru
+
+## auq_reconfigure_toolkit
+swift-toolkit уже настроен в проекте (`CLAUDE-swift-toolkit.md` существует). Что сделать?
+
+## auq_reconfigure_toolkit_options
+Overwrite | Backup-and-overwrite | Cancel
+
+## auq_migrate_old_format
+Обнаружен старый однофайловый формат (`CLAUDE.md` содержит toolkit-секции). Я перенесу его в двухфайловую раскладку: toolkit-секции уедут в `CLAUDE-swift-toolkit.md`, твои секции останутся в `CLAUDE.md`, добавится import-строка, оригинал сохранится в `CLAUDE.md.bak`. Продолжить?
+
+## auq_migrate_old_format_options
+Migrate-and-backup | Cancel
+
+## report_migration_success
+✅ Миграция в двухфайловую раскладку выполнена.
+
+Перенесено в `CLAUDE-swift-toolkit.md`: {moved_sections}
+Осталось в `CLAUDE.md`: {kept_sections}
+Заполнено дефолтами: {filled_default_sections}
+Предупреждения: {warnings}
+Бэкап: {backup_path}
+
+Откат: `mv {backup_path} CLAUDE.md && rm CLAUDE-swift-toolkit.md`
+
+## error_no_toolkit_file
+swift-toolkit не настроен в этом проекте (нет `CLAUDE-swift-toolkit.md`). Сначала запусти `/swift-setup`.

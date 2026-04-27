@@ -4,7 +4,7 @@
 Not a Swift project (no `.xcodeproj`, `.xcworkspace`, or `Package.swift` found). To create a new project use `@swift-toolkit:swift-init`.
 
 ## error_template_not_found
-swift-toolkit CLAUDE.md template not found. Check installation (`~/.claude/plugins/cache/` or `~/.claude/plugins/marketplaces/`).
+swift-toolkit CLAUDE-swift-toolkit.md template not found. Check installation (`~/.claude/plugins/cache/` or `~/.claude/plugins/marketplaces/`).
 
 ## auq_existing_claude_md
 A `CLAUDE.md` already exists in this project. What should I do?
@@ -39,7 +39,7 @@ Workflow mode
 ## report_success_template
 ✅ swift-toolkit configured in this project.
 
-CLAUDE.md created with stack:
+CLAUDE-swift-toolkit.md created with stack:
   - UI: {q1}
   - Async: {q2}
   - DI: {q3}
@@ -70,3 +70,29 @@ Toolkit language for prompts
 
 ## auq_lang_options
 en | ru
+
+## auq_reconfigure_toolkit
+swift-toolkit is already configured (`CLAUDE-swift-toolkit.md` exists). What should I do?
+
+## auq_reconfigure_toolkit_options
+Overwrite | Backup-and-overwrite | Cancel
+
+## auq_migrate_old_format
+Detected old single-file format (`CLAUDE.md` contains toolkit sections). I will migrate to the two-file layout: move toolkit sections to `CLAUDE-swift-toolkit.md`, keep your sections in `CLAUDE.md`, insert the import line, and back up the original to `CLAUDE.md.bak`. Proceed?
+
+## auq_migrate_old_format_options
+Migrate-and-backup | Cancel
+
+## report_migration_success
+✅ Migrated to two-file layout.
+
+Moved to `CLAUDE-swift-toolkit.md`: {moved_sections}
+Kept in `CLAUDE.md`: {kept_sections}
+Filled with defaults: {filled_default_sections}
+Warnings: {warnings}
+Backup: {backup_path}
+
+To roll back: `mv {backup_path} CLAUDE.md && rm CLAUDE-swift-toolkit.md`
+
+## error_no_toolkit_file
+swift-toolkit is not configured in this project (no `CLAUDE-swift-toolkit.md`). Run `/swift-setup` first.
