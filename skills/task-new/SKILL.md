@@ -91,7 +91,7 @@ For reference, the templates contain these placeholders:
    - Logs → `## 5. [Logs]` (only if present in the request)
    - Stack traces / crashlogs → `## 6. [StackTrace]` (only if present)
    The prose follows the user's natural language. The headings themselves are not touched.
-9. **`[WORKFLOW_MODE]`** — if the user explicitly asked for a mode different from the project's `## Mode`, append the line `[WORKFLOW_MODE] = [<mode>]` immediately after the `[NEED_REVIEW]` line via Edit. Otherwise leave the template as is (the optional commented-out line stays as documentation).
+9. **`[WORKFLOW_MODE]`** — if the user explicitly asked for a mode different from the project's `## Mode` (in `CLAUDE-swift-toolkit.md`), append the line `[WORKFLOW_MODE] = [<mode>]` immediately after the `[NEED_REVIEW]` line via Edit. Otherwise leave the template as is (the optional commented-out line stays as documentation).
 10. **Verify structural anchors are intact.** Read the just-written `Task.md`. Check that **every** one of the following literal strings is present (case-sensitive, byte-for-byte):
     - `**Date:**`
     - `[TASK_TYPE] = `
