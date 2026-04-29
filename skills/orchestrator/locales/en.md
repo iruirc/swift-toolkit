@@ -20,3 +20,24 @@ Cannot `redo` `{stage}` — its artifact does not exist. Use `run --from {stage}
 
 ## stage_done_prompt
 `{stage}` complete. Continue to next? [Yes / Edit / No]
+
+## auq_stage_recovery_question
+Stage `{invalid_stage}` is not part of profile `{profile}`. Allowed: {profile_stages_list}. Pick one:
+
+## auq_stage_override_question
+Pick a different starting stage for profile `{profile}`:
+
+## auq_stage_recovery_recommended_suffix
+(Recommended)
+
+## auq_confirm_dispatch_pick_stage
+No, pick a different stage
+
+## error_stage_not_in_profile
+`{invalid_stage}` is not a valid stage of profile `{profile}`. Allowed: {profile_stages_list}.
+
+## confirm_dispatch_yes
+Yes
+
+## confirm_dispatch_cancel
+Cancel

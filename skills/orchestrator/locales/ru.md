@@ -20,3 +20,24 @@
 
 ## stage_done_prompt
 `{stage}` готова. Перейти к следующей? [Yes / Edit / No]
+
+## auq_stage_recovery_question
+Стадия `{invalid_stage}` не входит в профиль `{profile}`. Допустимы: {profile_stages_list}. Выберите одну:
+
+## auq_stage_override_question
+Выберите другую стартовую стадию для профиля `{profile}`:
+
+## auq_stage_recovery_recommended_suffix
+(Рекомендуется)
+
+## auq_confirm_dispatch_pick_stage
+Нет, выбрать другую стадию
+
+## error_stage_not_in_profile
+`{invalid_stage}` — недопустимая стадия профиля `{profile}`. Допустимы: {profile_stages_list}.
+
+## confirm_dispatch_yes
+Да
+
+## confirm_dispatch_cancel
+Отмена
