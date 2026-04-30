@@ -135,13 +135,13 @@ Algorithm:
    • if start_stage ∈ profile_stages → continue
    • else (defense-in-depth — covers bugs in State Detection, user typos in `--from`, future code paths):
        if mode == manual:
+           recommended := the stage State Detection (Section "State Detection") would have picked
+           if recommended ∉ profile_stages:                                # State Detection itself was buggy
+               recommended := profile_stages[0]                            # safe fallback to profile's first stage
+           options := stage_picker_options(recommended, profile_stages)   ↓ see helper below
            AskUserQuestion using key `auq_stage_recovery_question`
               placeholders: `{profile}`, `{invalid_stage}`, `{profile_stages_list}`
-              options:
-                  • one option per stage in profile_stages (in profile order)
-                  • the stage State Detection (Section "State Detection") would have picked is annotated
-                    with locale key `auq_stage_recovery_recommended_suffix`
-                  • final option: locale key `confirm_dispatch_cancel`
+              options: `options` (rendered with recommended-suffix on `recommended`)
            → user picks stage S → start_stage := S, continue
            → user picks Cancel → return {status: cancelled, reason: status_cancelled_user_no}
        if mode == auto:
@@ -153,9 +153,12 @@ Algorithm:
        AskUserQuestion using key `confirm_dispatch` with placeholders `{profile}`, `{mode}`, `{stack}`, `{start_stage}`
        options (in this order):
            1. locale key `confirm_dispatch_yes`     → dispatch as resolved
-           2. locale key `auq_confirm_dispatch_pick_stage` → open the same picker as in step 5.5,
-              but using locale key `auq_stage_override_question` for the title (no `{invalid_stage}`
-              placeholder); on user pick, `start_stage := picked`, then dispatch
+           2. locale key `auq_confirm_dispatch_pick_stage` → open the picker:
+                  recommended := start_stage (the stage that arrived from step 5/5.5 — by construction valid)
+                  options := stage_picker_options(recommended, profile_stages)
+                  AskUserQuestion using key `auq_stage_override_question`  (placeholder: `{profile}`)
+                  → user picks S → start_stage := S, then dispatch
+                  → user picks Cancel → return {status: cancelled, reason: status_cancelled_user_no}
            3. locale key `confirm_dispatch_cancel`  → return {status: cancelled, reason: status_cancelled_user_no}
    else:
        skip confirmation, go straight to Dispatch
@@ -165,6 +168,33 @@ Algorithm:
    Example: `run 026 as BUG automatically` — confirmation skipped (both "BUG" and "automatically" are present).
    Example: `run 026` — confirmation required (neither profile nor mode is explicit).
 ```
+
+**Helper: `stage_picker_options(recommended, profile_stages)`** — deterministic picker, hard cap 4 total options (`AskUserQuestion` option-count limit, observed empirically; exceeding it causes the host CLI to silently truncate).
+
+```
+N := len(profile_stages)
+if N <= 3:
+    options := profile_stages + [Cancel]                     # ≤ 4 options total
+else:
+    i := index_of(recommended) in profile_stages
+    if i == 0:        neighbors := [profile_stages[1], profile_stages[2]]
+    elif i == N - 1:  neighbors := [profile_stages[N-2], profile_stages[N-3]]
+    else:             neighbors := [profile_stages[i-1], profile_stages[i+1]]
+    options := [recommended, *neighbors, Cancel]             # exactly 4
+```
+
+Rendering rules:
+
+- `recommended` carries the locale key `auq_stage_recovery_recommended_suffix` ("(Recommended)" / "(Рекомендуется)") appended to its label. Other stages are unannotated.
+- The Cancel option uses locale key `confirm_dispatch_cancel`.
+- Stages are rendered **in profile order** (so neighbors render in their natural positions, not as "recommended + neighbors").
+- If the user wants a stage that is not in the picker (far from `recommended`): pick Cancel and re-invoke with `--from <stage>`.
+
+Worked examples for BUG profile (`profile_stages = [Reproduce, Diagnose, Plan, Fix, Validation, Review, Done]`, N=7):
+
+- `recommended = Reproduce` (i=0) → picker = `[Reproduce (R), Diagnose, Plan, Cancel]`
+- `recommended = Plan` (i=2) → picker = `[Diagnose, Plan (R), Fix, Cancel]`
+- `recommended = Done` (i=6) → picker = `[Validation, Review, Done (R), Cancel]`
 
 See also the "Stage Management" section — it details the semantics of `run --from` / `redo` / `restart` / `restart-full` and the "what gets archived" matrix.
 
