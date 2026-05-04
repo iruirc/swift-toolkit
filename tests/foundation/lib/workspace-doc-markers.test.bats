@@ -70,3 +70,19 @@ teardown() { ws_cleanup_tmpdirs; }
   run zsh -c "source '$(ws_lib_path workspace-doc-markers.zsh)'; printf 'n\n' | wsmark::repair '$tmp'"
   [ "$status" -eq 1 ]
 }
+
+@test "wsmark::write refuses on duplicate BEGIN" {
+  local tmp="$(ws_mktemp_dir)/file.md"
+  cp "$(ws_fixture_path markers/duplicate-begin.md)" "$tmp"
+  run zsh -c "source '$(ws_lib_path workspace-doc-markers.zsh)'; printf '%s\n' 'NEW' | wsmark::write '$tmp' PKG_LIST"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"multiple"* ]]
+}
+
+@test "wsmark::write refuses on missing BEGIN" {
+  local tmp="$(ws_mktemp_dir)/file.md"
+  printf '# Hi\nno markers\n' > "$tmp"
+  run zsh -c "source '$(ws_lib_path workspace-doc-markers.zsh)'; printf '%s\n' 'NEW' | wsmark::write '$tmp' PKG_LIST"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"no WORKSPACE_PKG_LIST_BEGIN"* ]]
+}

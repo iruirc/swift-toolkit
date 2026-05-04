@@ -24,6 +24,10 @@ templates_root="${0:A:h}/../../../templates/workspace"
 for src in "$templates_root/meta-repo"/*.tmpl "$templates_root/meta-repo/docs"/*.tmpl; do
   rel="${src#$templates_root/meta-repo/}"
   rel="${rel%.tmpl}"
+  # Skip LLM-driven workspace artifacts (rendered/filled by the skill body, not the driver).
+  case "$rel" in
+    xcworkspace-contents.xml|code-workspace.json) continue ;;
+  esac
   dst="$meta_dir/$rel"
   mkdir -p "${dst:h}"
   sed "s|{{WORKSPACE_NAME}}|$ws_name|g" "$src" > "$dst"
@@ -43,10 +47,14 @@ for p in $(wsyml::packages); do
   else
     pkg_dir="$ws_parent/packages/$p"
   fi
-  mkdir -p "$pkg_dir/Sources/$p" "$pkg_dir/Tests/${p}Tests"
-  for src in "$templates_root/package"/*.tmpl; do
-    rel="${${src##*/}%.tmpl}"
+  mkdir -p "$pkg_dir"
+  while IFS= read -r src; do
+    rel="${src#$templates_root/package/}"
+    rel="${rel%.tmpl}"
+    rel="${rel//PACKAGE_NAMETests/${p}Tests}"
+    rel="${rel//PACKAGE_NAME/$p}"
     dst="$pkg_dir/$rel"
+    mkdir -p "${dst:h}"
     sed -e "s|{{PACKAGE_NAME}}|$p|g" \
         -e "s|{{ARCHETYPE}}|$arch|g" \
         -e "s|{{GROUP}}|${group:-—}|g" \
@@ -57,6 +65,6 @@ for p in $(wsyml::packages); do
         -e "s|{{EXTERNAL_DEPS_CSV}}|—|g" \
         -e "s|{{ARCHETYPE_BOUNDARY_TEXT}}|$(wsarch::boundary_text "$arch" | sed 's/|/\\|/g')|g" \
         "$src" > "$dst"
-  done
+  done < <(find "$templates_root/package" -type f -name '*.tmpl')
   ( cd "$pkg_dir" && git init -q -b main )
 done

@@ -72,11 +72,18 @@ wsyml::validate() {
     print -u2 "wsyml::validate: no document loaded"
     return 4
   fi
+  # Hoist all per-iteration locals to the top so subsequent loop assignments
+  # don't re-declare. In zsh, a bare `local NAME` (no RHS) for a name that's
+  # already declared in the same function prints `name=value` to stdout.
   local errs=0
   local _path="${_WSYML_STATE[path]}"
+  local ws_name pkg_count pkgs groups remote_list
+  local known_archs="api-contract engine library feature"
+  local p g d r k pg deps git_keys arch ver allowed a
+  local example_app example_platform tasks_path tasks_mode author
+  local -A seen group_set remote_set allowed_set
 
   # Rule 1: workspace.name required, matches [A-Za-z][A-Za-z0-9-]*
-  local ws_name
   ws_name="$(wsyml::get '.workspace.name' || true)"
   if [[ -z "$ws_name" ]]; then
     print -u2 "$_path: workspace.name is required"
@@ -87,7 +94,6 @@ wsyml::validate() {
   fi
 
   # Rule 2: packages required, >= 1
-  local pkg_count
   pkg_count="$(wsyml::get '.packages | length' || echo 0)"
   if (( pkg_count < 1 )); then
     print -u2 "$_path: packages must have at least 1 entry"
@@ -95,10 +101,7 @@ wsyml::validate() {
   fi
 
   # Rule 3: package name uniqueness
-  local pkgs
   pkgs="$(wsyml::packages)"
-  local -A seen
-  local p
   for p in ${(f)pkgs}; do
     if (( ${+seen[$p]} )); then
       print -u2 "$_path: duplicate package name '$p'"
@@ -108,14 +111,10 @@ wsyml::validate() {
   done
 
   # Rule 4: package_groups reference check
-  local groups
   groups="$(wsyml::groups || true)"
   if [[ -n "$groups" ]]; then
-    local -A group_set
-    local g
     for g in ${(f)groups}; do group_set[$g]=1; done
     for p in ${(f)pkgs}; do
-      local pg
       pg="$(wsyml::package_field "$p" group || true)"
       if [[ -z "$pg" ]]; then
         print -u2 "$_path: package '$p' missing required group (package_groups present)"
@@ -128,18 +127,12 @@ wsyml::validate() {
   fi
 
   # Rule 5–8: per-package field checks
-  local known_archs="api-contract engine library feature"
-  local remote_list
   remote_list="$(wsyml::remotes || true)"
-  local -A remote_set
-  local r
   for r in ${(f)remote_list}; do remote_set[$r]=1; done
 
   for p in ${(f)pkgs}; do
     # Rule 5: deps reference
-    local deps
     deps="$(wsyml::package_field "$p" 'deps[]' 2>/dev/null || true)"
-    local d
     for d in ${(f)deps}; do
       if (( ! ${+seen[$d]} )); then
         print -u2 "$_path: package '$p' depends on unknown package '$d'"
@@ -148,13 +141,11 @@ wsyml::validate() {
     done
 
     # Rule 6: git remotes subset
-    local git_keys
     git_keys="$(wsyml::get ".packages[] | select(.name == \"$p\") | .git | keys | .[]" 2>/dev/null || true)"
     if [[ -z "$git_keys" ]]; then
       print -u2 "$_path: package '$p' git map must be non-empty"
       ((errs++))
     fi
-    local k
     for k in ${(f)git_keys}; do
       if (( ! ${+remote_set[$k]} )); then
         print -u2 "$_path: package '$p' uses unknown remote '$k' (declare in top-level remotes[])"
@@ -163,7 +154,6 @@ wsyml::validate() {
     done
 
     # Rule 7: archetype enum
-    local arch
     arch="$(wsyml::package_field "$p" archetype || true)"
     if [[ -z "$arch" || ! " $known_archs " == *" $arch "* ]]; then
       print -u2 "$_path: package '$p' invalid archetype '$arch' (allowed: $known_archs)"
@@ -171,7 +161,6 @@ wsyml::validate() {
     fi
 
     # Rule 8: semver M.m.p, no pre-release/build
-    local ver
     ver="$(wsyml::package_field "$p" version || true)"
     if [[ ! "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
       print -u2 "$_path: package '$p' invalid version '$ver' (expected M.m.p)"
@@ -179,11 +168,10 @@ wsyml::validate() {
     fi
 
     # Rule 10: deps subset of allowed_deps when allowed_deps non-empty
-    local allowed
     allowed="$(wsyml::get ".packages[] | select(.name == \"$p\") | .allowed_deps[]?" 2>/dev/null || true)"
     if [[ -n "$allowed" ]]; then
-      local -A allowed_set
-      local a
+      # Reset per-package allowed_set (assoc arrays don't auto-clear in loop).
+      allowed_set=()
       for a in ${(f)allowed}; do allowed_set[$a]=1; done
       for d in ${(f)deps}; do
         if (( ! ${+allowed_set[$d]} )); then
@@ -194,10 +182,8 @@ wsyml::validate() {
     fi
 
     # Rule 13: example_app/example_platform pairing
-    local example_app
     example_app="$(wsyml::package_field "$p" example_app 2>/dev/null || echo '')"
     if [[ "$example_app" == "true" ]]; then
-      local example_platform
       example_platform="$(wsyml::package_field "$p" example_platform 2>/dev/null || echo '')"
       if [[ ! "$example_platform" =~ ^(ios|macos|both)$ ]]; then
         print -u2 "$_path: package '$p' example_app: true requires example_platform (ios|macos|both); got '$example_platform'"
@@ -207,7 +193,6 @@ wsyml::validate() {
   done
 
   # Rule 11: tasks.symlink_mode consistency
-  local tasks_path tasks_mode
   tasks_path="$(wsyml::get '.workspace.tasks.path' 2>/dev/null || echo './Tasks')"
   tasks_mode="$(wsyml::get '.workspace.tasks.symlink_mode' 2>/dev/null || echo 'local')"
   case "$tasks_mode" in
@@ -226,7 +211,6 @@ wsyml::validate() {
   esac
 
   # Rule 14: bootstrap.git_author format (when supplied)
-  local author
   author="$(wsyml::get '.bootstrap.git_author' 2>/dev/null || true)"
   if [[ -n "$author" && "$author" != "null" ]]; then
     if [[ ! "$author" =~ '^[^<]+<[^@]+@[^>]+>$' ]]; then

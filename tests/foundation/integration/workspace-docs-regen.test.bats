@@ -9,10 +9,10 @@ teardown() { ws_cleanup_tmpdirs; }
   "$(ws_repo_root)/tests/foundation/helpers/ws-init-driver.zsh" \
     "$(ws_fixture_path workspace-yml/grouped.yml)" "$parent" >&2
 
-  # Mess with the marker section
+  # Inject stale content into the EXISTING marker section, then add manual content outside.
   local readme="$parent/GroupedWS-meta/README.md"
-  echo "## Packages" >> "$readme"
-  printf '<!-- WORKSPACE_PKG_LIST_BEGIN -->\nbogus\n<!-- WORKSPACE_PKG_LIST_END -->\n' >> "$readme"
+  # Replace the existing empty marker section with stale content via wsmark::write itself
+  zsh -c "source '$(ws_lib_path workspace-doc-markers.zsh)'; printf '%s\n' 'stale-bogus' | wsmark::write '$readme' PKG_LIST"
   echo "MANUAL_OUTSIDE_MARKERS" >> "$readme"
 
   run "$(ws_repo_root)/tests/foundation/helpers/ws-docs-regen-driver.zsh" "$parent/GroupedWS-meta"
@@ -20,7 +20,7 @@ teardown() { ws_cleanup_tmpdirs; }
 
   run grep '^- AKit (api-contract)' "$readme"
   [ "$status" -eq 0 ]
-  run grep "^bogus$" "$readme"
+  run grep "^stale-bogus$" "$readme"
   [ "$status" -eq 1 ]
   run grep '^MANUAL_OUTSIDE_MARKERS$' "$readme"
   [ "$status" -eq 0 ]

@@ -34,6 +34,21 @@ wsmark::write() {
   fi
   local begin="<!-- WORKSPACE_${name}_BEGIN -->"
   local end="<!-- WORKSPACE_${name}_END -->"
+  # Guard: refuse to write to ambiguous targets. awk's $0 == b matches every
+  # BEGIN line, so duplicates would be silently populated together. Missing
+  # markers leave nothing to write to.
+  local count
+  count="$(grep -cF -- "$begin" "$file" 2>/dev/null)"
+  count="${count//[^0-9]/}"
+  : "${count:=0}"
+  if (( count > 1 )); then
+    print -u2 "wsmark::write: $file has multiple WORKSPACE_${name}_BEGIN markers; refusing to write to ambiguous target. Run wsmark::lint and fix."
+    return 2
+  fi
+  if (( count == 0 )); then
+    print -u2 "wsmark::write: $file has no WORKSPACE_${name}_BEGIN marker"
+    return 2
+  fi
   local nc_file
   nc_file="$(mktemp -t wsmark-nc.XXXXXX)" || return 4
   cat - > "$nc_file"

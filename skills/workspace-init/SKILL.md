@@ -52,13 +52,13 @@ Maintain `<workspace-parent>/.workspace-init.state` (newline-delimited list of c
 | Step | Action | Idempotency check |
 |------|--------|-------------------|
 | s01_meta_dir | mkdir `<workspace-parent>/<workspace-name>-meta/` | dir exists |
-| s02_meta_files | render meta-repo templates from `templates/workspace/meta-repo/` | per-file `[[ -f ]]` |
+| s02_meta_files | render meta-repo templates from `templates/workspace/meta-repo/`, recursively (preserves subdir layout, e.g. `docs/`). Substitutes `{{WORKSPACE_NAME}}`. Excludes `xcworkspace-contents.xml.tmpl` and `code-workspace.json.tmpl` — those are handled by s07 / s08. | per-file `[[ -f ]]` |
 | s03_meta_git | `git init -b <default-branch>` in meta-repo | `[[ -d .git ]]` |
 | s04_meta_yml | copy `workspace.yml` into meta-repo | `[[ -f workspace.yml ]]` |
 | s05_groups | mkdir each `package_groups[].dir` (or `packages/` if no groups) under workspace-parent | dir exists |
-| s06_pkg_<name> | per-package: mkdir, render `templates/workspace/package/`, `git init` | dir + `.git` exist |
-| s07_xcworkspace | render `<workspace-name>.xcworkspace/contents.xcworkspacedata` referencing every Package.swift | always overwrite (derived) |
-| s08_codeworkspace | render `<workspace-name>.code-workspace` JSON listing every package dir | always overwrite |
+| s06_pkg_<name> | per-package: mkdir, render `templates/workspace/package/`, recursively. Rename directory components named `PACKAGE_NAME` → `<name>`, `PACKAGE_NAMETests` → `<name>Tests`. `git init`. | dir + `.git` exist |
+| s07_xcworkspace | copy `templates/workspace/meta-repo/xcworkspace-contents.xml.tmpl` to `<workspace-name>.xcworkspace/contents.xcworkspacedata` and fill the `WORKSPACE_PKG_REFS` marker with one `<FileRef location="group:../<group_dir_or_packages>/<name>">` per package | always overwrite (derived) |
+| s08_codeworkspace | copy `templates/workspace/meta-repo/code-workspace.json.tmpl` to `<workspace-name>.code-workspace`, then append one `{ "name": "<name>", "path": "../<group_dir_or_packages>/<name>" }` to `folders[]` per package | always overwrite |
 | s09_tasks | create `<meta-repo>/Tasks` per `tasks.symlink_mode` (regular dir, gitignored symlink, or committed symlink) | path exists |
 | s10_meta_initial_commit | iff `bootstrap.commit_after_init`: `git -c user.name=... -c user.email=... commit` | `git rev-list HEAD` non-empty |
 | s11_pkg_initial_commit_<name> | same per package | as above |
@@ -75,3 +75,19 @@ Read `.workspace-init.state`. If absent or malformed, emit error and exit 1. Oth
 ## Templates path
 
 `<toolkit-root>/templates/workspace/` — discoverable via plugin metadata. Skill body invokes zsh subshell to copy + interpolate placeholders (`{{WORKSPACE_NAME}}`, `{{PACKAGE_NAME}}`, etc.) using sed.
+
+## Template substitution rules
+
+- `*.tmpl` files are rendered to their target location with the `.tmpl` suffix stripped.
+- The package template tree (`templates/workspace/package/`) is walked recursively. Directory components literally named `PACKAGE_NAME` are renamed to `<name>`, and `PACKAGE_NAMETests` to `<name>Tests` (the longer form must be substituted first).
+- Inside each rendered file, `{{...}}` placeholders are substituted via `sed`.
+- Known placeholders:
+  - `{{WORKSPACE_NAME}}` — workspace name (`workspace.name` from `workspace.yml`).
+  - `{{META_REPO_DIR}}` — `<workspace-name>-meta`.
+  - `{{PACKAGE_NAME}}` — package name (per-package).
+  - `{{ARCHETYPE}}` — package archetype (`feature` / `library` / `api-contract` / `engine-sdk`).
+  - `{{GROUP}}` — package group name, or `—` if ungrouped.
+  - `{{VERSION}}` — package version (semver-like string).
+  - `{{ALLOWED_DEPS_CSV}}` — comma-separated list of archetype-allowed deps, or `—`.
+  - `{{EXTERNAL_DEPS_CSV}}` — comma-separated list of external SPM deps, or `—`.
+  - `{{ARCHETYPE_BOUNDARY_TEXT}}` — narrative paragraph from `wsarch::boundary_text` (archetype boundary contract).
