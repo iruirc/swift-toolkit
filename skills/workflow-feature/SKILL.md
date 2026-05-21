@@ -64,7 +64,17 @@ The fields that directly drive this workflow's behavior:
 
 - **Execute** — `swift-toolkit:swift-developer` + `swift-toolkit:swift-tester` (if `need_test=true` in args). Implements the phases from `Plan.md` step by step, updating both progress layers as work proceeds. **MUST create one git commit per green phase** — autonomously, without a user prompt.
 
-  Per-item flow inside a phase: complete one actionable item → tick its checkbox `- [ ]` → `- [x]` in the per-phase detail section of Plan.md. Per-phase flow: when all the phase's checkboxes are `- [x]` → build → run tests for the touched scope → flip the phase's row in the top-level progress table ⬜→✅ → `git add` the phase's files (including the Plan.md updates — both checkboxes and table) → `git commit`. Commit message format: `<task_id>: phase <N> — <short description>` (e.g. `001-feature: phase 2 — domain model`). If `git log` shows the project uses a different convention for similar tasks, follow that convention instead.
+  Per-item flow inside a phase: complete one actionable item → tick its checkbox `- [ ]` → `- [x]` in the per-phase detail section of Plan.md. Per-phase flow: when all the phase's checkboxes are `- [x]` → build → run tests for the touched scope → flip the phase's row in the top-level progress table ⬜→✅ → `git add` the phase's files (including the Plan.md updates — both checkboxes and table) → `git commit`. Commit message format: **Conventional Commits** — `<type>(<scope>): <imperative subject>` followed by an optional body explaining WHY. For Execute-stage commits the type is usually `feat` (use `test` for a test-only phase, `chore` for build/config-only, `refactor` for an interim structural step). **NEVER include the task ID, step ID, or phase number** — provenance lives in `Plan.md`, the branch name, and the PR description. Full spec + anti-examples in `conventions/commit-messages.md`. Example:
+
+  ```
+  feat(domain): add ProjectListUseCase
+
+  Encapsulates pagination + filtering that previously lived in the
+  Presenter. Lets the ViewModel observe a single async stream instead
+  of orchestrating three repositories.
+  ```
+
+  If `git log` shows the project uses a different convention for similar tasks, follow that convention instead.
 
   **A phase is not "done" (✅ in the top table) until ALL its granular checkboxes are `- [x]` AND the phase is committed.** Partial completion stays at 🔄 in the top table with the un-ticked checkboxes still `- [ ]`. Artifacts: source code in the project + tests + the resulting commit history.
 

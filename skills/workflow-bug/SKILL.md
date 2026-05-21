@@ -64,7 +64,17 @@ The fields that directly drive this workflow's behavior:
 
 - **Fix** — `swift-toolkit:swift-developer` + `swift-toolkit:swift-tester` (if `need_test=true` — for a bug, a regression test is mandatory: it locks in the scenario from `Reproduce.md` and prevents recurrence). Implements the phases from `Plan.md` step by step, updating both progress layers as work proceeds. **MUST create one git commit per green phase** — autonomously, without a user prompt.
 
-  Per-item flow inside a phase: complete one actionable item → tick its checkbox `- [ ]` → `- [x]` in the per-phase detail section of Plan.md. Per-phase flow: when all the phase's checkboxes are `- [x]` → build → run tests for the touched scope → flip the phase's row in the top-level progress table ⬜→✅ → `git add` the phase's files (including the Plan.md updates — both checkboxes and table) → `git commit`. Commit message format: `<task_id>: phase <N> — <short description>` (e.g. `bug-042: phase 1 — root-cause fix in AuthMiddleware`). If `git log` shows the project uses a different convention for similar tasks, follow that convention instead.
+  Per-item flow inside a phase: complete one actionable item → tick its checkbox `- [ ]` → `- [x]` in the per-phase detail section of Plan.md. Per-phase flow: when all the phase's checkboxes are `- [x]` → build → run tests for the touched scope → flip the phase's row in the top-level progress table ⬜→✅ → `git add` the phase's files (including the Plan.md updates — both checkboxes and table) → `git commit`. Commit message format: **Conventional Commits** — `<type>(<scope>): <imperative subject>` followed by an optional body explaining WHY. For Fix-stage commits the type is usually `fix` (use `test` for the regression-test phase, `chore` for build/config-only). **NEVER include the task ID, step ID, phase number, or ticket number** — provenance lives in `Plan.md`, the branch name, and the PR description. Full spec + anti-examples in `conventions/commit-messages.md`. Example:
+
+  ```
+  fix(AuthMiddleware): use < not <= when checking token expiry boundary
+
+  The previous comparison treated the exact expiry timestamp as still
+  valid; downstream services then rejected the token, surfacing as a
+  flaky 401 right after a refresh. Aligns the boundary with the spec.
+  ```
+
+  If `git log` shows the project uses a different convention for similar tasks, follow that convention instead.
 
   **A phase is not "done" (✅ in the top table) until ALL its granular checkboxes are `- [x]` AND the phase is committed.** Partial completion stays at 🔄 in the top table with the un-ticked checkboxes still `- [ ]`. Artifacts: source code in the project + a regression test + the resulting commit history.
 
