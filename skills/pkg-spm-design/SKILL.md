@@ -53,7 +53,7 @@ digraph package_type {
 
 **What it is:** Encapsulates a whole UI feature (player, cloud browser, checkout) with its own UI, behavior, and runtime state.
 
-**Examples:** `vsdc-iOS-Player`, `vsdc-iOS-cloudBrowser`.
+**Examples:** `iOS-MediaPlayer`, `iOS-AssetBrowser`.
 
 ### Structure
 
@@ -135,7 +135,7 @@ The host knows about Swinject; the package does not.
 
 **What it is:** A collection of reusable types, protocols, utilities, and static functions. **No single entry point** and no runtime state (or it's isolated inside separate, independent types).
 
-**Examples:** `vsdcEditorCommon` (render layers, gesture strategies, log), `vsdcCommonServices`, `vsdcLogger`, `vsdcNetwork`.
+**Examples:** `EditorCore` (render layers, gesture strategies, log), `CommonServices`, `Logging`, `Networking`.
 
 ### Structure
 
@@ -199,7 +199,7 @@ container.register(LoggerAPI.self) { _ in ConsoleLogger(level: .info) }
 
 **What it is:** Pure contracts — protocols, DTOs, enums — **without implementation**. Used to break cyclic dependencies between packages.
 
-**Examples:** `vsdcCloudClientAPI` (interfaces for the cloud client; implementation in `vsdcCloudClient`).
+**Examples:** `RemoteClientAPI` (interfaces for the remote client; implementation in `RemoteClient`).
 
 ### Structure
 
@@ -229,7 +229,7 @@ MyServiceAPI/
 
 ### Why it exists
 
-- **Cycle breaking:** `vsdcCloudClient` depends on `vsdcNetwork`, `vsdcNetwork` wants to invoke something cloud-related → both depend on `vsdcCloudClientAPI`, the implementation no longer cycles.
+- **Cycle breaking:** `RemoteClient` depends on `Networking` for HTTP transport, while `Networking` needs to call back into the remote layer for auth-token refresh → both depend on `RemoteClientAPI` (the refresh contract lives there), and the implementation graph no longer cycles.
 - **Test doubles:** Mock implementations in tests live in a test package and import only the API.
 - **Implementation swapping:** In different environments (production / staging / dev) the same API has different concrete implementations.
 
@@ -239,7 +239,7 @@ MyServiceAPI/
 
 **What it is:** A large subsystem with a **hybrid API** — a facade for primary operations + public types for extension/observation.
 
-**Examples:** `vsdcMetalRenderEngine`, `vsdcStoreKit`.
+**Examples:** `MetalRenderEngine`, `BillingClient`.
 
 ### Structure
 
