@@ -98,9 +98,9 @@ Decisions you make once, regret for years if wrong.
 
 ### Nested Types: Separate Entity vs Transformable Attribute
 
-A recurring decision in Core Data / SwiftData / Realm: a domain type has a non-trivial nested value (`TrackBorder`, `MediaTime`, `Sequence`, `Address`). Two ways to store it:
+A recurring decision in Core Data / SwiftData / Realm: a domain type has a non-trivial nested value (`MoneyAmount`, `Duration`, `Coordinate`, `Address`). Two ways to store it:
 
-- **Separate entity** with its own table and a relationship — `CDTrack → CDLocation`.
+- **Separate entity** with its own table and a relationship — `CDOrder → CDAddress`.
 - **Transformable / Binary attribute** — the nested value is JSON-encoded into a `Data` blob inside the parent row.
 
 Both are valid. **«Never use Codable in Core Data»** is wrong as a rule — Core Data ships transformable attributes precisely so you don't have to model every value type as an entity. The decision is by checklist:
@@ -122,7 +122,7 @@ If most checks land on the right column → transformable Data. If even one impo
 Cheap to introduce, but they have specific failure modes you must own:
 
 1. **Schema drift inside the blob** — Core Data sees only bytes; renaming/removing/retyping a Codable field silently breaks decode for all existing rows. See `persistence-migrations` / *Migrating transformable Codable payloads* for the four mitigation approaches.
-2. **Not searchable via predicate** — `predicate = NSPredicate(format: "sequence.startBeat == %d", ...)` returns nothing useful. Decoding the blob in memory just to filter defeats the purpose of a database.
+2. **Not searchable via predicate** — `predicate = NSPredicate(format: "address.zipCode == %@", ...)` returns nothing useful. Decoding the blob in memory just to filter defeats the purpose of a database.
 3. **Whole-blob writes** — touching one inner field rewrites the entire payload. Fine at tens of bytes, slow at hundreds of KB.
 4. **No referential integrity** — if the blob holds an `id` of another entity, the database can't enforce the foreign key.
 5. **NSSecureCoding** — Apple requires secure unarchiving since iOS 12. The cleanest path with Codable is to use a **Binary Data** attribute (not transformable) and do `JSONEncoder` / `JSONDecoder` yourself in the mapper — no `ValueTransformer` registration, no NSSecureCoding gymnastics.
@@ -484,19 +484,19 @@ A common shortcut in Core Data / Realm code: when saving a parent, delete all ch
 Diff by stable ID instead:
 
 ```swift
-func upsertContainer(_ model: PlainContainerVideoTracks, in entity: CDContainer, ctx: NSManagedObjectContext) {
+func upsertOrder(_ model: OrderSnapshot, in entity: CDOrder, ctx: NSManagedObjectContext) {
     let existing = Dictionary(uniqueKeysWithValues:
-        (entity.tracks?.allObjects as? [CDVideoTrack] ?? []).map { ($0.uuid, $0) }
+        (entity.lines?.allObjects as? [CDLineItem] ?? []).map { ($0.uuid, $0) }
     )
-    let incoming = Dictionary(uniqueKeysWithValues: model.tracks.map { ($0.uuid, $0) })
+    let incoming = Dictionary(uniqueKeysWithValues: model.lines.map { ($0.uuid, $0) })
 
     let toDelete = existing.keys.subtracting(incoming.keys)
     let toInsert = incoming.keys.subtracting(existing.keys)
     let toUpdate = existing.keys.intersection(incoming.keys)
 
     for id in toDelete { ctx.delete(existing[id]!) }
-    for id in toInsert { fillNewTrack(ctx: ctx, parent: entity, model: incoming[id]!) }
-    for id in toUpdate { fillExistingTrack(existing[id]!, from: incoming[id]!) }
+    for id in toInsert { fillNewLineItem(ctx: ctx, parent: entity, model: incoming[id]!) }
+    for id in toUpdate { fillExistingLineItem(existing[id]!, from: incoming[id]!) }
 }
 ```
 
@@ -972,8 +972,8 @@ The idea works for **flat, type-aligned fields**. It breaks down on every realis
 |---|---|
 | `Int → Int32` (Core Data prefers Int32) | Different `Value` types — generic doesn't unify, you need a transformer |
 | Enum ↔ String / Int | Per-type transformer |
-| One-to-many: `[Track] ↔ NSSet` | Need to call child mapper, then wrap into `NSSet` — generic doesn't express this |
-| Transformable attributes (`MediaTime → Data`) | `encode/decode` per type |
+| One-to-many: `[LineItem] ↔ NSSet` | Need to call child mapper, then wrap into `NSSet` — generic doesn't express this |
+| Transformable attributes (`MoneyAmount → Data`) | `encode/decode` per type |
 | Optional Domain → non-optional Entity | Per-field decision: default? throw? skip? |
 | Inverse relationships | Two-sided assignment — generic can't express |
 

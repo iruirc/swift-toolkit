@@ -41,7 +41,7 @@ Every test follows Arrange → Act → Assert. No exceptions.
 func methodName_condition_expectedResult()
 // Examples:
 func createUser_validInput_returnsCreatedUser()
-func exportTrack_emptyTrack_throwsEmptyTrackError()
+func submitOrder_emptyCart_throwsEmptyCartError()
 func login_invalidCredentials_showsErrorMessage()
 ```
 

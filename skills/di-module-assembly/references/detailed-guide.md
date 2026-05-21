@@ -541,7 +541,7 @@ When you need to build complex non-UI objects with runtime parameters or context
 | Type | What it assembles | Example |
 |---|---|---|
 | **AlertFactory** | UIAlertController with typed actions | `ProjectStorageAlertFactory.makeOverwriteConfirmation(onConfirm:)` |
-| **DataProviderFactory** | DataSource/Adapter for a specific screen or collection | `TimelineContainerDataProviderFactory.make(for: track)` |
+| **DataProviderFactory** | DataSource/Adapter for a specific screen or collection | `ItemListDataProviderFactory.make(for: category)` |
 | **Stub/Mock factories** | Test doubles for UI screenshots, demo mode | `StubServicesFactory.makeOfflineMode()` |
 | **DTO factories** | Complex domain structures built from many fields | `RenderRequestFactory.makeFor(project:, settings:)` |
 
@@ -562,7 +562,7 @@ The CR creates the **root** of the graph, but not all objects are created at sta
 | **Per-flow service** | Created by the Coordinator on `start()`, disposed on `finish` | `OnboardingState`, `CheckoutSession` |
 | **Config from user input** | Service has `configure(with:)` or `bootstrap(token:)` | `APIClient.configure(token:)` after login |
 | **Async init** | See `di-composition-root`, section "Async bootstrap" | DB with migrations, cache warm-up |
-| **Conditional creation** (Pro-only feature) | Lazy + flag check in the getter; or a separate factory method that the Coordinator calls only under the right condition | Player with/without Metal rendering — branch in `createPlayerModule()` |
+| **Conditional creation** (Pro-only feature) | Lazy + flag check in the getter; or a separate factory method that the Coordinator calls only under the right condition | MediaPlayer with/without GPU rendering — branch in `createMediaPlayerModule()` |
 | **Circular dependencies** | See `di-swinject` skill, "Circular Dependencies" — property injection or introducing a third type | A↔B → A→C, B→C |
 
 General rule: **CR is the root, not the only place where things get created.** If something can't be created at the CR — that's not a reason to drag the container into the call site (Service Locator). It's a reason to extract the creation logic into a factory or Assembly with explicit parameters.
