@@ -21,6 +21,34 @@
 ## stage_done_prompt
 `{stage}` готова. Перейти к следующей? [Yes / Edit / No]
 
+## stage_done_prompt_with_questions
+`{stage}` готова, но в артефакте остались открытые вопросы:
+
+{questions}
+
+Что делаем?
+
+## stage_done_option_continue
+Перейти к следующей стадии
+
+## stage_done_option_resolve
+Ответить на вопросы сейчас
+
+## stage_done_option_edit
+Править артефакт вручную
+
+## stage_done_dialog_question
+Вопрос {n}/{total} — `{section}`: {text}
+
+## stage_done_dialog_answer
+Ответить
+
+## stage_done_dialog_defer
+Отложить (DEFERRED)
+
+## stage_done_dialog_skip
+Пропустить (вернуться позже)
+
 ## auq_stage_recovery_question
 Стадия `{invalid_stage}` не входит в профиль `{profile}`. Допустимы: {profile_stages_list}. Выберите одну:
 

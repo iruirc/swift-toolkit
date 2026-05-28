@@ -310,6 +310,37 @@ Action after Resolution: invoke the `Skill` tool with `name` from the table and 
 
 **Auto** — no pauses between stages.
 
+**Open-questions inline (research-style stages).** In `manual` mode, before rendering `stage_done_prompt`, the orchestrator inspects the just-completed stage's primary artifact (`Research.md` for FEATURE/EPIC/RESEARCH Research; `Reproduce.md` and `Diagnose.md` for BUG; `Analyze.md` for REFACTOR/TEST) for non-empty open-question sections.
+
+Recognized H3 section titles (case-insensitive, scoped under any H2):
+- `### Designer questions`
+- `### Backend questions`
+- `### Known unknowns`
+- `### Open questions`
+
+Per-item rule: a bullet (`- ` or `* `) counts as open if it does NOT start with `[RESOLVED]` or `[DEFERRED]` after the bullet marker. The orchestrator collects open items as `{section, id_or_text}` pairs (id = leading token like `D1`, `U7`, `R3` when present; otherwise first 80 chars of the item text).
+
+If at least one open item is found → render `stage_done_prompt_with_questions` instead of `stage_done_prompt`, with placeholders `{stage}` and `{questions}` (the formatted list of open items, grouped by section). AUQ options:
+
+1. `stage_done_option_continue` → proceed to next stage; open items propagate untouched (will hit Plan-stage estimation-gate later if blocking).
+2. `stage_done_option_resolve` → enter Q-by-Q resolution dialog (see below).
+3. `stage_done_option_edit` → instruct the user to edit the artifact manually; on return, re-run open-questions inspection from scratch.
+4. `confirm_dispatch_cancel` → return `{status: cancelled, reason: status_cancelled_user_no}`.
+
+If no open items found → render the unchanged `stage_done_prompt`.
+
+**Q-by-Q resolution dialog.** For each collected open item, in source order, AUQ using `stage_done_dialog_question` (placeholders `{n}`, `{total}`, `{section}`, `{text}`) with options:
+1. `stage_done_dialog_answer` → prompt the user for free-form text; append the answer as a sub-bullet under the original item and prefix the original bullet with `[RESOLVED]`.
+2. `stage_done_dialog_defer` → prefix the original bullet with `[DEFERRED]`; no answer recorded.
+3. `stage_done_dialog_skip` → leave item untouched.
+4. `confirm_dispatch_cancel` → abort the dialog; return to the `stage_done_prompt_with_questions` AUQ with the (possibly partially) updated list.
+
+Edits land in the primary artifact in-place; an `## Open Questions Log` section is appended to `Questions.md` (created if absent) with one bullet per resolved or deferred item, format: `- [<stage>] [<section>] <id_or_text> — <RESOLVED: answer | DEFERRED>`.
+
+After the dialog finishes (all items processed OR user aborted), re-run the open-questions inspection on the updated artifact and re-render `stage_done_prompt_with_questions` until either zero open items remain or the user picks `stage_done_option_continue` / `confirm_dispatch_cancel`.
+
+**Scope:** the inspection runs ONLY at stage-done boundaries that produce a research-style artifact. It does NOT run after Plan / Execute / Validation / Review / Done. The `workflow-*` Output Contract is unchanged — open-questions handling is entirely orchestrator-side and does not require new fields in `next_recommended_action`.
+
 **Per-phase commits vs flow-level commits.** The "commit always confirmed with user" rule applies ONLY to flow-level wrap commits the orchestrator itself initiates (squash, merge, push) — these are user-confirmed regardless of mode. **Per-phase commits inside a workflow-* multi-phase stage (Refactor / Execute / Fix / Write) are autonomous** — the workflow-* skill creates one commit per green phase without a user prompt, in both manual and auto modes. The orchestrator MUST NOT misread "does not confirm commit with user" inside workflow-* skills as "does not commit at all"; per-phase commits are mandatory for the phase invariant ("each phase independently buildable+test-passing+committed") to hold against interrupts.
 
 **Backup before overwriting / removing an artifact:** copy to `Tasks/<STATUS>/<task_id>-*/_archive/<stage>-<timestamp>.md`, where `<timestamp>` is ISO-8601 without colons (`2026-04-25T143022`). The orchestrator makes the backup BEFORE calling workflow-* and passes the paths via `archive_paths` in the outbound contract.

@@ -21,6 +21,34 @@ Cannot `redo` `{stage}` — its artifact does not exist. Use `run --from {stage}
 ## stage_done_prompt
 `{stage}` complete. Continue to next? [Yes / Edit / No]
 
+## stage_done_prompt_with_questions
+`{stage}` complete, but the artifact still has open questions:
+
+{questions}
+
+What now?
+
+## stage_done_option_continue
+Continue to next stage
+
+## stage_done_option_resolve
+Resolve open questions now
+
+## stage_done_option_edit
+Edit artifact manually
+
+## stage_done_dialog_question
+Question {n}/{total} — `{section}`: {text}
+
+## stage_done_dialog_answer
+Answer
+
+## stage_done_dialog_defer
+Defer (DEFERRED)
+
+## stage_done_dialog_skip
+Skip (return later)
+
 ## auq_stage_recovery_question
 Stage `{invalid_stage}` is not part of profile `{profile}`. Allowed: {profile_stages_list}. Pick one:
 
