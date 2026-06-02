@@ -9,7 +9,7 @@ A briefing describes the business goal. The engineering task is to discover what
 
 > **Related skills:**
 > - `feature-landscape` — consumes Primary + Secondary to build the entity graph and layer map
-> - `feature-estimation` — multiplies baseline by Secondary count and known-unknowns count
+> - `feature-estimation` — uses Pending Secondary rows and Known Unknowns to choose scope-aware risk deltas and assumptions
 > - `mobile-ops-checklist` — Secondary items overlap with cross-cutting ops concerns; this skill is the *design-time* checkpoint, `mobile-ops-checklist` is the *validation-time* one
 > - `error-architecture` — when designing how Secondary error states surface to the UI
 > - `nav-deeplinks` — deep-link / universal-link entry-side design (parser, entry points, cold-start, auth gate)
@@ -142,7 +142,7 @@ Acceptance criteria from briefing:
 ## Anti-patterns
 
 - **Skipping Secondary because brief didn't mention them.** The whole point of this skill is that the brief omitted them. Default each row to Applicable until you have a reason to mark N/A.
-- **Treating Secondary as "polish for later".** Secondary items drive 40–70% of effort. Estimating without them produces fiction.
+- **Treating Secondary as "polish for later".** Scoped Secondary items become baseline work; Pending Secondary rows can add a +40–70% scoped risk delta in `feature-estimation`. Estimating without them produces fiction.
 - **Asking the designer/backend in chat without writing the questions down.** Verbal answers evaporate. Capture every question and answer in `Research.md`.
 - **Folding unknown unknowns into Known unknowns.** They're different: Known = list, Unknown = buffer. Mixing them undercounts both.
 - **Generating questions that the briefing already answered.** Re-read first. Only ask what's truly open.

@@ -9,7 +9,7 @@ Before writing code, draw the territory. The landscape is an entity graph plus a
 
 > **Related skills:**
 > - `feature-requirements` — produces Primary/Secondary inputs this skill consumes
-> - `feature-estimation` — multiplies the work-items list by mobile multipliers
+> - `feature-estimation` — converts the work-items list into a calibrated range with scope-aware risk deltas
 > - `arch-mvvm` / `arch-mvi` / `arch-clean` / `arch-viper` / `arch-tca` — chosen UI architecture refines the Presentation layer; pick via `architecture-choice` if open
 > - `arch-coordinator` / `arch-swiftui-navigation` — navigation layer of the landscape
 > - `net-architecture` — Networking layer specifics (HTTPClient, interceptors, retry, pagination)

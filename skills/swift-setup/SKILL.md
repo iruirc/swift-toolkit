@@ -11,7 +11,7 @@ description: |
 
 Bootstraps swift-toolkit in an **already existing** Swift project. Two-file layout:
 
-- `CLAUDE-swift-toolkit.md` — toolkit-owned configuration (Language, Persona, Stack, Mode, Modules, Paths, Orchestration). Created and updated by this skill.
+- `CLAUDE-swift-toolkit.md` — toolkit-owned configuration (Language, Persona, Stack, Mode, Modules, EstimationDeltas, Paths, Orchestration). Created and updated by this skill.
 - `CLAUDE.md` — user-owned project instructions. Touched once to insert `@./CLAUDE-swift-toolkit.md` line; otherwise unchanged.
 
 The skill does NOT create an Xcode project, does NOT modify Swift code, and does NOT start any workflow. It is a one-time setup of toolkit infrastructure inside the project.
@@ -158,7 +158,7 @@ Rules:
 Canonical toolkit headings (case-insensitive **exact** match, not prefix):
 
 ```
-Language, Persona, Stack, Mode, Modules, Paths, Orchestration
+Language, Persona, Stack, Mode, Modules, EstimationDeltas, Paths, Orchestration
 ```
 
 - `toolkit_sections` = sections whose heading matches the canonical list.

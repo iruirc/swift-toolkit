@@ -51,6 +51,10 @@ manual
 
 (optional: list of modules with per-module stack, e.g.: "- Core: /Packages/Core — Combine, manual DI")
 
+## EstimationDeltas
+
+(optional: project-specific overrides for `feature-estimation`; leave empty until retrospectives show repeatable calibration data)
+
 ## Paths
 
 (optional: "- Sources: /Sources", "- Tests: /Tests")

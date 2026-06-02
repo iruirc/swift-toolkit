@@ -12,7 +12,7 @@ A set of skills, agents, and slash commands for Claude Code that turn the assist
 
 `/swift-setup` and `/swift-init` produce two files in your project root:
 
-- **`CLAUDE-swift-toolkit.md`** — toolkit-owned configuration (`## Language`, `## Persona`, `## Stack`, `## Mode`, `## Modules`, `## Paths`, `## Orchestration`). Updated by `/swift-setup` and `/swift-lang`. Don't edit by hand — re-running `/swift-setup` may overwrite it (with a backup).
+- **`CLAUDE-swift-toolkit.md`** — toolkit-owned configuration (`## Language`, `## Persona`, `## Stack`, `## Mode`, `## Modules`, `## EstimationDeltas`, `## Paths`, `## Orchestration`). Updated by `/swift-setup` and `/swift-lang`. Don't edit by hand — re-running `/swift-setup` may overwrite it (with a backup).
 - **`CLAUDE.md`** — your project-level Claude instructions. Contains a single `@./CLAUDE-swift-toolkit.md` line that imports toolkit configuration into Claude's context. Add your own sections, conventions, and project-specific instructions here. Toolkit never overwrites this file beyond inserting the import line.
 
 Existing projects on the legacy single-file format (everything in `CLAUDE.md`) are migrated automatically on the next `/swift-setup` invocation: toolkit sections move to `CLAUDE-swift-toolkit.md`, your sections stay in `CLAUDE.md`, and the original is backed up to `CLAUDE.md.bak`.
@@ -79,7 +79,7 @@ The skills live flat under `skills/`, but logically split into **seven groups**.
 |---|---|
 | [`feature-requirements`](skills/feature-requirements/SKILL.md) | Extract Primary vs Secondary requirements from a briefing, compile designer / backend questions, list known unknowns. Produces `## Requirements` in `Research.md`. |
 | [`feature-landscape`](skills/feature-landscape/SKILL.md) | Entity graph + layer map + integration points + work-items decomposition (≤2 days each), with the Holistic-Driven Development sequence. Produces `## Landscape` in `Research.md` and seeds per-phase action items in `Plan.md`. |
-| [`feature-estimation`](skills/feature-estimation/SKILL.md) | Convert work-items into a calibrated day range using static mobile multipliers (unknowns, secondary, parallel API, binary distribution, App Store review). Produces `## Estimation` in `Plan.md`. Always a range, never a point. |
+| [`feature-estimation`](skills/feature-estimation/SKILL.md) | Convert work-items into a calibrated day range using scope-aware additive risk deltas (unknowns, secondary, parallel API, binary distribution, App Store review) plus optional project overrides. Produces `## Estimation` in `Plan.md`. Always a range, never a point. |
 | [`mobile-ops-checklist`](skills/mobile-ops-checklist/SKILL.md) | Cross-cutting validation checklist (14 categories: release, state, networking, offline, crash, perf, push, deeplinks, a11y, i18n, analytics, privacy, migrations, testing, 3p SDK, CI/CD). Each item Applicable (with evidence) / N/A (with reason) / Pending. Produces a separate `OpsChecklist.md` artifact. |
 
 ### 6. Binding tools — **not architectures**, just tools used inside them

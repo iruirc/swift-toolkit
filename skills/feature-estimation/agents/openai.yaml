@@ -1,4 +1,4 @@
 interface:
   display_name: "Feature Estimation"
-  short_description: "Help with Feature Estimation tasks"
-  default_prompt: "Use $feature-estimation to handle Feature Estimation work."
+  short_description: "Scoped scenario estimates for app features"
+  default_prompt: "Use $feature-estimation to estimate app feature work with scoped risk deltas and scenario ranges."

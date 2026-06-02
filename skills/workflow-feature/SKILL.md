@@ -60,7 +60,7 @@ The fields that directly drive this workflow's behavior:
 
   The plan decomposes the feature into concrete phases and steps. Per-phase action items are seeded from the work-items list in `Research.md ## Landscape ### Work items`.
 
-  The architect MUST apply the `feature-estimation` skill to produce an additional `## Estimation` section in `Plan.md` (baseline table + applied multipliers + range + assumptions + known unknowns). The estimation range is a hard-prerequisite for entering Execute — if Known Unknowns are still blocking, Plan stays open and the workflow returns `ask_user`.
+  The architect MUST apply the `feature-estimation` skill to produce an additional `## Estimation` section in `Plan.md` (baseline table + scope-aware risk deltas + range + calendar buffer + assumptions + known unknowns). The estimation range is a hard-prerequisite for entering Execute. If `## Estimation` is missing/malformed, or a Known Unknown could swing the estimate >30%, Plan stays open and the workflow returns `ask_user`.
 
 - **Execute** — `swift-toolkit:swift-developer` + `swift-toolkit:swift-tester` (if `need_test=true` in args). Implements the phases from `Plan.md` step by step, updating both progress layers as work proceeds. **MUST create one git commit per green phase** — autonomously, without a user prompt.
 
@@ -90,7 +90,7 @@ The fields that directly drive this workflow's behavior:
 
   The reviewer cross-checks `OpsChecklist.md` from the Validation stage: every item marked **Applicable** must have implementation evidence visible in the diff or in test results. Applicable items without evidence are findings (severity per `swift-reviewer.md`) and typically yield `CHANGES_REQUESTED`. Pending items in `OpsChecklist.md` are surfaced as a `## Outstanding ops items` section in `Review.md` for explicit user-side accept/defer.
 
-- **Done** — final report `Done.md`: what was done, which artifacts were produced, validation status (build/test result), and objections (if the user insisted on a contested decision).
+- **Done** — final report `Done.md`: what was done, which artifacts were produced, validation status (build/test result), an `## Estimate retrospective` section when `Plan.md ## Estimation` exists (estimated range, actual engineering days if known, in-range verdict, variance reason, calibration action), and objections (if the user insisted on a contested decision).
 
 ## 3. Manual mode
 
