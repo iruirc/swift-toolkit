@@ -14,6 +14,9 @@ teardown() { ws_cleanup_tmpdirs; }
   [ -f "$parent/GroupedWS-meta/README.md" ]
   run grep '^## DeliveryMode' "$parent/GroupedWS-meta/CLAUDE-swift-toolkit.md"
   [ "$status" -eq 0 ]
+  # first non-empty line under ## DeliveryMode must be the deterministic `manual` default (the value feature-estimation reads)
+  run awk '/^## DeliveryMode/{f=1;next} f&&NF{print;exit}' "$parent/GroupedWS-meta/CLAUDE-swift-toolkit.md"
+  [ "$output" = "manual" ]
   run grep '^## AILeverage' "$parent/GroupedWS-meta/CLAUDE-swift-toolkit.md"
   [ "$status" -eq 0 ]
   [ -f "$parent/commonPackages/AKit/Package.swift" ]

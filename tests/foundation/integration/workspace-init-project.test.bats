@@ -22,6 +22,9 @@ teardown() { ws_cleanup_tmpdirs; }
   [ -d "$parent/FullApp-macOS/.git" ]
   run grep '^## DeliveryMode' "$parent/FullApp-iOS/CLAUDE-swift-toolkit.md"
   [ "$status" -eq 0 ]
+  # first non-empty line under ## DeliveryMode must be the deterministic `manual` default (the value feature-estimation reads)
+  run awk '/^## DeliveryMode/{f=1;next} f&&NF{print;exit}' "$parent/FullApp-iOS/CLAUDE-swift-toolkit.md"
+  [ "$output" = "manual" ]
   run grep '^## AILeverage' "$parent/FullApp-iOS/CLAUDE-swift-toolkit.md"
   [ "$status" -eq 0 ]
   run grep '^## Workspace meta' "$parent/FullApp-iOS/CLAUDE-swift-toolkit.md"
