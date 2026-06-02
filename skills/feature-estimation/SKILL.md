@@ -1,11 +1,11 @@
 ---
 name: feature-estimation
-description: "Use when estimating mobile / app feature work — after `feature-landscape` produced work-items. Converts an ideal-day baseline into a calibrated day range using feature-type defaults, PERT for high-risk items, scope-aware additive risk deltas (unknowns, unscoped secondary requirements, parallel API, binary distribution, OS fragmentation), optional project overrides from `CLAUDE-swift-toolkit.md ## EstimationDeltas`, confidence/maturity labels, delivery-calendar conversion, at most one dominant multiplier for unfamiliar tech, and a separate App/Play Store review calendar buffer. Output is a range anchored to named scenarios, never a point estimate."
+description: "Use when estimating mobile / app feature work — after `feature-landscape` produced work-items. Converts an ideal-day baseline into a calibrated day range using feature-type defaults, PERT for high-risk items, scope-aware additive risk deltas (unknowns, unscoped secondary requirements, parallel API, binary distribution, OS fragmentation), optional project overrides from `CLAUDE-swift-toolkit.md ## EstimationDeltas`, confidence/maturity labels, delivery-calendar conversion, at most one dominant multiplier for unfamiliar tech, and a separate App/Play Store review calendar buffer. Ceremony scales to risk — small familiar features collapse to baseline + range + confidence. Output is a range anchored to named scenarios, never a point estimate."
 ---
 
 # Feature Estimation
 
-Estimates fail because they ignore the cost of what nobody wrote down: error states, the App Store review window, the engineer's unfamiliarity with the module, the API contract changing mid-sprint. This skill adds mobile-specific **scope-aware risk deltas** on top of a decomposed baseline, uses PERT only where item-level variance dominates, labels confidence/maturity, and produces a calibrated *range* anchored to named scenarios — never a single number.
+Estimates fail because they ignore the cost of what nobody wrote down: error states, the App Store review window, the engineer's unfamiliarity with the module, the API contract changing mid-sprint. This skill adds mobile-specific **scope-aware risk deltas** on top of a decomposed baseline, uses PERT only where item-level variance dominates, labels confidence/maturity, and produces a calibrated *range* anchored to named scenarios — never a single number. Ceremony scales to risk: a small, familiar feature collapses to Baseline + Range + Confidence, while a cross-platform, deadline-bound migration earns the full artifact.
 
 > **Related skills:**
 > - `feature-landscape` — produces the work-items list this skill consumes
@@ -58,6 +58,54 @@ store_buffer      = +2–7 calendar days            ← reported separately from
 - **Binary distribution is a fixed project property, not a scenario knob.** The rollback path (feature flag / kill switch / binary-only) is a fact about the feature, not something that turns out better in the best case and worse in the worst case. Pick one tier (0% / +10% / +20%) and apply the *same* value in both scenarios. The best/worst spread comes from the scenario knobs — unknowns, Secondary, API-in-parallel, PERT spread — not from binary distribution.
 - **At most one dominant multiplier** is allowed, applied after the risk-day sum, and only when a single factor genuinely rescales the *whole* effort (e.g. first time on a new framework touches every item). Never stack two multipliers. **When the dominant multiplier is in play, the unfamiliarity it represents IS the unknown — drop the Unknown-unknowns delta to its floor (+30%) or to 0, otherwise you count the same risk twice and re-introduce compounding through the back door.**
 - **Store review is a calendar buffer**, kept on its own line — it is wall-clock waiting, not engineering days. Never fold it into the engineering-day figure.
+
+## Estimation depth — scale ceremony to risk
+
+The full artifact below is the *ceiling*, not the floor. A small, familiar, low-risk feature must not carry the same paperwork as a cross-platform migration with a hard deadline. Produce only the sections that earn their place.
+
+**Minimum viable estimate (always required):**
+
+- `### Baseline (per work item)`
+- `### Range (engineering days)` — two named scenarios
+- `### Confidence`
+
+Everything else is **conditional** — include a section only when its trigger fires:
+
+| Section | Include only when |
+|---|---|
+| `### Feature type` | always (one line — cheap, sets posture) |
+| `### Risky item PERT` | at least one high-variance item uses PERT |
+| `### Risk deltas (per scenario)` | more than one delta applies; with a single delta, state it inline in the Range instead of a table |
+| `### Estimate maturity` | the estimate is `Conditional` (named conditions / unresolved assumptions exist) — a clean estimate is implicitly Committable |
+| `### Delivery calendar (not engineering days)` | a stakeholder needs a date, or a hard deadline / release window is in play |
+| `### Store review buffer` | a hard deadline requires a store-submitted build (standalone line, or a row inside the delivery calendar when that section is present) |
+| `### Known unknowns blocking final estimate` | at least one Known Unknown remains open |
+| `### Estimation self-check` | scales to the sections actually present — verify only what you produced |
+
+A UI-only, single-platform, familiar-tech feature with a known rollback path and no open unknown collapses to **Baseline + Range + Confidence + one-line Feature type** — four short sections. The worked example further down is deliberately a *Full* estimate (PERT item, parallel API, scoped Secondary) to show every section; don't mistake it for the minimum.
+
+A minimal (Lite) estimate looks like:
+
+```markdown
+## Estimation
+### Feature type
+UI-only — settings toggle row + persisted flag. Lower API/Secondary risk.
+
+### Baseline (per work item)
+| Item | Layer | Ideal days |
+|---|---|---:|
+| Toggle row + binding | UI | 0.5 |
+| Persist + read flag | Repository | 0.5 |
+| Unit test | Tests | 0.5 |
+| **Baseline total** | | **1.5 days** |
+
+### Range (engineering days)
+**Best case: 1.5d** (no deltas — familiar, flagged, Secondary scoped).
+**Worst case: ~2.0d** — unknown-unknowns +30% on 1.5d = +0.45d → 1.95d.
+
+### Confidence
+High — familiar module, flag-gated, no open unknown, no parallel API.
+```
 
 ### Step 0 — Project calibration overrides
 
@@ -299,26 +347,17 @@ Conditional — Execute may proceed only if backend contract and designer second
 
 ### Plan-stage gate
 
-Before entering Execute, `Plan.md` MUST contain:
+Before entering Execute, `Plan.md` MUST contain the **minimum viable estimate** plus every section whose trigger fired (see *Estimation depth* above):
 
-- `## Estimation`
-- `### Feature type`
-- `### Baseline (per work item)` with all work items and concrete ops work included
-- `### Risky item PERT` when any baseline row uses PERT
-- `### Risk deltas (per scenario)` with affected baseline for each applied delta
-- `### Range (engineering days)` with named best/worst scenarios
-- `### Confidence`
-- `### Estimate maturity`
-- `### Delivery calendar (not engineering days)`
-- `### Assumptions`
-- `### Known unknowns blocking final estimate`
-- `### Estimation self-check`
+- `## Estimation` with `### Feature type` (one line), `### Baseline (per work item)` including concrete ops work, `### Range (engineering days)` with named best/worst scenarios, and `### Confidence` — always.
+- `### Assumptions` whenever the Range depends on any assumption (almost always).
+- Conditional sections (`### Risky item PERT`, `### Risk deltas (per scenario)`, `### Estimate maturity`, `### Delivery calendar`, `### Store review buffer`, `### Known unknowns blocking final estimate`, `### Estimation self-check`) only when their trigger fired. A missing conditional section whose trigger *did* fire makes the Plan incomplete; a missing one whose trigger did not fire is correct, not a gap.
 
-Gate by maturity:
+Gate by maturity (an absent `### Estimate maturity` section means a clean estimate — treat as Committable):
 
 - **Draft** → Plan is not complete. Return control with `ask_user`; never enter Execute.
 - **Conditional** → do NOT enter Execute silently. The named conditions are not yet accepted just because they are written down. Return control with `ask_user`, listing each condition for the user to accept, defer, or resolve. Execute may begin only after that explicit response.
-- **Committable** → gate passes on this axis.
+- **Committable (or no maturity section)** → gate passes on this axis.
 
 Independently of maturity, the Plan is also incomplete — return `ask_user` — if `## Estimation` is missing/malformed, a required section above is absent, or a Known Unknown could swing the estimate >30% without a required spike/resolution.
 
@@ -340,7 +379,8 @@ Independently of maturity, the Plan is also incomplete — return `ask_user` —
 - **Treating engineering days as calendar promise.** Convert through focus factor and explicit waits in `### Delivery calendar`; don't imply 12 engineering days means 12 calendar days.
 - **Using PERT everywhere.** PERT is for specific high-variance rows. Using it for every row creates noise and hides decomposition problems.
 - **Skipping the spike for load-bearing unknowns.** A Known Unknown that can swing >30% must get a spike or resolution before final estimation.
-- **Omitting confidence or maturity.** A range without quality labels looks more precise than it is.
+- **Omitting confidence or maturity.** A range without quality labels looks more precise than it is. (Maturity is itself conditional — a clean estimate is implicitly Committable; don't add the label just to have it.)
+- **Full ceremony for a trivial estimate.** A 1.5-day, familiar, flag-gated UI tweak does not need PERT, a delivery calendar, a maturity label, and an 11-item self-check. Scale to the *Estimation depth* table — Baseline + Range + Confidence is the floor. Filling every section by reflex produces rubber-stamped paperwork, not a better estimate.
 
 ## Calibration over time
 
