@@ -143,11 +143,18 @@ Write into the active task's `Plan.md` under heading `## Estimation`. Structure:
 |---|---|---|
 | Define CartItem / Order / PaymentStatus | Domain | 0.5 |
 | `CartRepository` add/remove/clear | Repository | 1.0 |
-| Local cache (Core Data) | Repository | 1.5 |
+| Cart API client + DTO mapping | Networking | 1.0 |
+| Local cache (Core Data) | Repository | 1.0 |
 | `CartViewModel` state transitions | State | 1.0 |
+| Cart screen + cell UI | UI | 1.0 |
+| Unit tests (ViewModel + repository) | Tests | 1.0 |
 | Feature flag wiring + kill-switch verification | Release readiness | 1.0 |
-| ... | ... | ... |
+| Analytics events (add / remove / checkout) | Release readiness | 0.5 |
 | **Baseline total** | | **8.0 days** |
+
+> **Affected-baseline slices** below are summed from the Layer column above:
+> networking/repository slice = Repository 1.0 + Networking 1.0 + Repository (cache) 1.0 = **3.0d**;
+> UI/state/tests slice = State 1.0 + UI 1.0 + Tests 1.0 = **3.0d**.
 
 ### Risk deltas (per scenario)
 > Columns are the two **scenarios**, not the low/high values of each delta. A delta that
