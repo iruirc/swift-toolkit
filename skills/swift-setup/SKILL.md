@@ -11,7 +11,7 @@ description: |
 
 Bootstraps swift-toolkit in an **already existing** Swift project. Two-file layout:
 
-- `CLAUDE-swift-toolkit.md` — toolkit-owned configuration (Language, Persona, Stack, Mode, Modules, EstimationDeltas, Paths, Orchestration). Created and updated by this skill.
+- `CLAUDE-swift-toolkit.md` — toolkit-owned configuration (Language, Persona, Stack, Mode, Modules, EstimationDeltas, DeliveryMode, AILeverage, Paths, Orchestration). Created and updated by this skill.
 - `CLAUDE.md` — user-owned project instructions. Touched once to insert `@./CLAUDE-swift-toolkit.md` line; otherwise unchanged.
 
 The skill does NOT create an Xcode project, does NOT modify Swift code, and does NOT start any workflow. It is a one-time setup of toolkit infrastructure inside the project.
@@ -158,7 +158,7 @@ Rules:
 Canonical toolkit headings (case-insensitive **exact** match, not prefix):
 
 ```
-Language, Persona, Stack, Mode, Modules, EstimationDeltas, Paths, Orchestration
+Language, Persona, Stack, Mode, Modules, EstimationDeltas, DeliveryMode, AILeverage, Paths, Orchestration
 ```
 
 - `toolkit_sections` = sections whose heading matches the canonical list.
@@ -230,7 +230,8 @@ In `templates/claude-toolkit-md/en.md` (the toolkit file is EN-only):
 | `<MVVM+Coordinator \| VIPER \| Clean Architecture \| MVC>` | q4 | chosen architecture |
 | `<iOS 16+ \| macOS 13+ \| iOS+macOS>` | q5 | chosen platform |
 | `<XCTest \| Quick+Nimble>` | q6 | chosen test framework |
-| `manual` in `## Mode` | q7 | `manual` or `auto` |
+| first non-empty line under `## Mode` | q7 | `manual` or `auto` |
+| first non-empty line under `## DeliveryMode` | template default | `manual`; do not replace this when applying q7 |
 | `en` value in `## Language` | q0 | `en` or `ru` |
 | `<Communication Language>` in `## Persona` | q0 | `English` or `Russian` (the human-readable language name; drives Claude's communication language with the user) |
 

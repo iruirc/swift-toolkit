@@ -30,7 +30,7 @@ Estimates fail because they ignore the cost of what nobody wrote down: error sta
 - Engineer familiarity with the module — first time / occasional / fluent
 - Release and rollback path — feature flag / kill switch / remote config / hotfix path / binary-only
 - Feature type — UI-only / API-driven / SDK integration / persistence or migration / refactor / cross-platform / release-ops-heavy
-- Delivery mode — `manual` (default) or `ai-assisted`; from `CLAUDE-swift-toolkit.md ## DeliveryMode` or a per-estimate opt-in. Drives the optional AI-assisted range.
+- Delivery mode — `manual` (default) or `ai-assisted`; from the first non-empty line under `CLAUDE-swift-toolkit.md ## DeliveryMode` or a per-estimate opt-in. Drives the optional AI-assisted range.
 - Team calendar assumptions — focus factor or effective capacity, planned external waits, store/release windows
 - Hard deadline presence (yes / no)
 
@@ -70,7 +70,7 @@ store_buffer      = +2–7 calendar days            ← reported separately from
 
 The full artifact below is the *ceiling*, not the floor. A small, familiar, low-risk feature must not carry the same paperwork as a cross-platform migration with a hard deadline. Produce only the sections that earn their place.
 
-**AI-assisted mode (optional, off by default).** When the project declares `## DeliveryMode: ai-assisted` in `CLAUDE-swift-toolkit.md`, or the estimator opts in for one estimate, the artifact additionally derives an **AI-assisted range** from the same baseline (see *AI-assisted range* below). When the mode is off, ignore every AI-assisted instruction in this skill — the estimate is human-only, exactly as the rest of this document describes.
+**AI-assisted mode (optional, off by default).** When the first non-empty line under `CLAUDE-swift-toolkit.md ## DeliveryMode` is exactly `ai-assisted`, or the estimator opts in for one estimate, the artifact additionally derives an **AI-assisted range** from the same baseline (see *AI-assisted range* below). Any other value, a blank section, or a template placeholder means `manual`. When the mode is off, ignore every AI-assisted instruction in this skill — the estimate is human-only, exactly as the rest of this document describes.
 
 **Minimum viable estimate (always required):**
 
@@ -312,6 +312,9 @@ Verify:
 - Delivery calendar is separated from the engineering range.
 - Secondary delta is absent when Secondary is fully scoped.
 - The dominant multiplier, if present, does not double-count unfamiliarity already covered by Unknown-unknowns.
+- In AI-assisted mode, the AI range is derived from the human baseline per item, not re-estimated independently or produced with one global multiplier.
+- In AI-assisted Full mode, `### Baseline` includes the `AI leverage` column and `### AI-assisted range` re-sums the AI baseline and AI risk deltas from those rows.
+- Every uncalibrated AI-assisted range is labelled `Low (uncalibrated)` and remains informational.
 - Known Unknowns that trip the load-bearing-unknown rule (Step 4) have a required spike or resolution.
 - Confidence is stated; maturity is stated whenever it is not plainly Committable.
 - Conditional maturity includes `### Estimation conditions`; any `pending_user` row is treated as an Execute blocker.

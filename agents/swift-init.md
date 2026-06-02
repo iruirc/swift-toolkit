@@ -115,7 +115,7 @@ swift-init --no-prompt --platform=macos --ui-framework=swiftui --di=factory \
 
 For every mode:
 - Folder structure matching the chosen mode and architecture
-- `CLAUDE-swift-toolkit.md` with filled `## Stack` and `## Mode` sections (`manual` by default); `## Modules` only for multi-target SPM packages (for apps the section stays empty — modules are added once the user attaches local packages, see **Multi-module projects**); `## Paths` only if paths deviate from defaults
+- `CLAUDE-swift-toolkit.md` with filled `## Stack`, `## Mode`, and `## DeliveryMode` sections (`manual` by default for both modes); include `## AILeverage` as an empty calibration placeholder; `## Modules` only for multi-target SPM packages (for apps the section stays empty — modules are added once the user attaches local packages, see **Multi-module projects**); `## Paths` only carries values if paths deviate from defaults
 - minimal user-owned `CLAUDE.md` with H1 placeholder + a single `@./CLAUDE-swift-toolkit.md` import line + a comment explaining the file's role
 - `.swiftlint.yml` with sensible defaults
 - `README.md` with brief project description + how to build
@@ -281,7 +281,7 @@ After generating, produce a short report to the user:
 - `## Next Steps` — exact commands to build and run the project. **For app modes always include**:
   - the project regeneration command: `xcodegen generate` (run it after editing `project.yml`);
   - a note about local packages: "If you need local SPM packages, run `/swift-init` separately in any folder on disk, then in Xcode use `File → New → Workspace`, drag the app's `.xcodeproj` and the package folders into the workspace. From then on, open the **`.xcworkspace`**, not the `.xcodeproj` — otherwise Xcode won't see the local packages."
-- `## CLAUDE-swift-toolkit.md Highlights` — what was auto-filled in `## Stack`, `## Mode`, `## Modules`, `## Paths`
+- `## CLAUDE-swift-toolkit.md Highlights` — what was auto-filled in `## Stack`, `## Mode`, `## DeliveryMode`, `## Modules`, `## AILeverage`, `## Paths`
 
 ## Multi-module projects
 

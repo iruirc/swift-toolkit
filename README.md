@@ -12,7 +12,7 @@ A set of skills, agents, and slash commands for Claude Code that turn the assist
 
 `/swift-setup` and `/swift-init` produce two files in your project root:
 
-- **`CLAUDE-swift-toolkit.md`** — toolkit-owned configuration (`## Language`, `## Persona`, `## Stack`, `## Mode`, `## Modules`, `## EstimationDeltas`, `## Paths`, `## Orchestration`). Updated by `/swift-setup` and `/swift-lang`. Don't edit by hand — re-running `/swift-setup` may overwrite it (with a backup).
+- **`CLAUDE-swift-toolkit.md`** — toolkit-owned configuration (`## Language`, `## Persona`, `## Stack`, `## Mode`, `## Modules`, `## EstimationDeltas`, `## DeliveryMode`, `## AILeverage`, `## Paths`, `## Orchestration`). Updated by `/swift-setup` and `/swift-lang`. Don't edit by hand — re-running `/swift-setup` may overwrite it (with a backup).
 - **`CLAUDE.md`** — your project-level Claude instructions. Contains a single `@./CLAUDE-swift-toolkit.md` line that imports toolkit configuration into Claude's context. Add your own sections, conventions, and project-specific instructions here. Toolkit never overwrites this file beyond inserting the import line.
 
 Existing projects on the legacy single-file format (everything in `CLAUDE.md`) are migrated automatically on the next `/swift-setup` invocation: toolkit sections move to `CLAUDE-swift-toolkit.md`, your sections stay in `CLAUDE.md`, and the original is backed up to `CLAUDE.md.bak`.

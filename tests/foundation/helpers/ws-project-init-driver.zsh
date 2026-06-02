@@ -54,6 +54,18 @@ cat > "$repo_dir/CLAUDE-swift-toolkit.md" <<EOF
 ## Stack
 
 (stub stack section — populated by swift-init in production)
+
+## Mode
+
+manual
+
+## DeliveryMode
+
+manual
+
+## AILeverage
+
+(optional: project-specific overrides for AI leverage classes used by feature-estimation)
 EOF
 
 touch "$repo_dir/.swift-init.done"

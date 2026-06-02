@@ -12,6 +12,10 @@ teardown() { ws_cleanup_tmpdirs; }
   [ -d "$parent/GroupedWS-meta/.git" ]
   [ -f "$parent/GroupedWS-meta/workspace.yml" ]
   [ -f "$parent/GroupedWS-meta/README.md" ]
+  run grep '^## DeliveryMode' "$parent/GroupedWS-meta/CLAUDE-swift-toolkit.md"
+  [ "$status" -eq 0 ]
+  run grep '^## AILeverage' "$parent/GroupedWS-meta/CLAUDE-swift-toolkit.md"
+  [ "$status" -eq 0 ]
   [ -f "$parent/commonPackages/AKit/Package.swift" ]
   [ -f "$parent/commonPackages/AKit/CLAUDE.md" ]
   # NEW: verify nested source/test stubs are rendered

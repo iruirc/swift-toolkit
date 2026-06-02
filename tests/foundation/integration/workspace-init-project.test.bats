@@ -20,6 +20,10 @@ teardown() { ws_cleanup_tmpdirs; }
   [ -d "$parent/FullApp-macOS/FullApp-macOS.xcodeproj" ]
   [ -d "$parent/FullApp-iOS/.git" ]
   [ -d "$parent/FullApp-macOS/.git" ]
+  run grep '^## DeliveryMode' "$parent/FullApp-iOS/CLAUDE-swift-toolkit.md"
+  [ "$status" -eq 0 ]
+  run grep '^## AILeverage' "$parent/FullApp-iOS/CLAUDE-swift-toolkit.md"
+  [ "$status" -eq 0 ]
   run grep '^## Workspace meta' "$parent/FullApp-iOS/CLAUDE-swift-toolkit.md"
   [ "$status" -eq 0 ]
   run grep '^## Workspace meta' "$parent/FullApp-macOS/CLAUDE-swift-toolkit.md"

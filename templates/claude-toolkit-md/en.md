@@ -57,7 +57,9 @@ manual
 
 ## DeliveryMode
 
-(optional: `manual` (default) or `ai-assisted`; set `ai-assisted` when the team builds with AI coding assistants so `feature-estimation` also derives an AI-assisted range)
+manual
+
+(optional: keep `manual` by default; change this value only when the project should produce the additional estimation range documented by `feature-estimation`)
 
 ## AILeverage
 
