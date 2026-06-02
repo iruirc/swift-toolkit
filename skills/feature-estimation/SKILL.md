@@ -194,7 +194,7 @@ For every applicable delta below, choose an **affected baseline** and calculate 
 List every Known Unknown from `feature-requirements ### Known unknowns`. For each:
 
 - If unresolved at estimation time → the estimate is **conditional** ("9–12 days *assuming* the API contract is finalized this week")
-- If a Known Unknown could swing the estimate >30% → add a required spike (usually 0.5–1.0d, or locally calibrated), return to `feature-requirements`, and do not finalize the estimate until the spike resolves or narrows the unknown
+- **Load-bearing-unknown rule** (the canonical 30% threshold — defined here, referenced everywhere else): if a Known Unknown could swing the estimate by **more than 30%**, add a required spike (usually 0.5–1.0d, or locally calibrated), return to `feature-requirements`, and do not finalize the estimate until the spike resolves or narrows the unknown. Maturity and the Plan-stage gate cite this rule by name; change the threshold here only.
 
 ### Step 5 — Communicate as a scenario-anchored range
 
@@ -215,19 +215,32 @@ If an assumption breaks, the estimate moves toward the high end — and that's e
 
 ### Step 6 — Confidence and estimate maturity
 
-Label the estimate with both confidence and maturity:
+These are **two independent axes**, not two names for the same thing. Confidence measures *how tight and well-evidenced the number is*; maturity measures *whether it's safe to act on yet*. Keep them separate — a precise estimate can still be blocked, and a fuzzy one can still be safe to start.
+
+**Confidence — width and evidence of the range** (always stated):
 
 | Label | Meaning |
 |---|---|
-| Confidence: High | Similar feature shipped before, work-items are decomposed, API/design/release path are stable |
-| Confidence: Medium | Some assumptions remain, but no unresolved unknown can swing the estimate >30% |
-| Confidence: Low | Multiple assumptions remain, unfamiliar tech, or evidence is thin |
+| High | Narrow best↔worst spread, backed by evidence: similar feature shipped, work-items decomposed, stack familiar |
+| Medium | Moderate spread; some inputs rest on judgement rather than evidence |
+| Low | Wide spread, unfamiliar tech, or thin evidence — the number is a guess with error bars |
 
-| Maturity | Execute gate |
+**Maturity — readiness to enter Execute** (stated only when not plainly Committable):
+
+| Label | Meaning |
 |---|---|
-| Draft | Not ready for Execute; missing landscape, baseline, or load-bearing inputs |
-| Conditional | Execute may proceed only if the named conditions are accepted, deferred, or resolved and no unresolved Known Unknown can swing >30% |
-| Committable | Inputs are stable enough to use the range for delivery planning |
+| Draft | Missing landscape, baseline, or other load-bearing input — not ready |
+| Conditional | Rests on named conditions (e.g. a contract freeze) that are not yet accepted, **or** an open Known Unknown still trips the load-bearing-unknown rule (Step 4) |
+| Committable | No blocking conditions and no load-bearing unknown — safe to plan delivery against |
+
+The two axes are orthogonal — all four corners occur:
+
+- **High + Committable** — a familiar, fully-scoped feature. Start now.
+- **High + Conditional** — numbers are tight, but Execute waits on the backend accepting a contract.
+- **Low + Committable** — wide range from unfamiliar tech, yet nothing *blocks* starting; you commit to the wide range knowingly.
+- **Low + Draft** — wide *and* missing inputs. Go back to landscape/requirements.
+
+So state confidence to tell the reader how much to trust the width, and maturity to tell the workflow whether it may proceed. Don't collapse them: "Low confidence" is not a reason to block, and "Conditional" is not a statement about precision.
 
 ### Step 7 — Delivery calendar conversion
 
@@ -252,8 +265,8 @@ Verify:
 - Delivery calendar is separated from the engineering range.
 - Secondary delta is absent when Secondary is fully scoped.
 - The dominant multiplier, if present, does not double-count unfamiliarity already covered by Unknown-unknowns.
-- Known Unknowns above 30% have a required spike or resolution.
-- Confidence and maturity labels are present.
+- Known Unknowns that trip the load-bearing-unknown rule (Step 4) have a required spike or resolution.
+- Confidence is stated; maturity is stated whenever it is not plainly Committable.
 
 ## Output artifact
 
@@ -341,8 +354,8 @@ Conditional — Execute may proceed only if backend contract and designer second
 - [x] Delivery calendar is separate from engineering range.
 - [x] Secondary delta is skipped in best case because Secondary is scoped.
 - n/a Dominant multiplier — no new-framework work this feature, so the double-count guard doesn't apply.
-- [x] No Known Unknown above 30% remains without a required spike.
-- [x] Confidence and maturity labels are present.
+- [x] No Known Unknown trips the load-bearing-unknown rule without a spike.
+- [x] Confidence stated (Medium); maturity stated because this estimate is Conditional.
 ```
 
 ### Plan-stage gate
@@ -359,7 +372,7 @@ Gate by maturity (an absent `### Estimate maturity` section means a clean estima
 - **Conditional** → do NOT enter Execute silently. The named conditions are not yet accepted just because they are written down. Return control with `ask_user`, listing each condition for the user to accept, defer, or resolve. Execute may begin only after that explicit response.
 - **Committable (or no maturity section)** → gate passes on this axis.
 
-Independently of maturity, the Plan is also incomplete — return `ask_user` — if `## Estimation` is missing/malformed, a required section above is absent, or a Known Unknown could swing the estimate >30% without a required spike/resolution.
+Independently of maturity, the Plan is also incomplete — return `ask_user` — if `## Estimation` is missing/malformed, a required section above is absent, or a Known Unknown trips the load-bearing-unknown rule (Step 4) without a required spike/resolution.
 
 **Idempotency:** if `## Estimation` already exists in `Plan.md`, prompt the user before overwriting. Re-estimation is normal mid-feature — keep the previous version under `### Estimation history` with a date.
 
@@ -378,7 +391,7 @@ Independently of maturity, the Plan is also incomplete — return `ask_user` —
 - **Folding store review into engineering days.** Review windows are calendar time, not engineering time. Always surface them on their own line.
 - **Treating engineering days as calendar promise.** Convert through focus factor and explicit waits in `### Delivery calendar`; don't imply 12 engineering days means 12 calendar days.
 - **Using PERT everywhere.** PERT is for specific high-variance rows. Using it for every row creates noise and hides decomposition problems.
-- **Skipping the spike for load-bearing unknowns.** A Known Unknown that can swing >30% must get a spike or resolution before final estimation.
+- **Skipping the spike for load-bearing unknowns.** A Known Unknown that trips the load-bearing-unknown rule (Step 4) must get a spike or resolution before final estimation.
 - **Omitting confidence or maturity.** A range without quality labels looks more precise than it is. (Maturity is itself conditional — a clean estimate is implicitly Committable; don't add the label just to have it.)
 - **Full ceremony for a trivial estimate.** A 1.5-day, familiar, flag-gated UI tweak does not need PERT, a delivery calendar, a maturity label, and an 11-item self-check. Scale to the *Estimation depth* table — Baseline + Range + Confidence is the floor. Filling every section by reflex produces rubber-stamped paperwork, not a better estimate.
 
