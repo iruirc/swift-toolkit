@@ -55,6 +55,7 @@ store_buffer      = +2–7 calendar days            ← reported separately from
 - **Don't double-count item variance.** A high-variance item handled by PERT already carries its own optimistic↔pessimistic spread. Do not also cite that same item as the reason to raise the Unknown-unknowns delta — Unknown-unknowns covers what you *can't* see, PERT covers the visible spread of a known-risky item.
 - **Risk deltas are additive**, not multiplicative. Each delta is a percentage of an affected baseline slice; risk-days are summed once. Risk buffers are slack on the same work — multiplying them double-counts the same uncertainty and inflates an 8-day feature past 25 days. Adding them keeps the adjustment in the realistic 1.5–2.5× band.
 - **Risk scope is explicit.** Unknown-unknowns and binary distribution usually apply to the total baseline. API-in-parallel usually applies only to Networking / Repository / Integration items unless the API contract controls the UI/domain shape. Secondary-not-scoped applies to the items that will change if those Secondary requirements land late; use total baseline only when the Pending rows cut across the feature.
+- **Binary distribution is a fixed project property, not a scenario knob.** The rollback path (feature flag / kill switch / binary-only) is a fact about the feature, not something that turns out better in the best case and worse in the worst case. Pick one tier (0% / +10% / +20%) and apply the *same* value in both scenarios. The best/worst spread comes from the scenario knobs — unknowns, Secondary, API-in-parallel, PERT spread — not from binary distribution.
 - **At most one dominant multiplier** is allowed, applied after the risk-day sum, and only when a single factor genuinely rescales the *whole* effort (e.g. first time on a new framework touches every item). Never stack two multipliers. **When the dominant multiplier is in play, the unfamiliarity it represents IS the unknown — drop the Unknown-unknowns delta to its floor (+30%) or to 0, otherwise you count the same risk twice and re-introduce compounding through the back door.**
 - **Store review is a calendar buffer**, kept on its own line — it is wall-clock waiting, not engineering days. Never fold it into the engineering-day figure.
 
@@ -159,7 +160,7 @@ State the assumptions that define each scenario. The range is the spread between
 Example:
 
 > "**10.7 days** — *best case*: API contract finalized this week, existing `CartRepository` reused, Secondary mockups already delivered, feature flag and kill switch available. Cache item takes its PERT-optimistic 0.5d (baseline 7.5d), Unknown-unknowns apply to the 8.0d expected baseline (+30% = 2.4d), binary-distribution applies at the mitigated +10% level (= 0.8d).
-> **17.4 days** — *worst case*: building against a mock, contract deltas surface at integration, Secondary left for last. Cache item takes its PERT-pessimistic 1.5d (baseline 8.5d), Unknowns apply to the 8.0d expected baseline (+50% = 4.0d), Secondary applies to the 3.0d UI/state/test slice (+70% = 2.1d), API-parallel applies to the 3.0d networking/repository slice (+40% = 1.2d), binary applies at +20% (= 1.6d).
+> **16.6 days** — *worst case*: building against a mock, contract deltas surface at integration, Secondary left for last. Cache item takes its PERT-pessimistic 1.5d (baseline 8.5d), Unknowns apply to the 8.0d expected baseline (+50% = 4.0d), Secondary applies to the 3.0d UI/state/test slice (+70% = 2.1d), API-parallel applies to the 3.0d networking/repository slice (+40% = 1.2d). Binary distribution stays at its fixed +10% (= 0.8d) — the flag/kill-switch path doesn't change between scenarios.
 > **+2–7 calendar days** App Store review buffer on top, when a hard deadline applies — this is wall-clock waiting, not engineering days."
 
 If an assumption breaks, the estimate moves toward the high end — and that's expected.
@@ -190,12 +191,15 @@ Engineering days are not a promise of calendar dates. If stakeholders need deliv
 
 ### Step 8 — Estimation self-check
 
-Before handing off the plan, verify:
+This is a verification pass, not a formality. Tick `[x]` only after you have actually checked the item against the artifact; mark `n/a` (with the reason) where it doesn't apply; mark `[ ]` and fix the plan where it fails. A self-check that is uniformly `[x]` on every feature is a sign it was rubber-stamped, not run.
+
+Verify:
 
 - Every affected-baseline slice traces to named baseline rows.
 - Risk-days arithmetic matches the scenario table.
 - Each PERT item's optimistic value feeds the best-case end and its pessimistic value the worst-case end — the spread is not discarded.
 - No PERT item is also used as the justification for raising the Unknown-unknowns delta.
+- Binary distribution uses one fixed tier in both scenarios — it is not varied per scenario.
 - App/Play Store review is not included in engineering days.
 - Delivery calendar is separated from the engineering range.
 - Secondary delta is absent when Secondary is fully scoped.
@@ -246,15 +250,15 @@ API-driven UI feature. Default posture: API and Secondary risks are likely scope
 | Unknown unknowns | 8.0d total | +30% = 2.4d | +50% = 4.0d | Mid-familiarity territory |
 | Secondary not scoped | 3.0d UI/state/tests | — (scoped) | +70% = 2.1d | Designer mockups: delivered in best case, late in worst |
 | API in parallel | 3.0d networking/repository | — (frozen) | +40% = 1.2d | Best: contract frozen wk1. Worst: built against mock |
-| Binary distribution | 8.0d total | +10% = 0.8d | +20% = 1.6d | Best: flag + kill switch. Worst: binary-only rollback |
-| **Σ risk days** | | **3.2d** | **8.9d** | |
+| Binary distribution | 8.0d total | +10% = 0.8d | +10% = 0.8d | Fixed: feature flag + kill switch exist — same tier in both scenarios |
+| **Σ risk days** | | **3.2d** | **8.1d** | |
 | Dominant multiplier | | none | none | No new-framework work this feature |
 
 ### Range (engineering days)
 PERT spread feeds the ends: the cache item is optimistic (0.5) in best case, pessimistic (1.5) in worst, so the scenario baseline shifts ±0.5 from the 8.0 expected total. Risk-days stay scoped to the 8.0 expected baseline.
 
 **Best case:  baseline 7.5 (cache @ 0.5) + risk 3.2 = 10.7 days**
-**Worst case: baseline 8.5 (cache @ 1.5) + risk 8.9 = 17.4 days**
+**Worst case: baseline 8.5 (cache @ 1.5) + risk 8.1 = 16.6 days**
 
 ### Confidence
 Medium — work items are decomposed and the rollback path is known, but API/design timing still shapes the scenario range.
@@ -265,10 +269,10 @@ Conditional — Execute may proceed only if backend contract and designer second
 ### Delivery calendar (not engineering days)
 | Component | Best case | Worst case | Notes |
 |---|---:|---:|---|
-| Engineering days | 10.7d | 17.4d | From `### Range` above |
+| Engineering days | 10.7d | 16.6d | From `### Range` above |
 | Focus factor | / 0.6 | / 0.6 | One engineer at 60% focused capacity |
 | External waits | +0 workdays | +2 workdays | Worst case assumes backend/design wait |
-| Delivery workdays before store | ~18 workdays | ~31 workdays | Engineering / focus + explicit waits; still working days — convert to calendar via the team's week before quoting a date |
+| Delivery workdays before store | ~18 workdays | ~30 workdays | Engineering / focus + explicit waits; still working days — convert to calendar via the team's week before quoting a date |
 | Store review | +2–7 calendar days | +2–7 calendar days | Separate wall-clock buffer, not engineering |
 
 ### Assumptions
@@ -281,13 +285,14 @@ Conditional — Execute may proceed only if backend contract and designer second
 
 ### Estimation self-check
 - [x] Affected-baseline slices trace to baseline rows.
-- [x] Risk-days arithmetic matches the scenario table.
+- [x] Risk-days arithmetic matches the scenario table (re-summed worst case to 8.1d after the binary fix below).
 - [x] Cache PERT spread feeds the range: 0.5 in best case, 1.5 in worst; not discarded.
-- [x] The PERT cache item is not reused to justify the Unknown-unknowns delta.
+- [x] PERT cache item is not reused to justify the Unknown-unknowns delta.
+- [x] Binary distribution fixed at +10% in both scenarios — caught and corrected an earlier draft that varied it +10%/+20% per scenario.
 - [x] App/Play Store review is not included in engineering days.
 - [x] Delivery calendar is separate from engineering range.
 - [x] Secondary delta is skipped in best case because Secondary is scoped.
-- [x] Dominant multiplier is absent, so unfamiliarity is not double-counted.
+- n/a Dominant multiplier — no new-framework work this feature, so the double-count guard doesn't apply.
 - [x] No Known Unknown above 30% remains without a required spike.
 - [x] Confidence and maturity labels are present.
 ```
@@ -352,7 +357,7 @@ At Done / Review time, MUST add an estimate retrospective when an estimate exist
 ## Estimate retrospective
 | Estimated range | Actual engineering days | In range? | Variance reason | Calibration action |
 |---:|---:|---|---|---|
-| 10.7–17.4d | 18.0d | Slightly over | Backend changed response shape after integration | Keep API-in-parallel high end at +40% |
+| 10.7–16.6d | 18.0d | Over (+8%) | Backend changed response shape after integration | Keep API-in-parallel high end at +40% |
 ```
 
 If actual effort is unknown, write `unknown` and explain what signal is missing. Do not invent actual days from commit count alone.
