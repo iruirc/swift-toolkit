@@ -373,9 +373,9 @@ PERT spread feeds the ends: the cache item is optimistic (0.5) in best case, pes
 **Worst case: baseline 8.5 (cache @ 1.5) + risk 8.1 = 16.6 days**
 
 ### AI-assisted range
-Derived from the same baseline: each item divided by its leverage class → AI baseline ≈ 3.3d expected. The PERT cache item feeds the ends just as on the human side — AI baseline ≈ 2.9d in best case (cache @ 0.5 ÷ 1.2) and ≈ 3.7d in worst (cache @ 1.5 ÷ 1.2). Then the scenario deltas (Unknown-unknowns +30%/+50%, binary fixed +10%, Secondary/API on their AI slices in the worst case) plus AI verification/rework +20% on the AI-generated slices.
+Derived from the same baseline: each item divided by its leverage class → AI baseline ≈ 3.3d expected, shifting to ≈ 2.9d best case (cache @ 0.5 ÷ 1.2) and ≈ 3.7d worst (cache @ 1.5 ÷ 1.2) — the PERT cache item feeds the ends exactly as on the human side. AI risk-days are scoped to the **expected** AI slices and *added* to the shifted base — not multiplied onto it — so the PERT spread is never compounded with the percentage deltas, mirroring the human rule. Risk = Unknown-unknowns +30%/+50% and binary fixed +10% on the expected AI base, plus (worst case only) Secondary and API on their AI slices, plus AI verification/rework +20% on the AI-generated slices.
 
-**Best case ≈ 4.5d / Worst case ≈ 7.8d — Confidence: Low (uncalibrated).**
+**Best case ≈ 4.7d / Worst case ≈ 7.4d — Confidence: Low (uncalibrated).**
 
 This range is informational until the team's retrospective calibrates the leverage classes. The human `### Range` above and this AI range are both reported; which one becomes the delivery commitment is a planning decision, not this skill's.
 
