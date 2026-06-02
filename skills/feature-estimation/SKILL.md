@@ -343,7 +343,7 @@ PERT spread feeds the ends: the cache item is optimistic (0.5) in best case, pes
 Medium — work items are decomposed and the rollback path is known, but API/design timing still shapes the scenario range.
 
 ### Estimate maturity
-Conditional — Execute may proceed only if backend contract and designer secondary states are accepted as scenario assumptions, and no Known Unknown remains with >30% swing.
+Conditional — see `### Estimation conditions` for the blocking conditions; no Known Unknown trips the load-bearing-unknown rule.
 
 ### Estimation conditions
 | Condition | Owner | Status | Evidence / next action |
@@ -394,7 +394,7 @@ Before entering Execute, `Plan.md` MUST contain the **minimum viable estimate** 
 Gate by maturity (an absent `### Estimate maturity` section means a clean estimate — treat as Committable):
 
 - **Draft** → Plan is not complete. Return control with `ask_user`; never enter Execute.
-- **Conditional** → do NOT enter Execute silently. `### Estimation conditions` must exist. If any condition is `pending_user`, return control with `ask_user`, listing each pending condition for the user to accept, defer, or resolve. Execute may begin only after every condition is recorded as `accepted`, `deferred`, or `resolved`.
+- **Conditional** → do NOT enter Execute silently. `### Estimation conditions` must exist. If any condition is `pending_user`, return control with `ask_user`, listing each pending condition for the user to accept, defer, or resolve. On resume, the architect records the user's response into the row's `Status` (and `Evidence / next action`) — never silently; a `pending_user` row left untouched still blocks. Execute may begin only after every condition is recorded as `accepted`, `deferred`, or `resolved`.
 - **Committable (or no maturity section)** → gate passes on this axis.
 
 Independently of maturity, the Plan is also incomplete — return `ask_user` — if `## Estimation` is missing/malformed, a required section above is absent, or a Known Unknown trips the load-bearing-unknown rule (Step 4) without a required spike/resolution.
