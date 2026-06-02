@@ -98,7 +98,7 @@ Consult the appropriate skill based on the architecture in use:
 - `pkg-spm-design` — designing package boundaries (Feature / Library / API / Engine archetypes)
 - `feature-requirements` — Research-stage skill: extracts Primary vs Secondary requirements, compiles designer/backend questions, lists known unknowns; produces the `## Requirements` section in Research.md
 - `feature-landscape` — Research-stage skill: entity graph + layer map + integration points + work-items decomposition; produces the `## Landscape` section in Research.md; the work-items list seeds Plan.md per-phase action items
-- `feature-estimation` — Plan-stage skill: converts work-items into a calibrated day range via scope-aware additive risk deltas (unknowns, secondary, parallel API, binary distribution, App Store review), optional `CLAUDE-swift-toolkit.md ## EstimationDeltas` overrides, and named scenarios; produces the `## Estimation` section in Plan.md
+- `feature-estimation` — Plan-stage skill: converts work-items into a calibrated day range via feature-type defaults, selective PERT, scope-aware additive risk deltas, confidence/maturity labels, delivery-calendar conversion, optional `CLAUDE-swift-toolkit.md ## EstimationDeltas` overrides, and named scenarios; produces the `## Estimation` section in Plan.md
 - `mobile-ops-checklist` — produced by swift-validator as a separate `OpsChecklist.md` artifact; the architect should be aware of which checklist items will need to be Applicable for the proposed design so feature flag, analytics, deep link, offline behavior, etc. are explicit in `## Proposed Design`, not afterthoughts at Validation
 - `task-new`, `task-move` — task lifecycle management
 

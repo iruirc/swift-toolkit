@@ -254,7 +254,7 @@ One of: **Approve** / **Request changes** / **Needs discussion**.
 If verdict is "Request changes", a short list of the issues worth tracking as separate tasks (for the user to create via `task-new` if desired). Otherwise write `(none)`.
 
 ### Estimate retrospective
-If `Plan.md ## Estimation` exists and actual effort is known or inferable from task artifacts, summarize estimated range, actual engineering days, whether the work landed in range, variance reason, and calibration action. If actual effort is unknown, write `(unknown — <missing signal>)`. This section is calibration context, not a finding.
+If `Plan.md ## Estimation` exists, summarize estimated range, actual engineering days if known or inferable from task artifacts, whether the work landed in range, variance reason, and calibration action. If actual effort is unknown, write `(unknown — <missing signal>)`. This section is mandatory calibration context, not a finding.
 
 ---
 
@@ -285,7 +285,7 @@ Consult these skills when reviewing code against architectural / framework expec
 - `mobile-ops-checklist` — cross-check every Applicable item in `OpsChecklist.md` (produced by swift-validator) against the diff. Verification evidence must be visible: file path, test name, commit ref, or screenshot reference. Applicable items without evidence = finding (severity per `## Severity Levels`), typically `CHANGES_REQUESTED`. Pending items surface as a `## Outstanding ops items` section in Review.md for explicit user accept/defer.
 - `feature-requirements` — verify the Secondary table in Research.md was actually handled in code. Every Applicable Secondary state needs corresponding implementation in the diff: loading state, error state, empty state, offline behavior, accessibility labels, analytics events, deep link entry, etc. Missing Applicable Secondary = finding.
 - `feature-landscape` — verify the implementation matches the entity graph + layer map + integration points from Research.md `## Landscape`. Implementation drift = finding: wrong layer hosts business logic, integration-point contract violated, undocumented cross-layer coupling, work item declared done but acceptance criterion not met.
-- `feature-estimation` — sanity-check actual implementation against the range in Plan.md `## Estimation`. If actual effort is known, include or verify `## Estimate retrospective` (estimated range, actual engineering days, in-range verdict, variance reason, calibration action). Significant overrun (>50% above high end) without a documented reason in commits or retrospective = surface as `## Estimate retrospective` in Review.md for follow-up; not itself a finding.
+- `feature-estimation` — sanity-check actual implementation against the range in Plan.md `## Estimation`, including confidence, estimate maturity, delivery-calendar separation, and self-check. Include or verify mandatory `## Estimate retrospective` (estimated range, actual engineering days if known, in-range verdict, variance reason, calibration action). Significant overrun (>50% above high end) without a documented reason in commits or retrospective = surface as `## Estimate retrospective` in Review.md for follow-up; not itself a finding.
 - `task-new`, `task-move` — task lifecycle management (used in Follow-up suggestions)
 
 ## Related Agents (swift-toolkit)
