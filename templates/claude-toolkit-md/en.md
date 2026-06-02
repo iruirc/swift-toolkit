@@ -55,6 +55,14 @@ manual
 
 (optional: project-specific overrides for `feature-estimation`; leave empty until retrospectives show repeatable calibration data)
 
+## DeliveryMode
+
+(optional: `manual` (default) or `ai-assisted`; set `ai-assisted` when the team builds with AI coding assistants so `feature-estimation` also derives an AI-assisted range)
+
+## AILeverage
+
+(optional: project-specific overrides for AI leverage classes used by `feature-estimation`; leave empty until retrospectives show repeatable calibration data)
+
 ## Paths
 
 (optional: "- Sources: /Sources", "- Tests: /Tests")
