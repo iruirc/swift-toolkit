@@ -78,9 +78,10 @@ Everything else is **conditional** — include a section only when its trigger f
 | `### Risk deltas (per scenario)` | more than one delta applies; with a single delta, state it inline in the Range instead of a table |
 | `### Estimate maturity` | the estimate is `Conditional` (named conditions / unresolved assumptions exist) — a clean estimate is implicitly Committable |
 | `### Estimation conditions` | `### Estimate maturity` is `Conditional`; records each condition and whether it blocks Execute |
+| `### Assumptions` | the Range depends on any assumption — almost always; omit only for a self-contained estimate with no load-bearing premise |
 | `### Delivery calendar (not engineering days)` | a stakeholder needs a date, or a hard deadline / release window is in play |
 | `### Store review buffer` | a hard deadline requires a store-submitted build (standalone line, or a row inside the delivery calendar when that section is present) |
-| `### Known unknowns blocking final estimate` | at least one Known Unknown remains open |
+| `### Known unknowns blocking final estimate` | any Known Unknown was evaluated — list the open ones, or write `(none)` to show they were checked and none block |
 | `### Estimation self-check` | scales to the sections actually present — verify only what you produced |
 
 A UI-only, single-platform, familiar-tech feature with a known rollback path and no open unknown collapses to **Baseline + Range + Confidence + one-line Feature type** — four short sections. The worked example further down is deliberately a *Full* estimate (PERT item, parallel API, scoped Secondary) to show every section; don't mistake it for the minimum.
@@ -389,7 +390,7 @@ Before entering Execute, `Plan.md` MUST contain the **minimum viable estimate** 
 
 - `## Estimation` with `### Feature type` (one line), `### Baseline (per work item)` including concrete ops work, `### Range (engineering days)` with named best/worst scenarios, and `### Confidence` — always.
 - `### Assumptions` whenever the Range depends on any assumption (almost always).
-- Conditional sections (`### Risky item PERT`, `### Risk deltas (per scenario)`, `### Estimate maturity`, `### Estimation conditions`, `### Delivery calendar`, `### Store review buffer`, `### Known unknowns blocking final estimate`, `### Estimation self-check`) only when their trigger fired. A missing conditional section whose trigger *did* fire makes the Plan incomplete; a missing one whose trigger did not fire is correct, not a gap.
+- Conditional sections (`### Risky item PERT`, `### Risk deltas (per scenario)`, `### Estimate maturity`, `### Estimation conditions`, `### Delivery calendar`, `### Store review buffer`, `### Known unknowns blocking final estimate`, `### Estimation self-check`) only when their trigger fired. A missing conditional section whose trigger *did* fire makes the Plan incomplete; a missing one whose trigger did not fire is correct, not a gap. The store-review buffer counts as present when it appears as a row inside `### Delivery calendar` — it does not also need a standalone `### Store review buffer` section.
 
 Gate by maturity (an absent `### Estimate maturity` section means a clean estimate — treat as Committable):
 
@@ -419,7 +420,7 @@ Independently of maturity, the Plan is also incomplete — return `ask_user` —
 - **Skipping the spike for load-bearing unknowns.** A Known Unknown that trips the load-bearing-unknown rule (Step 4) must get a spike or resolution before final estimation.
 - **Omitting confidence or maturity.** A range without quality labels looks more precise than it is. (Maturity is itself conditional — a clean estimate is implicitly Committable; don't add the label just to have it.)
 - **Conditional without durable conditions.** If maturity is `Conditional`, the conditions must live in `### Estimation conditions` with statuses. Free-form prose is not enough after resume.
-- **Full ceremony for a trivial estimate.** A 1.5-day, familiar, flag-gated UI tweak does not need PERT, a delivery calendar, a maturity label, and an 11-item self-check. Scale to the *Estimation depth* table — Feature type + Baseline + Range + Confidence is the floor. Filling every section by reflex produces rubber-stamped paperwork, not a better estimate.
+- **Full ceremony for a trivial estimate.** A 1.5-day, familiar, flag-gated UI tweak does not need PERT, a delivery calendar, a maturity label, and the full self-check. Scale to the *Estimation depth* table — Feature type + Baseline + Range + Confidence is the floor. Filling every section by reflex produces rubber-stamped paperwork, not a better estimate.
 
 ## Calibration over time
 
