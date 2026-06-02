@@ -31,12 +31,14 @@ Estimates fail because they ignore the cost of what nobody wrote down: error sta
 ## The model
 
 ```
-adjusted = baseline × (1 + Σ risk_deltas) × dominant_multiplier?
-total_calendar = adjusted + store_buffer
+engineering_days = baseline × (1 + Σ risk_deltas) × dominant_multiplier?
+store_buffer     = +2–7 calendar days   ← reported separately, never summed in
 ```
 
+`engineering_days` and `store_buffer` are different units — working days vs wall-clock calendar days — so they are never added into one figure. Report engineering days as the range, then the store buffer as a separate line.
+
 - **Risk deltas are additive**, not multiplicative. Each delta is a percentage of the baseline; they sum, then scale the baseline once. Risk buffers are slack on the same work — multiplying them double-counts the same uncertainty and inflates an 8-day feature past 25 days. Adding them keeps the adjustment in the realistic 1.5–2.5× band.
-- **At most one dominant multiplier** is allowed, applied after the delta sum, and only when a single factor genuinely rescales the *whole* effort (e.g. first time on a new framework touches every item). Never stack two multipliers.
+- **At most one dominant multiplier** is allowed, applied after the delta sum, and only when a single factor genuinely rescales the *whole* effort (e.g. first time on a new framework touches every item). Never stack two multipliers. **When the dominant multiplier is in play, the unfamiliarity it represents IS the unknown — drop the Unknown-unknowns delta to its floor (+30%) or to 0, otherwise you count the same risk twice and re-introduce compounding through the back door.**
 - **Store review is a calendar buffer**, kept on its own line — it is wall-clock waiting, not engineering days. Never fold it into the engineering-day figure.
 
 ### Step 1 — Baseline
@@ -62,6 +64,8 @@ Sum every applicable delta below into a single risk factor, then scale the basel
 | Multiplier | Value | When applies |
 |---|---|---|
 | New tech / unfamiliar module | **×1.5–2.0** | First time touching this area; new SDK; new framework that touches most work items |
+
+*Worked example with a dominant multiplier:* baseline 6.0 days, first time on a new framework (×1.8). Because the multiplier already represents the unfamiliarity, Unknown-unknowns drops to its +30% floor and binary-distribution stays at +20% → `Σ deltas = +50%`. Result: `6.0 × 1.50 × 1.8 = 16.2 days`. Not `6.0 × (1 + 0.50 + 0.50_for_newtech) × 1.8` — that would count the new-framework risk in both the delta and the multiplier.
 
 **Calendar buffer (separate line, not engineering days):**
 
@@ -118,7 +122,11 @@ Write into the active task's `Plan.md` under heading `## Estimation`. Structure:
 | **Baseline total** | | **8.0 days** |
 
 ### Risk deltas (per scenario)
-| Risk delta | Low (best case) | High (worst case) | Justification |
+> Columns are the two **scenarios**, not the low/high values of each delta. A delta that
+> doesn't apply under a scenario shows `—`. Don't read these as "all knobs at minimum" vs
+> "all knobs at maximum" — that's the min/max-product fallacy Step 4 warns against.
+
+| Risk delta | Best-case scenario | Worst-case scenario | Justification |
 |---|---|---|---|
 | Unknown unknowns | +30% | +50% | Mid-familiarity territory, two unresolved known unknowns |
 | Secondary not scoped | — (scoped) | +70% | Designer mockups: delivered in best case, late in worst |
@@ -127,10 +135,12 @@ Write into the active task's `Plan.md` under heading `## Estimation`. Structure:
 | **Σ deltas** | **+50%** | **+180%** | |
 | Dominant multiplier | none | none | No new-framework work this feature |
 
-### Range
-**Low (best case):  8.0 × (1 + 0.50) = 12.0 days**
-**High (worst case): 8.0 × (1 + 1.80) = 22.4 days**
-**+ 2–7 calendar days** App Store review buffer (calendar, not engineering) when a hard deadline applies.
+### Range (engineering days)
+**Best case:  8.0 × (1 + 0.50) = 12.0 days**
+**Worst case: 8.0 × (1 + 1.80) = 22.4 days**
+
+### Calendar buffer (separate, not engineering days)
+**+ 2–7 calendar days** App Store review buffer when a hard deadline applies.
 
 ### Assumptions
 1. **Best case** holds when: designer error/loading/empty mockups already delivered, backend contract frozen by end of week 1, existing `ProductRepository` reused as-is.
@@ -178,3 +188,4 @@ These calibrations live in the team's retro notes, not in this skill — the ski
 - Does NOT promise calendar dates — engineering output is *working days*; the store buffer is the only calendar figure, kept separate.
 - Does NOT decide priority or scope — that's the product / planning conversation.
 - Does NOT estimate features without a landscape — return to `feature-landscape` first if no work-items list exists.
+- Does NOT model per-item uncertainty — risk deltas scale the whole baseline, so a near-certain domain stub and a risky new-SDK item share one factor. When per-item variance dominates, decompose finer and estimate the risky items as their own sub-range rather than leaning on one global delta.
