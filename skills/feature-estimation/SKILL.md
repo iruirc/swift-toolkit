@@ -1,11 +1,11 @@
 ---
 name: feature-estimation
-description: "Use when estimating mobile / app feature work — after `feature-landscape` produced work-items. Converts an ideal-day baseline into a calibrated day range using feature-type defaults, PERT for high-risk items, scope-aware additive risk deltas (unknowns, unscoped secondary requirements, parallel API, binary distribution, OS fragmentation), optional project overrides from `CLAUDE-swift-toolkit.md ## EstimationDeltas`, confidence/maturity labels, delivery-calendar conversion, at most one dominant multiplier for unfamiliar tech, and a separate App/Play Store review calendar buffer. Ceremony scales to risk — small familiar features collapse to baseline + range + confidence. Output is a range anchored to named scenarios, never a point estimate."
+description: "Use when estimating mobile / app feature work — after `feature-landscape` produced work-items. Converts an ideal-day baseline into a calibrated day range using feature-type defaults, PERT for high-risk items, scope-aware additive risk deltas (unknowns, unscoped secondary requirements, parallel API, binary distribution, OS fragmentation), optional project overrides from `CLAUDE-swift-toolkit.md ## EstimationDeltas`, confidence/maturity labels, delivery-calendar conversion, at most one dominant multiplier for unfamiliar tech, and a separate App/Play Store review calendar buffer. Ceremony scales to risk — small familiar features collapse to feature type + baseline + range + confidence. Output is a range anchored to named scenarios, never a point estimate."
 ---
 
 # Feature Estimation
 
-Estimates fail because they ignore the cost of what nobody wrote down: error states, the App Store review window, the engineer's unfamiliarity with the module, the API contract changing mid-sprint. This skill adds mobile-specific **scope-aware risk deltas** on top of a decomposed baseline, uses PERT only where item-level variance dominates, labels confidence/maturity, and produces a calibrated *range* anchored to named scenarios — never a single number. Ceremony scales to risk: a small, familiar feature collapses to Baseline + Range + Confidence, while a cross-platform, deadline-bound migration earns the full artifact.
+Estimates fail because they ignore the cost of what nobody wrote down: error states, the App Store review window, the engineer's unfamiliarity with the module, the API contract changing mid-sprint. This skill adds mobile-specific **scope-aware risk deltas** on top of a decomposed baseline, uses PERT only where item-level variance dominates, labels confidence/maturity, and produces a calibrated *range* anchored to named scenarios — never a single number. Ceremony scales to risk: a small, familiar feature collapses to Feature type + Baseline + Range + Confidence, while a cross-platform, deadline-bound migration earns the full artifact.
 
 > **Related skills:**
 > - `feature-landscape` — produces the work-items list this skill consumes
@@ -65,6 +65,7 @@ The full artifact below is the *ceiling*, not the floor. A small, familiar, low-
 
 **Minimum viable estimate (always required):**
 
+- `### Feature type` — one line, sets posture
 - `### Baseline (per work item)`
 - `### Range (engineering days)` — two named scenarios
 - `### Confidence`
@@ -73,10 +74,10 @@ Everything else is **conditional** — include a section only when its trigger f
 
 | Section | Include only when |
 |---|---|
-| `### Feature type` | always (one line — cheap, sets posture) |
 | `### Risky item PERT` | at least one high-variance item uses PERT |
 | `### Risk deltas (per scenario)` | more than one delta applies; with a single delta, state it inline in the Range instead of a table |
 | `### Estimate maturity` | the estimate is `Conditional` (named conditions / unresolved assumptions exist) — a clean estimate is implicitly Committable |
+| `### Estimation conditions` | `### Estimate maturity` is `Conditional`; records each condition and whether it blocks Execute |
 | `### Delivery calendar (not engineering days)` | a stakeholder needs a date, or a hard deadline / release window is in play |
 | `### Store review buffer` | a hard deadline requires a store-submitted build (standalone line, or a row inside the delivery calendar when that section is present) |
 | `### Known unknowns blocking final estimate` | at least one Known Unknown remains open |
@@ -233,6 +234,22 @@ These are **two independent axes**, not two names for the same thing. Confidence
 | Conditional | Rests on named conditions (e.g. a contract freeze) that are not yet accepted, **or** an open Known Unknown still trips the load-bearing-unknown rule (Step 4) |
 | Committable | No blocking conditions and no load-bearing unknown — safe to plan delivery against |
 
+When maturity is `Conditional`, add `### Estimation conditions`:
+
+```markdown
+### Estimation conditions
+| Condition | Owner | Status | Evidence / next action |
+|---|---|---|---|
+| Backend contract frozen by end of week 1 | Backend | pending_user | Ask user before Execute |
+```
+
+Allowed statuses:
+
+- `pending_user` — blocks Execute until the user accepts, defers, or resolves it.
+- `accepted` — user explicitly accepts this assumption; keep it visible for Review/Done.
+- `deferred` — condition is intentionally moved out of scope or to a later task.
+- `resolved` — evidence is available in an artifact, commit, ticket, or user response.
+
 The two axes are orthogonal — all four corners occur:
 
 - **High + Committable** — a familiar, fully-scoped feature. Start now.
@@ -267,6 +284,7 @@ Verify:
 - The dominant multiplier, if present, does not double-count unfamiliarity already covered by Unknown-unknowns.
 - Known Unknowns that trip the load-bearing-unknown rule (Step 4) have a required spike or resolution.
 - Confidence is stated; maturity is stated whenever it is not plainly Committable.
+- Conditional maturity includes `### Estimation conditions`; any `pending_user` row is treated as an Execute blocker.
 
 ## Output artifact
 
@@ -327,6 +345,12 @@ Medium — work items are decomposed and the rollback path is known, but API/des
 ### Estimate maturity
 Conditional — Execute may proceed only if backend contract and designer secondary states are accepted as scenario assumptions, and no Known Unknown remains with >30% swing.
 
+### Estimation conditions
+| Condition | Owner | Status | Evidence / next action |
+|---|---|---|---|
+| Backend contract frozen by end of week 1 | Backend | pending_user | Ask user before Execute; if accepted, keep the 10.7–16.6d range |
+| Designer secondary states accepted as scenario assumptions | Design/Product | pending_user | Ask user before Execute; if rejected, re-scope Secondary and re-estimate |
+
 ### Delivery calendar (not engineering days)
 | Component | Best case | Worst case | Notes |
 |---|---:|---:|---|
@@ -356,6 +380,7 @@ Conditional — Execute may proceed only if backend contract and designer second
 - n/a Dominant multiplier — no new-framework work this feature, so the double-count guard doesn't apply.
 - [x] No Known Unknown trips the load-bearing-unknown rule without a spike.
 - [x] Confidence stated (Medium); maturity stated because this estimate is Conditional.
+- [x] Estimation conditions record two `pending_user` rows; Execute must return `ask_user` until they are accepted, deferred, or resolved.
 ```
 
 ### Plan-stage gate
@@ -364,12 +389,12 @@ Before entering Execute, `Plan.md` MUST contain the **minimum viable estimate** 
 
 - `## Estimation` with `### Feature type` (one line), `### Baseline (per work item)` including concrete ops work, `### Range (engineering days)` with named best/worst scenarios, and `### Confidence` — always.
 - `### Assumptions` whenever the Range depends on any assumption (almost always).
-- Conditional sections (`### Risky item PERT`, `### Risk deltas (per scenario)`, `### Estimate maturity`, `### Delivery calendar`, `### Store review buffer`, `### Known unknowns blocking final estimate`, `### Estimation self-check`) only when their trigger fired. A missing conditional section whose trigger *did* fire makes the Plan incomplete; a missing one whose trigger did not fire is correct, not a gap.
+- Conditional sections (`### Risky item PERT`, `### Risk deltas (per scenario)`, `### Estimate maturity`, `### Estimation conditions`, `### Delivery calendar`, `### Store review buffer`, `### Known unknowns blocking final estimate`, `### Estimation self-check`) only when their trigger fired. A missing conditional section whose trigger *did* fire makes the Plan incomplete; a missing one whose trigger did not fire is correct, not a gap.
 
 Gate by maturity (an absent `### Estimate maturity` section means a clean estimate — treat as Committable):
 
 - **Draft** → Plan is not complete. Return control with `ask_user`; never enter Execute.
-- **Conditional** → do NOT enter Execute silently. The named conditions are not yet accepted just because they are written down. Return control with `ask_user`, listing each condition for the user to accept, defer, or resolve. Execute may begin only after that explicit response.
+- **Conditional** → do NOT enter Execute silently. `### Estimation conditions` must exist. If any condition is `pending_user`, return control with `ask_user`, listing each pending condition for the user to accept, defer, or resolve. Execute may begin only after every condition is recorded as `accepted`, `deferred`, or `resolved`.
 - **Committable (or no maturity section)** → gate passes on this axis.
 
 Independently of maturity, the Plan is also incomplete — return `ask_user` — if `## Estimation` is missing/malformed, a required section above is absent, or a Known Unknown trips the load-bearing-unknown rule (Step 4) without a required spike/resolution.
@@ -393,7 +418,8 @@ Independently of maturity, the Plan is also incomplete — return `ask_user` —
 - **Using PERT everywhere.** PERT is for specific high-variance rows. Using it for every row creates noise and hides decomposition problems.
 - **Skipping the spike for load-bearing unknowns.** A Known Unknown that trips the load-bearing-unknown rule (Step 4) must get a spike or resolution before final estimation.
 - **Omitting confidence or maturity.** A range without quality labels looks more precise than it is. (Maturity is itself conditional — a clean estimate is implicitly Committable; don't add the label just to have it.)
-- **Full ceremony for a trivial estimate.** A 1.5-day, familiar, flag-gated UI tweak does not need PERT, a delivery calendar, a maturity label, and an 11-item self-check. Scale to the *Estimation depth* table — Baseline + Range + Confidence is the floor. Filling every section by reflex produces rubber-stamped paperwork, not a better estimate.
+- **Conditional without durable conditions.** If maturity is `Conditional`, the conditions must live in `### Estimation conditions` with statuses. Free-form prose is not enough after resume.
+- **Full ceremony for a trivial estimate.** A 1.5-day, familiar, flag-gated UI tweak does not need PERT, a delivery calendar, a maturity label, and an 11-item self-check. Scale to the *Estimation depth* table — Feature type + Baseline + Range + Confidence is the floor. Filling every section by reflex produces rubber-stamped paperwork, not a better estimate.
 
 ## Calibration over time
 
