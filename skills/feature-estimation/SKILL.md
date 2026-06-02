@@ -41,10 +41,10 @@ baseline_expected = Σ fixed item days + Σ pert_expected + concrete ops days no
 risk_days(s)      = Σ (affected_baseline_expected × risk_delta applied under scenario s)
 
 # the PERT spread feeds the range ends — a risky item is optimistic in best case, pessimistic in worst:
-engineering_best  = (Σ fixed + Σ pert_OPTIMISTIC  + ops + risk_days(best))  × dominant_multiplier?
-engineering_worst = (Σ fixed + Σ pert_PESSIMISTIC + ops + risk_days(worst)) × dominant_multiplier?
+engineering_days(best)  = (Σ fixed + Σ pert_OPTIMISTIC  + ops + risk_days(best))  × dominant_multiplier?
+engineering_days(worst) = (Σ fixed + Σ pert_PESSIMISTIC + ops + risk_days(worst)) × dominant_multiplier?
 
-delivery_workdays = engineering_days / focus_factor + external_waits
+delivery_workdays(s) = engineering_days(s) / focus_factor + external_waits(s)
 store_buffer      = +2–7 calendar days            ← reported separately from engineering workdays
 ```
 
@@ -102,8 +102,8 @@ UI-only — settings toggle row + persisted flag. Lower API/Secondary risk.
 | **Baseline total** | | **1.5 days** |
 
 ### Range (engineering days)
-**Best case: 1.5d** (no deltas — familiar, flagged, Secondary scoped).
-**Worst case: ~2.0d** — unknown-unknowns +30% on 1.5d = +0.45d → 1.95d.
+**Best case: ~2.0d** — unknown-unknowns +30% on 1.5d = +0.45d → 1.95d.
+**Worst case: ~2.3d** — unknown-unknowns +50% on 1.5d = +0.75d → 2.25d.
 
 ### Confidence
 High — familiar module, flag-gated, no open unknown, no parallel API.
@@ -163,7 +163,7 @@ For every applicable delta below, choose an **affected baseline** and calculate 
 
 | Risk delta | Value | When applies |
 |---|---|---|
-| Unknown unknowns | **+30%–50%** | Always. +30% for well-known territory, +50% for greenfield. |
+| Unknown unknowns | **+30%–50%** | Always (the one delta never skipped). Familiarity sets where the band sits — anchor near +30% for well-known territory, near +50% for greenfield. Unlike binary distribution, this delta *may* vary across scenarios: best case = fewer hidden surprises (lower end), worst case = more (upper end). |
 | Secondary requirements not yet scoped | **+40%–70%** | When `feature-requirements ### Secondary` still has Pending rows |
 | API in parallel | **+30%–40%** | API being built same sprint — contract may shift |
 | Binary distribution risk | **0% / +10% / +20%** | 0% for SPM/CLI/no user-facing binary. +10% when feature flag / kill switch / remote rollback covers most failures. +20% for user-facing iOS/macOS binary with no instant rollback. |
@@ -289,7 +289,7 @@ Verify:
 
 ## Output artifact
 
-Write into the active task's `Plan.md` under heading `## Estimation`. Structure:
+Write into the active task's `Plan.md` under heading `## Estimation`. The example below is a **Full conditional estimate**: it deliberately includes `pending_user` conditions and therefore does **not** pass the Execute gate until those rows are accepted, deferred, or resolved.
 
 ```markdown
 ## Estimation
