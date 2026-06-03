@@ -260,6 +260,10 @@ class FeatureCoordinator: BaseCoordinator, FeatureNavigationDelegate {
 
 ### Child → Parent Coordinator (closures)
 
+Closures are the default for fire-and-forget completion. When the parent needs
+the **returned value** of a one-shot flow, prefer the async form below — it is a
+targeted upgrade, not a parallel convention.
+
 ```swift
 let child = coordinatorFactory.makeChildCoordinator(router: router)
 child.onFinish = { [weak self, weak child] result in
@@ -270,6 +274,84 @@ child.onFinish = { [weak self, weak child] result in
 addChild(child)
 child.start()
 ```
+
+### Child → Parent Coordinator (async/await)
+
+When a flow runs to a single result the parent wants to *await* — auth, paywall,
+a modal picker — an `async start()` reads top-to-bottom and drops the
+`[weak self, weak child]` dance. The `removeChild` sits on the line after
+`await`, so the lifecycle is structural — it can't be forgotten in a callback.
+
+```swift
+// Parent — linear, leak-free by construction
+func showAuthFlow() {
+    let child = coordinatorFactory.makeAuthCoordinator(router: router)
+    addChild(child)
+    Task { [weak self, weak child] in
+        guard let child else { return }
+        let result = await child.start()
+        self?.removeChild(child)        // runs after await — not in a callback
+        self?.handle(result)
+    }
+}
+```
+
+**The continuation bridges whatever the screen exposes — this is orthogonal to
+the ViewModel's own channel.** Pick the bridge by what the ViewModel offers:
+
+```swift
+// (1) ViewModel exposes a CLOSURE → adapt it with a continuation.
+//     This is the ONLY form with a double-resume hazard — see caveats.
+func start() async -> AuthResult {
+    await withCheckedContinuation { continuation in
+        let module = makeLoginModule()
+        module.viewModel.onAuthenticated = { result in
+            continuation.resume(returning: result)   // resume exactly once
+        }
+        router.push(module.view)
+    }
+}
+
+// (2) ViewModel is ASYNC → no continuation; just forward the await. Cleanest.
+func start() async -> AuthResult {
+    let module = makeLoginModule()
+    router.push(module.view)
+    return await module.viewModel.authenticate()     // VM owns the suspension
+}
+
+// (3) ViewModel is COMBINE → bridge the publisher's async sequence.
+func start() async -> AuthResult {
+    let module = makeLoginModule()
+    router.push(module.view)
+    for await result in module.viewModel.authPublisher.values {
+        return result                                // first emission
+    }
+    return .cancelled    // no emission: publisher completed empty or Task cancelled
+}
+```
+
+Prefer form (2) when you own the ViewModel — the continuation in (1) exists only
+to adapt a callback-style VM, and is the only form that can crash on a second
+resume. Under Swift 6 strict concurrency the coordinator is `@MainActor`, so the
+continuation resumes on the main actor and the result needs no `Sendable` work.
+
+**Pick the child→parent channel by signal shape:**
+
+| Signal | Use |
+|---|---|
+| One-shot completion, fire-and-forget | closure `onFinish` |
+| One-shot **returning a value** the parent awaits | `async start() -> Result` |
+| Many events over the flow's lifetime | delegate or Combine `AnyPublisher` |
+
+**Caveats:**
+- **Resume exactly once.** In form (1) a second `resume` traps. If the screen can
+  finish by multiple paths (button + swipe-back), funnel them through one resume
+  point (nil the stored continuation after resuming).
+- **Cancellation:** plain `withCheckedContinuation` won't dismiss the pushed
+  screen if the parent Task is cancelled. For cancellable flows wrap in
+  `withTaskCancellationHandler` (dismiss there) or keep the closure form.
+- **Not for long-lived flows** (tab bar, root) — those never return; closure or
+  delegate fits.
 
 ## Child Coordinator Lifecycle
 
