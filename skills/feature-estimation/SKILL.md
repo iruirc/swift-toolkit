@@ -472,18 +472,59 @@ Static deltas are a starting point, not a prescription. After each shipped featu
 
 Project-specific overrides live in `CLAUDE-swift-toolkit.md ## EstimationDeltas` using the table format from Step 0. Keep overrides sparse: only encode repeatable evidence from multiple finished features, not one-off surprises.
 
-Under AI-assisted mode, the retrospective also compares the AI-assisted estimate against actual AI-assisted engineering days **per leverage class**, and narrows the class divisors over time via `CLAUDE-swift-toolkit.md ## AILeverage`. Until enough finished AI-assisted features exist to do this, keep AI-assisted ranges at Low confidence.
+Under AI-assisted mode, the retrospective also compares the AI-assisted estimate against actual AI-assisted effort **per leverage class**, and narrows the class divisors over time via `CLAUDE-swift-toolkit.md ## AILeverage`. Until enough finished AI-assisted features exist to do this, keep AI-assisted ranges at Low confidence.
 
-At Done / Review time, MUST add an estimate retrospective when an estimate exists. Actual engineering days are active implementation/review/test days, not wall-clock waiting:
+At Done / Review time, MUST add an estimate retrospective when an estimate exists. Actual engineering effort is active implementation/review/test work, not wall-clock waiting.
+
+### Capturing actual effort (hybrid model)
+
+Actual effort is captured from sources in priority order — the first two compose, they don't exclude each other:
+
+1. **Git proxy (always, automatic).** Compute the **commit-span** (timestamp of the task's first phase commit → its last) plus the **phase count** and **rework iterations** (phases re-opened / re-committed). Record it under an explicit `proxy` label. The proxy is a *wall-clock* signal for the executing engine — human OR AI — and is **never** presented as human-days or AI-equivalent-days. It exists so a data point always exists, even when nobody logs effort.
+2. **Human effort (optional, when offered).** If the user supplies real hours/days, record it as `human`. This is the calibration-grade signal because it is in the same unit as the baseline.
+3. **`unknown`** — only when neither a proxy (e.g. squashed/foreign history) nor a human figure is available. Name the missing signal. Never invent days from commit count alone.
+
+The **in-range verdict uses `human ?? proxy_translated`**: prefer the human figure; fall back to the proxy *only* with an explicit unit caveat, since wall-clock ≠ effort. Reporting both keeps the proxy honest (it anchors the trend) while letting a human figure override it when precision matters.
+
+In AI-assisted mode, break actual down **per leverage class** (`mechanical` / `pattern-test` / `glue` / `novel-domain` / `spec-bound` / `diagnosis`) so each class's *observed* divisor (`human_days_estimated ÷ actual_for_that_class`) can be compared to the divisor that was used. This per-class delta is what narrows `## AILeverage`.
 
 ```markdown
 ## Estimate retrospective
-| Estimated range | Actual engineering days | In range? | Variance reason | Calibration action |
-|---:|---:|---|---|---|
-| 10.7–16.6d | 18.0d | Over (+8%) | Backend changed response shape after integration | Keep API-in-parallel high end at +40% |
+| Estimated range | Actual (human ?? proxy) | Source | In range? | Variance reason | Calibration action |
+|---:|---:|---|---|---|---|
+| 10.7–16.6d | 18.0d | human | Over (+8%) | Backend changed response shape after integration | Keep API-in-parallel high end at +40% |
+| 3.0–6.0d | span 1h35m / 3 phases / 0 rework | proxy | n/a (proxy unit) | agent-executed; human-days not logged | Add per-class proxy point to log |
+
+### Per-leverage-class actual (AI-assisted mode)
+| Class | Human-days estimated | AI-days actual | Divisor used | Observed divisor |
+|---|---:|---:|---:|---:|
+| mechanical | 2.0 | 0.1 | ÷5 | ÷20 |
+| novel-domain | 1.5 | 0.6 | ÷1.2 | ÷2.5 |
+| diagnosis | 1.25 | 1.2 | ÷1 | ÷1 |
 ```
 
-If actual effort is unknown, write `unknown` and explain what signal is missing. Do not invent actual days from commit count alone.
+### Calibration log write-back
+
+Every retrospective MUST append one row to the project's calibration log at **`Tasks/_calibration/estimation-log.md`** (create the file with a header if absent). One row per finished feature/epic: date, task id, estimated range, actual (human ?? proxy with its source label), and — in AI-assisted mode — the per-class observed divisors. This file is the durable evidence base; a single `## Estimate retrospective` in one `Done.md` is not enough to calibrate against after it scrolls out of context.
+
+The log is a single Markdown table with a **fixed, parseable column order** so the mean-per-knob computation can read it back mechanically. When the file is absent, create it with exactly this header (verbatim, in this order); never reorder or rename columns:
+
+```markdown
+# Estimation calibration log
+
+> Durable evidence base for `feature-estimation` calibration. One row per finished feature/epic.
+> Append-only. Columns are fixed-order and machine-read — do not reorder or rename.
+> `actual` is in the unit named by `source`: `human` = engineering days; `proxy` = wall-clock span + phase/rework counts (NOT days); `unknown` = no signal.
+
+| date | task_id | type | posture | estimated_range | actual | source | in_range | variance_reason | observed_divisors |
+|------|---------|------|---------|-----------------|--------|--------|----------|-----------------|-------------------|
+| 2026-06-04 | 041-photo-feed | FEATURE | ai-assisted | 3.0–6.0d | span 1h35m / 3 phases / 0 rework | proxy | n/a (proxy unit) | agent-executed; human-days not logged | mechanical=÷20; novel-domain=÷2.5 |
+| 2026-05-28 | 038-auth | FEATURE | human | 10.7–16.6d | 18.0d | human | over (+8%) | backend changed response shape | — |
+```
+
+Column semantics: `type` ∈ {FEATURE, EPIC, BUG, REFACTOR, TEST, RESEARCH}; `posture` ∈ {human, ai-assisted}; `estimated_range` is the named best–worst range as reported; `source` ∈ {human, proxy, unknown} and fixes the unit of `actual`; `in_range` is the verdict computed from `human ?? proxy` (use `n/a (proxy unit)` when only a proxy exists); `observed_divisors` is a `;`-separated `class=÷N` list in AI-assisted mode, else `—`. Epics append one rolled-up row (summed step actuals in matching units) in addition to each step's own row.
+
+When the log holds **≥3–5 finished features of the same posture**, the skill (or the architect at the next Plan stage) computes the mean observed value per knob — Secondary delta, Unknown-unknowns band, or AI leverage divisor — and **proposes** an update to `CLAUDE-swift-toolkit.md ## EstimationDeltas` / `## AILeverage`. The proposal is surfaced to the user, never written silently: calibration changes the numbers every future estimate depends on. Keep overrides sparse — encode repeatable evidence from multiple features, never a one-off surprise. Until an AI-leverage class is calibrated this way, its range stays `Low (uncalibrated)`.
 
 ## Platform-specific notes
 

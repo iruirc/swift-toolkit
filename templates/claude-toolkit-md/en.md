@@ -53,7 +53,7 @@ manual
 
 ## EstimationDeltas
 
-(optional: project-specific overrides for `feature-estimation`; leave empty until retrospectives show repeatable calibration data)
+(optional: project-specific overrides for `feature-estimation`; leave empty until the calibration log `Tasks/_calibration/estimation-log.md` shows repeatable data across ≥3–5 finished features. Updates are proposed from that log, never written silently.)
 
 ## DeliveryMode
 
@@ -63,7 +63,7 @@ manual
 
 ## AILeverage
 
-(optional: project-specific overrides for AI leverage classes used by `feature-estimation`; leave empty until retrospectives show repeatable calibration data)
+(optional: project-specific overrides for AI leverage classes used by `feature-estimation`; leave empty until the calibration log `Tasks/_calibration/estimation-log.md` shows repeatable per-class observed divisors across ≥3–5 finished AI-assisted features. Updates are proposed from that log, never written silently.)
 
 ## Paths
 
