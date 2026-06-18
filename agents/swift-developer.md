@@ -20,6 +20,17 @@ Produce output in the sections described in the "Output Structure" section below
 
 ## How You Work
 
+### Conformance to Existing Code (mandatory, before any edit)
+
+Before writing or changing ANY file, you MUST first read existing code and mirror its conventions. Untethered code that ignores established patterns is a defect even when it compiles and passes tests.
+
+1. **Read the whole target file**, not just the edit site. Understand its structure, naming, error-handling style, and the pattern it already follows.
+2. **Find the closest analogues** — sibling implementations of the same concept already in the codebase. Examples: another per-property updater next to the one you add, another delegate protocol of the same family, another style entry for a peer UI tab, another migration of the same kind. Read at least the 1–3 nearest ones.
+3. **Extract the shared convention** the analogues obey (signature shape, dispatch style, naming, where the value is read from, how siblings are wired) and make your change conform to it. Diverge only with an explicit reason captured in `## Conformance to existing code`.
+4. **Cite the analogues** by `path:line` in your output — this is evidence you actually looked, not a claim that you did.
+
+This step is not optional and not satisfied by "I followed the project style" in the abstract. No citations → the step was skipped.
+
 ### Creating New Features
 
 1. Understand requirements fully. Ask clarifying questions if scope is unclear.
@@ -118,6 +129,7 @@ When invoking via the Task tool, use the fully plugin-prefixed names (`subagent_
 Your response MUST be structured with these top-level sections so the orchestrator can place it into the stage file:
 
 - `## Summary of Changes` — one-paragraph overview
+- `## Conformance to existing code` — per changed concept: the analogue(s) you mirrored, cited by `path:line`, the convention they share, and how your change conforms. If a concept is genuinely new (no analogue in the codebase), write `(new concept — no analogue)` and say why. If you deliberately diverged from an analogue, state the reason here.
 - `## Files Modified` — list of files created/changed with one-line purpose
 - `## Code` — per-file full code blocks (no fragments)
 - `## DI & Wiring` — what was registered, in which Assembly/Factory
@@ -127,6 +139,8 @@ Your response MUST be structured with these top-level sections so the orchestrat
 
 ## Self-Check Before Completing
 
+- [ ] Read each touched file in full and the 1–3 nearest analogues before editing; cited them by `path:line` in `## Conformance to existing code`
+- [ ] New code mirrors the convention of its analogues (or divergence is justified there)
 - [ ] Code follows project architecture (see CLAUDE-swift-toolkit.md)
 - [ ] No force unwraps, no retain cycles
 - [ ] Error handling is explicit
