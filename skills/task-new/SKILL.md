@@ -70,7 +70,10 @@ For reference, the templates contain these placeholders:
    - "in UNABLE_FIX" (rare; usually set later) → `UNABLE_FIX/`
    - Default → `ACTIVE/`
    - Explicit "create in <STATUS>" → that STATUS folder
-2. **Get the next NNN**: scan every folder under `Tasks/**/` matching `^\d{3}-`, find the max, increment by 1.
+2. **Get the next NNN** (numbers are unique across ALL statuses, including `DONE/`):
+   - List each status directory explicitly (`ls Tasks/<STATUS>/` for every status folder that exists). Do NOT rely on a recursive glob or `find` without `-L`: in some projects `Tasks/` is a symlink, and non-following traversal silently returns nothing — a partial scan is exactly what produces duplicate numbers.
+   - Collect all entries starting with a number (`^\d{3}`, with or without a `-slug` suffix — a malformed bare-number folder still occupies its number), take the max, add 1.
+   - **Collision check**: verify no `Tasks/*/<NNN>-*` (or bare `Tasks/*/<NNN>`) exists for the chosen NNN; if it does — increment and re-check. Re-run this check right before creating the folder: a parallel session may have taken the number in the meantime.
 3. **Make the folder**: `Tasks/<STATUS>/NNN-slug/`.
 4. **Decide `{{TASK_TYPE}}`** by intent (matched across languages):
    - "bug" / "crash" / "doesn't work" / "regression" → `BUG`
@@ -128,7 +131,7 @@ For reference, the templates contain these placeholders:
 ## Process — step task (sub-task of an epic)
 
 1. **Identify the parent** — by number ("for 137"), slug ("for cross-platform-roadmap"), or current conversation context. Ambiguous → ask the user via the structured question mechanism using key `ambiguous_parent_question` with placeholder `{candidates}` (the matching folder names).
-2. **Find the parent folder**: `Tasks/**/137-*` (any STATUS).
+2. **Find the parent folder**: `137-*` in any STATUS folder (explicit per-status `ls Tasks/<STATUS>/`; a recursive glob may not follow a symlinked `Tasks/`).
 3. **Choose the step name**:
    - Numeric: find the max existing `N.step` in the parent (including sibling steps in nested epics), increment by 1 → `<N+1>.step`.
    - Named: the user said "step composition-model" → `composition-model.step`.
