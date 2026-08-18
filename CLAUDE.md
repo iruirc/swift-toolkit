@@ -24,7 +24,7 @@ en
 - `commands/` — slash commands (one Markdown file per command)
 - `templates/claude-md/` — CLAUDE.md templates copied into user projects (`en.md`, `ru.md`)
 - `notes/` — free-form maintainer notes, research, comparisons (any language; own local git repo, gitignored)
-- `docs/superpowers/` — superpowers specs and plans (any language; gitignored, not under git)
+- `docs/superpowers/` — superpowers specs and plans (any language; own local git repo, gitignored)
 - `.claude-plugin/` — plugin manifests (`plugin.json`, `marketplace.json`)
 
 ## Conventions
