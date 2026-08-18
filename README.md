@@ -179,7 +179,14 @@ Required: `yq` v4+. Optional: `gh`, `xcodegen` (xcodegen required when project b
 
 ## Roadmap
 
-Current state and gaps — in [`notes/skills-roadmap.md`](notes/skills-roadmap.md).
+Architectural coverage is complete for patterns (MVC / MVVM / VIPER / Clean / TCA / MVI),
+navigation (Coordinator, SwiftUI, deep links), DI, and cross-cutting layers
+(errors / networking / persistence / concurrency placement).
+
+Not covered yet, in rough order of demand: logging architecture, caching strategy,
+feature flags, theming / design system, background tasks, multi-platform code sharing,
+and UIKit→SwiftUI migration patterns. Workspace clusters 2 (Git Tooling) and 3 (Quality)
+are upcoming — see *Multi-package workspace* above.
 
 ---
 

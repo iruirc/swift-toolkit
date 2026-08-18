@@ -23,7 +23,7 @@ en
   - each localized skill has `locales/{en,ru}.md`
 - `commands/` — slash commands (one Markdown file per command)
 - `templates/claude-md/` — CLAUDE.md templates copied into user projects (`en.md`, `ru.md`)
-- `notes/` — free-form maintainer notes, research, comparisons (any language; own local git repo, gitignored)
+- `notes/` — free-form maintainer notes, research, comparisons (any language; own local git repo, gitignored). Layout and conventions: `notes/README.md` — read it before adding a file there.
 - `docs/superpowers/` — superpowers specs and plans (any language; own local git repo, gitignored)
 - `.claude-plugin/` — plugin manifests (`plugin.json`, `marketplace.json`)
 
