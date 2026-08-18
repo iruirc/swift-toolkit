@@ -1,6 +1,6 @@
 # Stack-Axis Mapping Convention for swift-toolkit
 
-> Date: 2026-05-15. Companion to `docs/superpowers/specs/2026-05-15-stack-axis-resolution-design.md`.
+> Date: 2026-05-15. Companion to `docs/superpowers/archive/specs/2026-05-15-stack-axis-resolution-design.md`.
 
 ## Goal
 
