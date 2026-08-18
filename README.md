@@ -179,7 +179,7 @@ Required: `yq` v4+. Optional: `gh`, `xcodegen` (xcodegen required when project b
 
 ## Roadmap
 
-Current state and gaps — in [`docs/skills-roadmap.md`](docs/skills-roadmap.md).
+Current state and gaps — in [`notes/skills-roadmap.md`](notes/skills-roadmap.md).
 
 ---
 

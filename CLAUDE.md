@@ -10,7 +10,7 @@ en
 
 ## Persona
 
-- This repo's source-of-truth language is English. All files outside `docs/` and explicit translated mirrors must be in English.
+- This repo's source-of-truth language is English. All files outside `docs/`, `notes/` and explicit translated mirrors must be in English.
 - User-facing strings produced by skills are localized via `skills/<name>/locales/<lang>.md`. Editing localized strings requires updating every locale file with parity.
 - When changing a skill body, never inline a localized string — always reference a locale key.
 
@@ -23,7 +23,8 @@ en
   - each localized skill has `locales/{en,ru}.md`
 - `commands/` — slash commands (one Markdown file per command)
 - `templates/claude-md/` — CLAUDE.md templates copied into user projects (`en.md`, `ru.md`)
-- `docs/` — free-form reference notes and superpowers plans/specs (any language)
+- `notes/` — free-form maintainer notes, research, comparisons (any language; own local git repo, gitignored)
+- `docs/superpowers/` — superpowers specs and plans (any language; gitignored, not under git)
 - `.claude-plugin/` — plugin manifests (`plugin.json`, `marketplace.json`)
 
 ## Conventions

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Allowed cyrillic locations:
-#   docs/**                          (free-form reference)
+#   docs/**, notes/**                (free-form reference)
 #   skills/*/locales/ru.md           (Russian locale strings)
 #   templates/claude-md-stub/ru.md   (Russian template)
 #   conventions/i18n.md              (canonical multilingual examples)
@@ -16,7 +16,7 @@ set -euo pipefail
 violations=0
 while IFS= read -r -d '' f; do
   case "$f" in
-    ./docs/*) continue ;;
+    ./docs/*|./notes/*) continue ;;
     *.ru.md) continue ;;
     ./skills/*/locales/*.md) continue ;;
     ./templates/claude-md-stub/ru.md) continue ;;
