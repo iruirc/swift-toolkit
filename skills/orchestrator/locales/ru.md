@@ -105,3 +105,9 @@ audit; inventory; grep all; аудит; найди все
 
 ## research_agent_security_keywords
 security; OWASP; vulnerability; pinning; безопасность
+
+## dispatch_method_a
+Стадии профиля {profile} идут через workflow-конвейер — последовательность держит рантайм, по агенту на стадию.
+
+## dispatch_method_b
+Тул Workflow в этой сессии недоступен, поэтому профиль {profile} идёт через свой скилл. Стадии и агенты те же, но последовательность держит ассистент, а не код.

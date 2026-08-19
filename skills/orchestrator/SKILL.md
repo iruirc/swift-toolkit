@@ -244,12 +244,13 @@ See also the "Stage Management" section — it details the semantics of `run --f
 
 ## Outbound Contract
 
-After Resolution, the orchestrator calls `Skill` with args in `key=value` form, **separated only by newlines** (a comma is NOT used as a field separator). **All fields are filled** — workflow-* never tries to recover anything.
+After Resolution, the orchestrator hands these fields to the dispatch path chosen in **Dispatch**. The fields are identical either way; only the encoding differs. Method B takes `key=value` form, **separated only by newlines** (a comma is NOT used as a field separator). Method A takes the same fields as a JSON object. **All fields are filled** — neither workflow-* nor a workflow script tries to recover anything.
 
 Multi-valued fields (e.g. `archive_paths`) are encoded in **list syntax**: square brackets, commas inside.
 
 ```
 task_id=001
+task_dir=Tasks/ACTIVE/001-feature-search
 profile=feature
 action=run|continue|redo|restart|restart-full
 start_stage=Plan
@@ -273,6 +274,8 @@ Semantics of `stage_scope`:
 
 `start_phase` — for phase-level resume inside a stage (e.g. `Execute:phase=2.3`). Filled only when the trigger names a phase ("start from phase 2.3", "redo phase 2.3"); otherwise `null`.
 
+`task_dir` — the resolved task folder, `Tasks/<STATUS>/<task_id>-*/`, without a trailing slash. The orchestrator already holds this path (it archives into it), and passing it explicitly is what keeps two agents from disagreeing about which folder they are working in. Required: a Method A script has no filesystem access and cannot glob for it, and refuses to start without it.
+
 `lang` — the `<lang>` resolved by the Language Resolution section (`ru` | `en`; default `en`). Always filled. The subagent uses it for artifact **prose** and its final report; artifact **structure** stays EN regardless (see `conventions/i18n.md` → "Artifact authoring rule"). Passing it explicitly means workflow-* / subagents never re-read `CLAUDE-swift-toolkit.md` for output language.
 
 `archive_paths` — list of paths to backups already created in `_archive/` for stages that will be overwritten (filled before handing off control). Format: `[path1, path2, path3]`. Empty list = `[]`.
@@ -294,17 +297,47 @@ Semantics of `stage_scope`:
 
 ## Dispatch
 
-| TASK_TYPE | Workflow skill |
-|---|---|
-| FEATURE | `swift-toolkit:workflow-feature` |
-| BUG | `swift-toolkit:workflow-bug` |
-| REFACTOR | `swift-toolkit:workflow-refactor` |
-| TEST | `swift-toolkit:workflow-test` |
-| REVIEW | `swift-toolkit:workflow-review` |
-| EPIC | `swift-toolkit:workflow-epic` |
-| RESEARCH | `swift-toolkit:workflow-research` |
+A profile has up to two executable forms. **Method A** is a workflow script the runtime executes, so the stage sequence is code rather than an instruction. **Method B** is the skill that has always run the profile. They implement the same stages — `scripts/lint-workflows.sh` fails the build if they drift — and the orchestrator picks between them once per task, not once per stage.
 
-Action after Resolution: invoke the `Skill` tool with `name` from the table and `args` in Outbound Contract format.
+| TASK_TYPE | Method A — workflow script | Method B — skill |
+|---|---|---|
+| FEATURE | — | `swift-toolkit:workflow-feature` |
+| BUG | `workflows/profile-bug.js` | `swift-toolkit:workflow-bug` |
+| REFACTOR | — | `swift-toolkit:workflow-refactor` |
+| TEST | — | `swift-toolkit:workflow-test` |
+| REVIEW | — | `swift-toolkit:workflow-review` |
+| EPIC | — | `swift-toolkit:workflow-epic` |
+| RESEARCH | — | `swift-toolkit:workflow-research` |
+
+A `—` means no script exists for that profile yet and it always takes Method B. Never construct a `scriptPath` for a profile this table does not list — a missing file fails the run after the user has already been told the task started.
+
+**Choosing the path.** Check whether `Workflow` is among the tools you can call **right now** — the ones handed to you with their parameters. Its appearance in this table, in a skill's prose, or in an agent's `tools` line does not count: look, do not assume. Then:
+
+- `Workflow` is callable AND the profile has a Method A script → Method A.
+- anything else → Method B, exactly as before.
+
+State the choice **once**, in the first stage report of the task, using key `dispatch_method_a` or `dispatch_method_b`. Not per stage.
+
+**Method A — invoke.**
+
+```
+Workflow({
+  scriptPath: "${CLAUDE_PLUGIN_ROOT}/workflows/profile-<profile>.js",
+  args: { <the Outbound Contract, as a JSON object> }
+})
+```
+
+`scriptPath` rather than `name`: the workflow registry is built at session start, so a plugin updated mid-session resolves by path but not yet by name. If `${CLAUDE_PLUGIN_ROOT}` does not expand, resolve the toolkit root the way `conventions/agent-tooling.md` describes and build the path from there.
+
+Pass `args` as a real JSON object. A JSON-encoded string arrives at the script as a string.
+
+**Method A — manual mode.** A running workflow cannot ask the user anything. So `manual` mode dispatches **one workflow per stage**: `stage_scope=single` with `start_stage=<stage>`, wait for the result, run the usual post-stage gating (open-questions inspection, then `stage_done_prompt`), then dispatch the next stage. `auto` mode passes the whole range in a single call.
+
+**Method A — reading the result.** The script returns the same Output Contract every `workflow-*` skill returns — `status`, `last_completed_stage`, `artifact_path`, `next_recommended_action`, `notes` — plus the stage status fields where they apply: `validation_status`, `review_status`, `reproducible`, `blocked_phase`. Gate on those fields rather than re-reading the artifact's first line. The first line is still written and still what a human reads; it is simply no longer the parsing surface.
+
+`status: error` with `reason: no-args` means the contract never reached the script. Do not run the stage by hand and do not slide over to Method B as if nothing happened — say what happened, then re-dispatch with the contract filled.
+
+**Method B — invoke.** Unchanged: invoke the `Skill` tool with the name from the table and `args` in Outbound Contract format.
 
 ## Gating
 

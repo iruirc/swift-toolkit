@@ -105,3 +105,9 @@ audit; inventory; grep all
 
 ## research_agent_security_keywords
 security; OWASP; vulnerability; pinning
+
+## dispatch_method_a
+Stages of the {profile} profile run through the workflow pipeline — the runtime holds the sequence, one agent per stage.
+
+## dispatch_method_b
+The Workflow tool is not available in this session, so the {profile} profile runs through its skill. Same stages and same agents; the sequence is held by the assistant rather than by code.
