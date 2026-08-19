@@ -9,6 +9,8 @@ set -euo pipefail
 #   - stage parity: every SKILL.md stage that names an agent has a meta.phases entry,
 #     and no meta.phases entry invents a stage the profile does not have
 #   - every agentType resolves to a file in agents/
+#   - the prelude block is byte-identical in every script (a script cannot import,
+#     so the shared skeleton is copied; this is what keeps the copies one thing)
 #   - none of the sandbox-forbidden globals, and no worktree isolation (decision D5)
 
 cd "$(dirname "$0")/.."
@@ -41,6 +43,7 @@ def skill_stages(profile):
             with_agent.append(name)
     return stages, with_agent
 
+preludes = {}
 files = sorted(f for f in os.listdir('workflows') if f.endswith('.js'))
 if not files:
     print('no workflow scripts — nothing to lint')
@@ -50,6 +53,12 @@ for fname in files:
     path = f'workflows/{fname}'
     raw = open(path, encoding='utf-8').read()
     src = strip_comments(raw)
+
+    pre = re.search(r'^// ── prelude ─.*?^// ── end prelude ─.*?$', raw, flags=re.M | re.S)
+    if pre:
+        preludes[fname] = pre.group(0)
+    else:
+        violations.append(f'{path}: no prelude block — expected `// ── prelude ─` … `// ── end prelude ─`')
 
     meta = re.search(r'export const meta\s*=\s*\{(.*?)^\}', raw, flags=re.M | re.S)
     if not meta:
@@ -108,6 +117,16 @@ for fname in files:
         if token in src:
             violations.append(f'{path}: contains `{token}` — {why}')
 
+if len(preludes) > 1:
+    reference_name = sorted(preludes)[0]
+    reference = preludes[reference_name]
+    for name in sorted(preludes):
+        if preludes[name] != reference:
+            violations.append(
+                f'workflows/{name}: prelude differs from workflows/{reference_name}. '
+                'The skeleton is copied because a workflow script cannot import; the copies have to stay one text.'
+            )
+
 for v in violations:
     print(v)
 
@@ -116,5 +135,5 @@ if violations:
     print(f'workflow lint failed: {len(violations)} violation(s)')
     sys.exit(1)
 
-print(f'workflow lint passed: {len(files)} script(s), stages in sync with their skills')
+print(f'workflow lint passed: {len(files)} script(s), stages in sync with their skills, preludes identical')
 PY

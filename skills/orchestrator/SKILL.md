@@ -301,10 +301,10 @@ A profile has up to two executable forms. **Method A** is a workflow script the 
 
 | TASK_TYPE | Method A — workflow script | Method B — skill |
 |---|---|---|
-| FEATURE | — | `swift-toolkit:workflow-feature` |
+| FEATURE | `workflows/profile-feature.js` | `swift-toolkit:workflow-feature` |
 | BUG | `workflows/profile-bug.js` | `swift-toolkit:workflow-bug` |
-| REFACTOR | — | `swift-toolkit:workflow-refactor` |
-| TEST | — | `swift-toolkit:workflow-test` |
+| REFACTOR | `workflows/profile-refactor.js` | `swift-toolkit:workflow-refactor` |
+| TEST | `workflows/profile-test.js` | `swift-toolkit:workflow-test` |
 | REVIEW | — | `swift-toolkit:workflow-review` |
 | EPIC | — | `swift-toolkit:workflow-epic` |
 | RESEARCH | — | `swift-toolkit:workflow-research` |

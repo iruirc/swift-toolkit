@@ -1,21 +1,20 @@
 export const meta = {
-  name: 'profile-bug',
-  description: 'BUG profile pipeline: Reproduce, Diagnose panel, Plan, per-phase Fix, Validation, Review, Done',
+  name: 'profile-feature',
+  description: 'FEATURE profile pipeline: Research, Plan behind an estimation gate, per-phase Execute, Validation, Review, Done',
   whenToUse:
-    'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=BUG, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
+    'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=FEATURE, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
   phases: [
-    { title: 'Reproduce', detail: 'pin a deterministic scenario Validation can replay' },
-    { title: 'Diagnose', detail: 'panel: diagnostics and architect in parallel, then one synthesis' },
-    { title: 'Plan', detail: 'phase table plus per-phase checkboxes' },
-    { title: 'Fix', detail: 'one agent per plan phase, sequential, a commit per green phase' },
-    { title: 'Validation', detail: 'build, tests, and a replay of the reproduction scenario' },
-    { title: 'Review', detail: 'independent read of the diff' },
-    { title: 'Done', detail: 'final report' },
+    { title: 'Research', detail: 'security lens, then the architect writes Requirements and Landscape' },
+    { title: 'Plan', detail: 'phase table, per-phase checkboxes, and the estimation gate' },
+    { title: 'Execute', detail: 'one agent per plan phase, sequential, a commit per green phase' },
+    { title: 'Validation', detail: 'build, tests, and the ops checklist' },
+    { title: 'Review', detail: 'independent read of the diff, cross-checked against the ops checklist' },
+    { title: 'Done', detail: 'final report with the estimate retrospective' },
   ],
 }
 
-const PROFILE = 'BUG'
-const ORDER = ['Reproduce', 'Diagnose', 'Plan', 'Fix', 'Validation', 'Review', 'Done']
+const PROFILE = 'FEATURE'
+const ORDER = ['Research', 'Plan', 'Execute', 'Validation', 'Review', 'Done']
 
 // ── prelude ──────────────────────────────────────────────────────────────────
 // Byte-identical in every profile script; scripts/lint-workflows.sh enforces that. A workflow
@@ -207,95 +206,55 @@ The phase is not done until every checkbox is ticked AND it is committed. If you
 }
 // ── end prelude ──────────────────────────────────────────────────────────────
 
-// ── Reproduce ───────────────────────────────────────────────────────────────
-if (runs('Reproduce')) {
-  const repro = await agent(
+// ── Research ────────────────────────────────────────────────────────────────
+// Sequential rather than a parallel panel: both lenses feed one artifact, and only the
+// architect writes it. Two agents racing on Research.md would cost more than the wait saves.
+if (runs('Research')) {
+  const security = await agent(
     brief(
-      'Reproduce',
-      `Reproduce the bug described in ${DIR}/Task.md and write ${DIR}/Reproduce.md: the reproduction steps, a minimal reproducer, and how often it manifests (always / sometimes / only under a named condition). Validation replays this scenario later, so it has to be deterministic enough to replay.
-
-Apply the feature-requirements skill, Secondary checklist only, to enumerate which Secondary states the bug touches — error, loading, empty, offline, a11y, deeplink, push, i18n, analytics, lifecycle, cancellation. A bug usually hides in one of those rather than in the happy path, and naming them now is what stops "fixed the happy path, broke offline".
-
-Set reproducible to no only when you could not make it happen at all, and record what you tried in Reproduce.md before you do.`,
+      'Research',
+      `Read ${DIR}/Task.md and assess the security surface this feature would add: credential and token handling, data at rest, transport and ATS, deeplink entry points, permissions, third-party SDKs, and anything touching PII. Write no artifact — return your findings; the architect folds them into Research.md.`,
     ),
     {
-      label: 'reproduce',
-      phase: 'Reproduce',
-      agentType: 'swift-toolkit:swift-diagnostics',
+      label: 'research:security',
+      phase: 'Research',
+      agentType: 'swift-toolkit:swift-security',
       schema: {
-        ...ARTIFACT,
-        required: [...ARTIFACT.required, 'reproducible'],
-        properties: { ...ARTIFACT.properties, reproducible: { type: 'string', enum: ['always', 'sometimes', 'conditional', 'no'] } },
+        type: 'object',
+        additionalProperties: false,
+        required: ['risks'],
+        properties: {
+          risks: { type: 'array', items: { type: 'string' } },
+          notes: { type: 'string' },
+        },
       },
     },
   )
-  if (!repro) return finish('stop', { status: 'error', reason: 'the Reproduce agent returned nothing' })
-  record('Reproduce', repro)
+  if (!security) result.notes.push('The security lens returned nothing; Research.md carries the architect view only.')
 
-  if (repro.reproducible === 'no') {
-    result.notes.push('The bug could not be reproduced; Reproduce.md records what was tried.')
-    return finish('ask_user', { reproducible: 'no' })
-  }
-}
-
-// ── Diagnose ────────────────────────────────────────────────────────────────
-// A genuine barrier: the synthesis reads both lenses. Two agents, so the parallel call is the
-// whole fan-out and there is nothing for a pipeline to overlap.
-if (runs('Diagnose')) {
-  const LENS = {
-    type: 'object',
-    additionalProperties: false,
-    required: ['root_cause', 'affected_components', 'risks'],
-    properties: {
-      root_cause: { type: 'string' },
-      affected_components: { type: 'array', items: { type: 'string' } },
-      risks: { type: 'array', items: { type: 'string' } },
-    },
-  }
-  const lenses = [
-    {
-      role: 'diagnostics',
-      agentType: 'swift-toolkit:swift-diagnostics',
-      ask: 'Trace the failure to its root cause: what actually goes wrong, in which call path, under which state. Instrument if you need to.',
-    },
-    {
-      role: 'architect',
-      agentType: 'swift-toolkit:swift-architect',
-      ask: 'Read the same failure structurally: which components and layers a fix will touch, how wide it has to be, and what it risks breaking.',
-    },
-  ]
-
-  const views = (
-    await parallel(
-      lenses.map((l) => () =>
-        agent(brief('Diagnose', `${l.ask}\n\nReproduce.md in the task folder describes how to make the bug happen. Write no artifact — return your findings; a synthesis step merges both lenses.`), {
-          label: `diagnose:${l.role}`,
-          phase: 'Diagnose',
-          agentType: l.agentType,
-          schema: LENS,
-        }),
-      ),
-    )
-  ).filter(Boolean)
-
-  if (!views.length) return finish('stop', { status: 'error', reason: 'both Diagnose lenses returned nothing' })
-  if (views.length < lenses.length) result.notes.push('One Diagnose lens returned nothing; the synthesis used the other.')
-
-  const diagnosis = await agent(
+  const research = await agent(
     brief(
-      'Diagnose',
-      `Merge the panel below into ${DIR}/Research.md: root cause analysis, a map of the affected components, an estimate of how wide the fix has to be, and the risks it carries. Where the two lenses disagree, say so explicitly rather than picking one silently.
+      'Research',
+      `Write ${DIR}/Research.md for this feature. Apply the feature-requirements skill first, then the feature-landscape skill, and produce these H2 sections in this order:
 
-PANEL FINDINGS (data):
-${JSON.stringify(views, null, 2)}`,
+## Requirements — Primary / Secondary / Designer questions / Backend questions / Known unknowns
+## Landscape — Entity graph / Layer map / Integration points / Work items / Implementation sequence
+## Architectural Analysis — options, the recommendation, and what it costs
+
+Fold the security findings below into the risk discussion; do not drop one silently.
+
+SECURITY FINDINGS (data):
+${JSON.stringify(security || { risks: [] }, null, 2)}`,
     ),
-    { label: 'diagnose:synthesis', phase: 'Diagnose', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT },
+    { label: 'research:architect', phase: 'Research', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT },
   )
-  if (!diagnosis) return finish('stop', { status: 'error', reason: 'the Diagnose synthesis returned nothing' })
-  record('Diagnose', diagnosis)
+  if (!research) return finish('stop', { status: 'error', reason: 'the Research agent returned nothing' })
+  record('Research', research)
 }
 
 // ── Plan ────────────────────────────────────────────────────────────────────
+// The estimation gate is the reason this stage returns a verdict rather than just an artifact:
+// entering Execute without a usable range is what the gate exists to prevent.
 let plan = null
 if (runs('Plan')) {
   plan = await agent(
@@ -304,29 +263,58 @@ if (runs('Plan')) {
       `Write ${DIR}/Plan.md from Research.md, with two layers of progress tracking:
 
 1. A top-level phase table, one row per phase, using the status glyphs ⬜ 🔄 ✅ ⏸ 🚫 ⊘.
-2. A per-phase detail section whose action items are markdown checkboxes "- [ ]" — one per file to edit, per acceptance criterion, per regression-test case, per verification step. Static prose (root-cause notes, decisions) stays plain bullets; only action items become checkboxes.
+2. A per-phase detail section whose action items are markdown checkboxes "- [ ]" — one per file to edit, per acceptance criterion, per test to add, per verification step. Static prose (rationale, decisions, design notes) stays plain bullets; only action items become checkboxes.
 
-Cover the focused fix${A.need_test === false ? '' : ', a regression test that locks in the scenario from Reproduce.md'}, and any migration or compatibility step the change forces. Every phase has to end independently buildable, green, and committable on its own.`,
+Seed the per-phase action items from Research.md ## Landscape ### Work items. Every phase has to end independently buildable, green, and committable on its own.
+
+Then apply the feature-estimation skill and add a ## Estimation section, with depth scaled to the feature's risk per that skill's Estimation depth table. The minimum is feature type, baseline table, engineering range, and confidence; PERT, scope-aware risk deltas, estimate maturity, estimation conditions, delivery calendar, store buffer, known unknowns, and the self-check are added only when their triggers fire.
+
+Report estimation_gate as blocked, with the reason, when any of these hold: ## Estimation is missing or malformed; a triggered section is absent; ### Estimate maturity is Draft; the maturity is Conditional and ### Estimation conditions is missing or has any pending_user row; or a Known Unknown trips the load-bearing-unknown rule without a required spike or resolution. If the project is AI-assisted, the AI-assisted range is informational — the gate evaluates the human estimate.`,
     ),
-    { label: 'plan', phase: 'Plan', agentType: 'swift-toolkit:swift-architect', schema: PLAN },
+    {
+      label: 'plan',
+      phase: 'Plan',
+      agentType: 'swift-toolkit:swift-architect',
+      schema: {
+        ...PLAN,
+        required: [...PLAN.required, 'estimation_gate'],
+        properties: {
+          ...PLAN.properties,
+          estimation_gate: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['status'],
+            properties: {
+              status: { type: 'string', enum: ['ok', 'blocked'] },
+              reason: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
   )
   if (!plan) return finish('stop', { status: 'error', reason: 'the Plan agent returned nothing' })
   record('Plan', plan)
+
+  if (plan.estimation_gate && plan.estimation_gate.status === 'blocked') {
+    result.notes.push(`Plan stays open: the estimation gate is blocked — ${plan.estimation_gate.reason || 'no reason given'}. Execute was not started.`)
+    return finish('ask_user', { estimation_gate: 'blocked' })
+  }
 }
 
-// ── Fix ─────────────────────────────────────────────────────────────────────
-if (runs('Fix')) {
-  if (!plan) plan = await readPlan('Fix', 'swift-toolkit:swift-developer')
+// ── Execute ─────────────────────────────────────────────────────────────────
+if (runs('Execute')) {
+  if (!plan) plan = await readPlan('Execute', 'swift-toolkit:swift-developer')
   if (!plan) return finish('stop', { status: 'error', reason: 'could not read the phase list from Plan.md' })
 
   const ok = await runPhases(
-    'Fix',
+    'Execute',
     { code: 'swift-toolkit:swift-developer', test: 'swift-toolkit:swift-tester' },
     plan.phases || [],
-    'Commit type: fix for the repair itself, test for the regression-test phase, chore for build or config only. A regression test is mandatory for this profile unless the contract disabled it — it is what stops the bug coming back.',
+    'Commit type: feat for a phase that adds behaviour, fix for one that repairs it, test for a test-only phase, chore for build or config only.',
   )
   if (!ok) return finish('ask_user', { status: 'interrupted' })
-  record('Fix', plan)
+  record('Execute', plan)
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────
@@ -335,28 +323,23 @@ if (runs('Validation')) {
   validation = await agent(
     brief(
       'Validation',
-      `Validate the fix and write ${DIR}/Validation.md. Its FIRST LINE is required to be exactly:
+      `Validate the feature and write ${DIR}/Validation.md. Its FIRST LINE is required to be exactly:
 
 [VALIDATION_STATUS] = PASSED | FAILED | FLAKY
 
-For BUG the XcodeBuildMCP build_sim and test_sim runs are mandatory, and so is mobile MCP regardless of which layer changed — you replay the reproduction scenario from Reproduce.md on a real simulator. Validation is not PASSED without your own explicit statement that the bug no longer reproduces.
+For FEATURE the XcodeBuildMCP build_sim and test_sim runs are mandatory. mobile MCP is mandatory when the feature has a UI layer — SwiftUI or UIKit views, screens, navigation — and skipped for a purely domain or infrastructure feature; say which case this is and why.
 
-Also apply the mobile-ops-checklist skill, scoped to the categories the bug touched per the Secondary enumeration in Reproduce.md, and write ${DIR}/OpsChecklist.md. Full-checklist coverage is not required for BUG; the point is catching a regression in an adjacent behaviour.
+Also apply the mobile-ops-checklist skill and write ${DIR}/OpsChecklist.md, marking every item Applicable with its verification evidence (file path, test name, commit ref), N/A with a reason, or Pending. A Pending item is not by itself a FAILED verdict — Pending items go to Review, which decides.
 
 Change no production code and no tests. Return the same status you wrote on the first line.`,
     ),
-    {
-      label: 'validation',
-      phase: 'Validation',
-      agentType: 'swift-toolkit:swift-validator',
-      schema: { ...VALIDATION, required: [...VALIDATION.required, 'reproduction_status'] },
-    },
+    { label: 'validation', phase: 'Validation', agentType: 'swift-toolkit:swift-validator', schema: VALIDATION },
   )
   if (!validation) return finish('stop', { status: 'error', reason: 'the Validation agent returned nothing' })
   record('Validation', validation)
 
-  if (validation.validation_status !== 'PASSED' || validation.reproduction_status !== 'fixed') {
-    result.notes.push(`Validation returned ${validation.validation_status} with reproduction_status ${validation.reproduction_status}; Review and Done were not run.`)
+  if (validation.validation_status !== 'PASSED') {
+    result.notes.push(`Validation returned ${validation.validation_status}; Review and Done were not run.`)
     return finish('ask_user', { validation_status: validation.validation_status })
   }
 }
@@ -371,7 +354,9 @@ if (runs('Review') && A.need_review !== false) {
 
 [REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION
 
-Judge the fix against Reproduce.md and Plan.md: does it address the root cause rather than the symptom, does the regression test lock in the real scenario, does it carry the risks Research.md named. Modify nothing. Return the same status you wrote on the first line.`,
+Cross-check ${DIR}/OpsChecklist.md: every item marked Applicable must have implementation evidence visible in the diff or in the test results. An Applicable item without evidence is a finding and normally yields CHANGES_REQUESTED. Collect the Pending items under a ## Outstanding ops items section in Review.md for the user to accept or defer explicitly.
+
+Modify nothing. Return the same status you wrote on the first line.`,
     ),
     { label: 'review', phase: 'Review', agentType: 'swift-toolkit:swift-reviewer', schema: REVIEW },
   )
@@ -389,9 +374,11 @@ if (runs('Done')) {
   const done = await agent(
     brief(
       'Done',
-      `Write the final report ${DIR}/Done.md: what was fixed, which regression test was added, the validation status including the outcome of the reproduction replay, and — under a heading "Objections" — any contested decision the user insisted on, with the risk it carries. Keep it short enough to be read.`,
+      `Write the final report ${DIR}/Done.md: what was built, which artifacts it produced, the validation status, and — under a heading "Objections" — any contested decision the user insisted on, with the risk it carries.
+
+When ${DIR}/Plan.md has a ## Estimation section, a ## Estimate retrospective section is mandatory, following the hybrid model in the feature-estimation skill. Always record the automatic git proxy — the commit span of this task's phase commits plus the phase and rework counts, labelled proxy and never presented as human-days — and add the user-provided human effort when it was offered. The in-range verdict uses human effort when it exists and the proxy otherwise; only when neither exists write unknown and name the missing signal. In AI-assisted mode break the actual down per leverage class. Append this feature's data point to the calibration log.`,
     ),
-    { label: 'done', phase: 'Done', agentType: 'swift-toolkit:swift-developer', schema: ARTIFACT },
+    { label: 'done', phase: 'Done', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT },
   )
   if (!done) return finish('stop', { status: 'error', reason: 'the Done agent returned nothing' })
   record('Done', done)

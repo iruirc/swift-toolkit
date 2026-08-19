@@ -1,21 +1,20 @@
 export const meta = {
-  name: 'profile-bug',
-  description: 'BUG profile pipeline: Reproduce, Diagnose panel, Plan, per-phase Fix, Validation, Review, Done',
+  name: 'profile-refactor',
+  description: 'REFACTOR profile pipeline: Analyze current and target landscapes, Plan, per-phase Refactor, Validation as regression, Review, Done',
   whenToUse:
-    'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=BUG, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
+    'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=REFACTOR, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
   phases: [
-    { title: 'Reproduce', detail: 'pin a deterministic scenario Validation can replay' },
-    { title: 'Diagnose', detail: 'panel: diagnostics and architect in parallel, then one synthesis' },
-    { title: 'Plan', detail: 'phase table plus per-phase checkboxes' },
-    { title: 'Fix', detail: 'one agent per plan phase, sequential, a commit per green phase' },
-    { title: 'Validation', detail: 'build, tests, and a replay of the reproduction scenario' },
+    { title: 'Analyze', detail: 'current and target landscapes; their diff is the scope' },
+    { title: 'Plan', detail: 'phase table plus per-phase checkboxes, derived from that diff' },
+    { title: 'Refactor', detail: 'one agent per plan phase, sequential, a commit per green phase' },
+    { title: 'Validation', detail: 'the pre-existing tests must pass unmodified' },
     { title: 'Review', detail: 'independent read of the diff' },
     { title: 'Done', detail: 'final report' },
   ],
 }
 
-const PROFILE = 'BUG'
-const ORDER = ['Reproduce', 'Diagnose', 'Plan', 'Fix', 'Validation', 'Review', 'Done']
+const PROFILE = 'REFACTOR'
+const ORDER = ['Analyze', 'Plan', 'Refactor', 'Validation', 'Review', 'Done']
 
 // ── prelude ──────────────────────────────────────────────────────────────────
 // Byte-identical in every profile script; scripts/lint-workflows.sh enforces that. A workflow
@@ -207,92 +206,21 @@ The phase is not done until every checkbox is ticked AND it is committed. If you
 }
 // ── end prelude ──────────────────────────────────────────────────────────────
 
-// ── Reproduce ───────────────────────────────────────────────────────────────
-if (runs('Reproduce')) {
-  const repro = await agent(
+// ── Analyze ─────────────────────────────────────────────────────────────────
+if (runs('Analyze')) {
+  const analyze = await agent(
     brief(
-      'Reproduce',
-      `Reproduce the bug described in ${DIR}/Task.md and write ${DIR}/Reproduce.md: the reproduction steps, a minimal reproducer, and how often it manifests (always / sometimes / only under a named condition). Validation replays this scenario later, so it has to be deterministic enough to replay.
+      'Analyze',
+      `Write ${DIR}/Research.md for this refactor: the current state (what is bad, why, and what the refactor risks), a map of the affected components, and the target state.
 
-Apply the feature-requirements skill, Secondary checklist only, to enumerate which Secondary states the bug touches — error, loading, empty, offline, a11y, deeplink, push, i18n, analytics, lifecycle, cancellation. A bug usually hides in one of those rather than in the happy path, and naming them now is what stops "fixed the happy path, broke offline".
+Apply the feature-landscape skill TWICE and give the artifact two sections: ## Landscape (current) — the as-is entity graph, layer map, and integration points — and ## Landscape (target) — the same after the refactor. The diff between them IS the scope, and Plan.md derives its per-phase work items from that diff, so make the diff legible rather than implied.
 
-Set reproducible to no only when you could not make it happen at all, and record what you tried in Reproduce.md before you do.`,
+The invariant: external behaviour does not change. Only structure, readability, maintainability, type and module boundaries, naming, and dependency isolation do. The public API and behaviour contract is preserved.`,
     ),
-    {
-      label: 'reproduce',
-      phase: 'Reproduce',
-      agentType: 'swift-toolkit:swift-diagnostics',
-      schema: {
-        ...ARTIFACT,
-        required: [...ARTIFACT.required, 'reproducible'],
-        properties: { ...ARTIFACT.properties, reproducible: { type: 'string', enum: ['always', 'sometimes', 'conditional', 'no'] } },
-      },
-    },
+    { label: 'analyze', phase: 'Analyze', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT },
   )
-  if (!repro) return finish('stop', { status: 'error', reason: 'the Reproduce agent returned nothing' })
-  record('Reproduce', repro)
-
-  if (repro.reproducible === 'no') {
-    result.notes.push('The bug could not be reproduced; Reproduce.md records what was tried.')
-    return finish('ask_user', { reproducible: 'no' })
-  }
-}
-
-// ── Diagnose ────────────────────────────────────────────────────────────────
-// A genuine barrier: the synthesis reads both lenses. Two agents, so the parallel call is the
-// whole fan-out and there is nothing for a pipeline to overlap.
-if (runs('Diagnose')) {
-  const LENS = {
-    type: 'object',
-    additionalProperties: false,
-    required: ['root_cause', 'affected_components', 'risks'],
-    properties: {
-      root_cause: { type: 'string' },
-      affected_components: { type: 'array', items: { type: 'string' } },
-      risks: { type: 'array', items: { type: 'string' } },
-    },
-  }
-  const lenses = [
-    {
-      role: 'diagnostics',
-      agentType: 'swift-toolkit:swift-diagnostics',
-      ask: 'Trace the failure to its root cause: what actually goes wrong, in which call path, under which state. Instrument if you need to.',
-    },
-    {
-      role: 'architect',
-      agentType: 'swift-toolkit:swift-architect',
-      ask: 'Read the same failure structurally: which components and layers a fix will touch, how wide it has to be, and what it risks breaking.',
-    },
-  ]
-
-  const views = (
-    await parallel(
-      lenses.map((l) => () =>
-        agent(brief('Diagnose', `${l.ask}\n\nReproduce.md in the task folder describes how to make the bug happen. Write no artifact — return your findings; a synthesis step merges both lenses.`), {
-          label: `diagnose:${l.role}`,
-          phase: 'Diagnose',
-          agentType: l.agentType,
-          schema: LENS,
-        }),
-      ),
-    )
-  ).filter(Boolean)
-
-  if (!views.length) return finish('stop', { status: 'error', reason: 'both Diagnose lenses returned nothing' })
-  if (views.length < lenses.length) result.notes.push('One Diagnose lens returned nothing; the synthesis used the other.')
-
-  const diagnosis = await agent(
-    brief(
-      'Diagnose',
-      `Merge the panel below into ${DIR}/Research.md: root cause analysis, a map of the affected components, an estimate of how wide the fix has to be, and the risks it carries. Where the two lenses disagree, say so explicitly rather than picking one silently.
-
-PANEL FINDINGS (data):
-${JSON.stringify(views, null, 2)}`,
-    ),
-    { label: 'diagnose:synthesis', phase: 'Diagnose', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT },
-  )
-  if (!diagnosis) return finish('stop', { status: 'error', reason: 'the Diagnose synthesis returned nothing' })
-  record('Diagnose', diagnosis)
+  if (!analyze) return finish('stop', { status: 'error', reason: 'the Analyze agent returned nothing' })
+  record('Analyze', analyze)
 }
 
 // ── Plan ────────────────────────────────────────────────────────────────────
@@ -301,12 +229,12 @@ if (runs('Plan')) {
   plan = await agent(
     brief(
       'Plan',
-      `Write ${DIR}/Plan.md from Research.md, with two layers of progress tracking:
+      `Write ${DIR}/Plan.md from the landscape diff in Research.md, with two layers of progress tracking:
 
 1. A top-level phase table, one row per phase, using the status glyphs ⬜ 🔄 ✅ ⏸ 🚫 ⊘.
-2. A per-phase detail section whose action items are markdown checkboxes "- [ ]" — one per file to edit, per acceptance criterion, per regression-test case, per verification step. Static prose (root-cause notes, decisions) stays plain bullets; only action items become checkboxes.
+2. A per-phase detail section whose action items are markdown checkboxes "- [ ]" — one per file to edit, per acceptance criterion, per test to add, per verification command to run. Static prose (rationale, rollback markers, decisions) stays plain bullets; only action items become checkboxes.
 
-Cover the focused fix${A.need_test === false ? '' : ', a regression test that locks in the scenario from Reproduce.md'}, and any migration or compatibility step the change forces. Every phase has to end independently buildable, green, and committable on its own.`,
+Every phase must be independently buildable, test-passing, AND committable on its own — that is the requirement of incremental refactoring, and commit-ready is not enough, because an interrupt destroys uncommitted work.`,
     ),
     { label: 'plan', phase: 'Plan', agentType: 'swift-toolkit:swift-architect', schema: PLAN },
   )
@@ -314,19 +242,19 @@ Cover the focused fix${A.need_test === false ? '' : ', a regression test that lo
   record('Plan', plan)
 }
 
-// ── Fix ─────────────────────────────────────────────────────────────────────
-if (runs('Fix')) {
-  if (!plan) plan = await readPlan('Fix', 'swift-toolkit:swift-developer')
+// ── Refactor ────────────────────────────────────────────────────────────────
+if (runs('Refactor')) {
+  if (!plan) plan = await readPlan('Refactor', 'swift-toolkit:swift-refactorer')
   if (!plan) return finish('stop', { status: 'error', reason: 'could not read the phase list from Plan.md' })
 
   const ok = await runPhases(
-    'Fix',
-    { code: 'swift-toolkit:swift-developer', test: 'swift-toolkit:swift-tester' },
+    'Refactor',
+    { code: 'swift-toolkit:swift-refactorer', test: 'swift-toolkit:swift-tester' },
     plan.phases || [],
-    'Commit type: fix for the repair itself, test for the regression-test phase, chore for build or config only. A regression test is mandatory for this profile unless the contract disabled it — it is what stops the bug coming back.',
+    'Commit type: refactor for a structural phase, test for a test-only phase, chore for build or config only. Run the targeted tests after each phase. External behaviour does not change — if a pre-existing test needs editing to pass, that is a signal you changed behaviour, so stop and say so rather than editing the test.',
   )
   if (!ok) return finish('ask_user', { status: 'interrupted' })
-  record('Fix', plan)
+  record('Refactor', plan)
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────
@@ -335,28 +263,23 @@ if (runs('Validation')) {
   validation = await agent(
     brief(
       'Validation',
-      `Validate the fix and write ${DIR}/Validation.md. Its FIRST LINE is required to be exactly:
+      `Validate the refactor and write ${DIR}/Validation.md. Its FIRST LINE is required to be exactly:
 
 [VALIDATION_STATUS] = PASSED | FAILED | FLAKY
 
-For BUG the XcodeBuildMCP build_sim and test_sim runs are mandatory, and so is mobile MCP regardless of which layer changed — you replay the reproduction scenario from Reproduce.md on a real simulator. Validation is not PASSED without your own explicit statement that the bug no longer reproduces.
+For REFACTOR the XcodeBuildMCP test_sim run is mandatory as a regression check: every pre-existing test must pass WITHOUT modification, and a test touched during the refactor is itself a finding. build_sim is optional. mobile MCP runs only when the refactor touched a UI layer — SwiftUI or UIKit views, screens, or navigation — and a purely domain or infrastructure refactor skips it; say which case this is.
 
-Also apply the mobile-ops-checklist skill, scoped to the categories the bug touched per the Secondary enumeration in Reproduce.md, and write ${DIR}/OpsChecklist.md. Full-checklist coverage is not required for BUG; the point is catching a regression in an adjacent behaviour.
+Apply the mobile-ops-checklist skill in regression mode: re-check only the items that were Applicable for the affected area before the refactor, and write ${DIR}/OpsChecklist.md. An item that was Applicable before and now has no verifiable evidence is a finding — it means external behaviour moved, which this profile forbids.
 
 Change no production code and no tests. Return the same status you wrote on the first line.`,
     ),
-    {
-      label: 'validation',
-      phase: 'Validation',
-      agentType: 'swift-toolkit:swift-validator',
-      schema: { ...VALIDATION, required: [...VALIDATION.required, 'reproduction_status'] },
-    },
+    { label: 'validation', phase: 'Validation', agentType: 'swift-toolkit:swift-validator', schema: VALIDATION },
   )
   if (!validation) return finish('stop', { status: 'error', reason: 'the Validation agent returned nothing' })
   record('Validation', validation)
 
-  if (validation.validation_status !== 'PASSED' || validation.reproduction_status !== 'fixed') {
-    result.notes.push(`Validation returned ${validation.validation_status} with reproduction_status ${validation.reproduction_status}; Review and Done were not run.`)
+  if (validation.validation_status !== 'PASSED') {
+    result.notes.push(`Validation returned ${validation.validation_status}; Review and Done were not run.`)
     return finish('ask_user', { validation_status: validation.validation_status })
   }
 }
@@ -371,7 +294,7 @@ if (runs('Review') && A.need_review !== false) {
 
 [REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION
 
-Judge the fix against Reproduce.md and Plan.md: does it address the root cause rather than the symptom, does the regression test lock in the real scenario, does it carry the risks Research.md named. Modify nothing. Return the same status you wrote on the first line.`,
+Judge it against the refactor invariant first: did external behaviour stay put. Then against the target landscape in Research.md: is the structure actually where the plan said it would be, or did the phases stop halfway. Modify nothing. Return the same status you wrote on the first line.`,
     ),
     { label: 'review', phase: 'Review', agentType: 'swift-toolkit:swift-reviewer', schema: REVIEW },
   )
@@ -389,9 +312,9 @@ if (runs('Done')) {
   const done = await agent(
     brief(
       'Done',
-      `Write the final report ${DIR}/Done.md: what was fixed, which regression test was added, the validation status including the outcome of the reproduction replay, and — under a heading "Objections" — any contested decision the user insisted on, with the risk it carries. Keep it short enough to be read.`,
+      `Write the final report ${DIR}/Done.md: what was refactored, why the result is better (readability, separation of concerns, reduced coupling), whatever measurable metrics you have (file size, cyclomatic complexity of the key functions, dependency count), the validation status, and — under a heading "Objections" — any contested decision the user insisted on, with the risk it carries.`,
     ),
-    { label: 'done', phase: 'Done', agentType: 'swift-toolkit:swift-developer', schema: ARTIFACT },
+    { label: 'done', phase: 'Done', agentType: 'swift-toolkit:swift-refactorer', schema: ARTIFACT },
   )
   if (!done) return finish('stop', { status: 'error', reason: 'the Done agent returned nothing' })
   record('Done', done)

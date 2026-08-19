@@ -9,6 +9,8 @@ stack_axes_envelope: { may: [ui, async, di, architecture, platform, tests], neve
 
 # Workflow Refactor
 
+This skill is **Method B** for the REFACTOR profile: it runs the stages when the host has no Workflow tool. `workflows/profile-refactor.js` is Method A and runs the same stages as code. The orchestrator picks between them (see `swift-toolkit:orchestrator` → **Dispatch**), and `scripts/lint-workflows.sh` fails if the two stage lists drift apart. Edit a stage here and the script needs the same edit.
+
 The profile workflow for tasks with `[TASK_TYPE] = REFACTOR`. Implements the sequence of stages; the result of each stage is an artifact file inside the task folder. The skill receives an already-resolved contract from the orchestrator and does not try to re-resolve any parameter on its own.
 
 ## Language Resolution
@@ -35,6 +37,7 @@ If a required field arrives empty — workflow-refactor does not try to recover.
 The fields that directly drive this workflow's behavior:
 - `start_stage`, `end_stage`, `stage_scope` — determine which stages run.
 - `start_phase` — entry point inside a stage (e.g. `Refactor:phase=2.3`).
+- `task_dir` — the resolved task folder; every artifact this profile writes lands there.
 - `mode` — `manual` / `auto` (see sections 3 and 4).
 - `stack` — passed to subagents as context.
 - `lang` — project language for artifact prose + the final report; artifact structure (headings, field labels, status enums) stays EN. See `conventions/i18n.md` → "Artifact authoring rule". Passed through to every subagent.

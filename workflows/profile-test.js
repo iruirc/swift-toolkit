@@ -1,21 +1,20 @@
 export const meta = {
-  name: 'profile-bug',
-  description: 'BUG profile pipeline: Reproduce, Diagnose panel, Plan, per-phase Fix, Validation, Review, Done',
+  name: 'profile-test',
+  description: 'TEST profile pipeline: Analyze what to cover, Plan by priority, per-phase Write, Validation with flake detection, Review of the tests, Done',
   whenToUse:
-    'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=BUG, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
+    'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=TEST, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
   phases: [
-    { title: 'Reproduce', detail: 'pin a deterministic scenario Validation can replay' },
-    { title: 'Diagnose', detail: 'panel: diagnostics and architect in parallel, then one synthesis' },
-    { title: 'Plan', detail: 'phase table plus per-phase checkboxes' },
-    { title: 'Fix', detail: 'one agent per plan phase, sequential, a commit per green phase' },
-    { title: 'Validation', detail: 'build, tests, and a replay of the reproduction scenario' },
-    { title: 'Review', detail: 'independent read of the diff' },
+    { title: 'Analyze', detail: 'testability lens, then the tester writes what to cover and at which level' },
+    { title: 'Plan', detail: 'phases grouped by component, each with a P0/P1/P2 priority' },
+    { title: 'Write', detail: 'one agent per plan phase, sequential, a commit per green phase' },
+    { title: 'Validation', detail: 'every new test green on first run; flapping means FLAKY' },
+    { title: 'Review', detail: 'the tests are what is reviewed, not the production code' },
     { title: 'Done', detail: 'final report' },
   ],
 }
 
-const PROFILE = 'BUG'
-const ORDER = ['Reproduce', 'Diagnose', 'Plan', 'Fix', 'Validation', 'Review', 'Done']
+const PROFILE = 'TEST'
+const ORDER = ['Analyze', 'Plan', 'Write', 'Validation', 'Review', 'Done']
 
 // ── prelude ──────────────────────────────────────────────────────────────────
 // Byte-identical in every profile script; scripts/lint-workflows.sh enforces that. A workflow
@@ -207,92 +206,44 @@ The phase is not done until every checkbox is ticked AND it is committed. If you
 }
 // ── end prelude ──────────────────────────────────────────────────────────────
 
-// ── Reproduce ───────────────────────────────────────────────────────────────
-if (runs('Reproduce')) {
-  const repro = await agent(
+// ── Analyze ─────────────────────────────────────────────────────────────────
+// Sequential rather than a parallel panel: both lenses feed one artifact, and the tester —
+// who also owns Plan and Write — is the one who writes it.
+if (runs('Analyze')) {
+  const testability = await agent(
     brief(
-      'Reproduce',
-      `Reproduce the bug described in ${DIR}/Task.md and write ${DIR}/Reproduce.md: the reproduction steps, a minimal reproducer, and how often it manifests (always / sometimes / only under a named condition). Validation replays this scenario later, so it has to be deterministic enough to replay.
-
-Apply the feature-requirements skill, Secondary checklist only, to enumerate which Secondary states the bug touches — error, loading, empty, offline, a11y, deeplink, push, i18n, analytics, lifecycle, cancellation. A bug usually hides in one of those rather than in the happy path, and naming them now is what stops "fixed the happy path, broke offline".
-
-Set reproducible to no only when you could not make it happen at all, and record what you tried in Reproduce.md before you do.`,
+      'Analyze',
+      `Assess how testable the code in scope actually is: where dependency injection is missing, what needs a protocol to be abstracted, which external dependencies need mocks or fakes, and which seams have to exist before a test can be written at all. Write no artifact — return your findings; the tester folds them into Research.md.`,
     ),
     {
-      label: 'reproduce',
-      phase: 'Reproduce',
-      agentType: 'swift-toolkit:swift-diagnostics',
+      label: 'analyze:testability',
+      phase: 'Analyze',
+      agentType: 'swift-toolkit:swift-architect',
       schema: {
-        ...ARTIFACT,
-        required: [...ARTIFACT.required, 'reproducible'],
-        properties: { ...ARTIFACT.properties, reproducible: { type: 'string', enum: ['always', 'sometimes', 'conditional', 'no'] } },
+        type: 'object',
+        additionalProperties: false,
+        required: ['blockers'],
+        properties: {
+          blockers: { type: 'array', items: { type: 'string' }, description: 'what has to change before the code can be tested' },
+          notes: { type: 'string' },
+        },
       },
     },
   )
-  if (!repro) return finish('stop', { status: 'error', reason: 'the Reproduce agent returned nothing' })
-  record('Reproduce', repro)
+  if (!testability) result.notes.push('The testability lens returned nothing; Research.md carries the tester view only.')
 
-  if (repro.reproducible === 'no') {
-    result.notes.push('The bug could not be reproduced; Reproduce.md records what was tried.')
-    return finish('ask_user', { reproducible: 'no' })
-  }
-}
-
-// ── Diagnose ────────────────────────────────────────────────────────────────
-// A genuine barrier: the synthesis reads both lenses. Two agents, so the parallel call is the
-// whole fan-out and there is nothing for a pipeline to overlap.
-if (runs('Diagnose')) {
-  const LENS = {
-    type: 'object',
-    additionalProperties: false,
-    required: ['root_cause', 'affected_components', 'risks'],
-    properties: {
-      root_cause: { type: 'string' },
-      affected_components: { type: 'array', items: { type: 'string' } },
-      risks: { type: 'array', items: { type: 'string' } },
-    },
-  }
-  const lenses = [
-    {
-      role: 'diagnostics',
-      agentType: 'swift-toolkit:swift-diagnostics',
-      ask: 'Trace the failure to its root cause: what actually goes wrong, in which call path, under which state. Instrument if you need to.',
-    },
-    {
-      role: 'architect',
-      agentType: 'swift-toolkit:swift-architect',
-      ask: 'Read the same failure structurally: which components and layers a fix will touch, how wide it has to be, and what it risks breaking.',
-    },
-  ]
-
-  const views = (
-    await parallel(
-      lenses.map((l) => () =>
-        agent(brief('Diagnose', `${l.ask}\n\nReproduce.md in the task folder describes how to make the bug happen. Write no artifact — return your findings; a synthesis step merges both lenses.`), {
-          label: `diagnose:${l.role}`,
-          phase: 'Diagnose',
-          agentType: l.agentType,
-          schema: LENS,
-        }),
-      ),
-    )
-  ).filter(Boolean)
-
-  if (!views.length) return finish('stop', { status: 'error', reason: 'both Diagnose lenses returned nothing' })
-  if (views.length < lenses.length) result.notes.push('One Diagnose lens returned nothing; the synthesis used the other.')
-
-  const diagnosis = await agent(
+  const analyze = await agent(
     brief(
-      'Diagnose',
-      `Merge the panel below into ${DIR}/Research.md: root cause analysis, a map of the affected components, an estimate of how wide the fix has to be, and the risks it carries. Where the two lenses disagree, say so explicitly rather than picking one silently.
+      'Analyze',
+      `Write ${DIR}/Research.md: what to test (uncovered code, critical paths, regression scenarios), at what level (unit, integration, UI, snapshot), and with which frameworks (XCTest, Quick and Nimble, ViewInspector, SnapshotTesting). Fold the testability findings below into it — a blocker that is not written down becomes a phase that cannot be finished.
 
-PANEL FINDINGS (data):
-${JSON.stringify(views, null, 2)}`,
+TESTABILITY FINDINGS (data):
+${JSON.stringify(testability || { blockers: [] }, null, 2)}`,
     ),
-    { label: 'diagnose:synthesis', phase: 'Diagnose', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT },
+    { label: 'analyze:tester', phase: 'Analyze', agentType: 'swift-toolkit:swift-tester', schema: ARTIFACT },
   )
-  if (!diagnosis) return finish('stop', { status: 'error', reason: 'the Diagnose synthesis returned nothing' })
-  record('Diagnose', diagnosis)
+  if (!analyze) return finish('stop', { status: 'error', reason: 'the Analyze agent returned nothing' })
+  record('Analyze', analyze)
 }
 
 // ── Plan ────────────────────────────────────────────────────────────────────
@@ -303,30 +254,30 @@ if (runs('Plan')) {
       'Plan',
       `Write ${DIR}/Plan.md from Research.md, with two layers of progress tracking:
 
-1. A top-level phase table, one row per phase, using the status glyphs ⬜ 🔄 ✅ ⏸ 🚫 ⊘.
-2. A per-phase detail section whose action items are markdown checkboxes "- [ ]" — one per file to edit, per acceptance criterion, per regression-test case, per verification step. Static prose (root-cause notes, decisions) stays plain bullets; only action items become checkboxes.
+1. A top-level phase table, one row per phase, using the status glyphs ⬜ 🔄 ✅ ⏸ 🚫 ⊘, plus a priority column holding P0, P1, or P2.
+2. A per-phase detail section whose action items are markdown checkboxes "- [ ]" — one per test case to add, per fixture or mock to create, per assertion cluster to verify. Static prose (test-strategy notes, framework choices) stays plain bullets; only action items become checkboxes.
 
-Cover the focused fix${A.need_test === false ? '' : ', a regression test that locks in the scenario from Reproduce.md'}, and any migration or compatibility step the change forces. Every phase has to end independently buildable, green, and committable on its own.`,
+Group phases by testable unit — one per component, module, or use case — and give each a priority: P0 critical and release-blocking, P1 important, P2 nice to have.`,
     ),
-    { label: 'plan', phase: 'Plan', agentType: 'swift-toolkit:swift-architect', schema: PLAN },
+    { label: 'plan', phase: 'Plan', agentType: 'swift-toolkit:swift-tester', schema: PLAN },
   )
   if (!plan) return finish('stop', { status: 'error', reason: 'the Plan agent returned nothing' })
   record('Plan', plan)
 }
 
-// ── Fix ─────────────────────────────────────────────────────────────────────
-if (runs('Fix')) {
-  if (!plan) plan = await readPlan('Fix', 'swift-toolkit:swift-developer')
+// ── Write ───────────────────────────────────────────────────────────────────
+if (runs('Write')) {
+  if (!plan) plan = await readPlan('Write', 'swift-toolkit:swift-tester')
   if (!plan) return finish('stop', { status: 'error', reason: 'could not read the phase list from Plan.md' })
 
   const ok = await runPhases(
-    'Fix',
-    { code: 'swift-toolkit:swift-developer', test: 'swift-toolkit:swift-tester' },
+    'Write',
+    { code: 'swift-toolkit:swift-tester', test: 'swift-toolkit:swift-tester' },
     plan.phases || [],
-    'Commit type: fix for the repair itself, test for the regression-test phase, chore for build or config only. A regression test is mandatory for this profile unless the contract disabled it — it is what stops the bug coming back.',
+    'Commit type: test for a phase that adds test logic, chore for a test-infrastructure-only phase (fixtures and helpers with no test logic of their own). Run the phase\'s new tests before committing it — a phase whose tests were never run is not green, it is unknown.',
   )
   if (!ok) return finish('ask_user', { status: 'interrupted' })
-  record('Fix', plan)
+  record('Write', plan)
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────
@@ -335,28 +286,21 @@ if (runs('Validation')) {
   validation = await agent(
     brief(
       'Validation',
-      `Validate the fix and write ${DIR}/Validation.md. Its FIRST LINE is required to be exactly:
+      `Validate the new tests and write ${DIR}/Validation.md. Its FIRST LINE is required to be exactly:
 
 [VALIDATION_STATUS] = PASSED | FAILED | FLAKY
 
-For BUG the XcodeBuildMCP build_sim and test_sim runs are mandatory, and so is mobile MCP regardless of which layer changed — you replay the reproduction scenario from Reproduce.md on a real simulator. Validation is not PASSED without your own explicit statement that the bug no longer reproduces.
+For TEST the XcodeBuildMCP test_sim run is mandatory: every newly added test has to pass on its first run. When one fails on the first run, re-run that test up to three times; if the results flap, return FLAKY and record the test name, the failure rate, and your hypothesis for the cause in Validation.md. mobile MCP is optional and only for UI tests that need visual verification.
 
-Also apply the mobile-ops-checklist skill, scoped to the categories the bug touched per the Secondary enumeration in Reproduce.md, and write ${DIR}/OpsChecklist.md. Full-checklist coverage is not required for BUG; the point is catching a regression in an adjacent behaviour.
-
-Change no production code and no tests. Return the same status you wrote on the first line.`,
+Change no production code and no tests — a flaky test that you quietly stabilise is a finding you have hidden. Return the same status you wrote on the first line.`,
     ),
-    {
-      label: 'validation',
-      phase: 'Validation',
-      agentType: 'swift-toolkit:swift-validator',
-      schema: { ...VALIDATION, required: [...VALIDATION.required, 'reproduction_status'] },
-    },
+    { label: 'validation', phase: 'Validation', agentType: 'swift-toolkit:swift-validator', schema: VALIDATION },
   )
   if (!validation) return finish('stop', { status: 'error', reason: 'the Validation agent returned nothing' })
   record('Validation', validation)
 
-  if (validation.validation_status !== 'PASSED' || validation.reproduction_status !== 'fixed') {
-    result.notes.push(`Validation returned ${validation.validation_status} with reproduction_status ${validation.reproduction_status}; Review and Done were not run.`)
+  if (validation.validation_status !== 'PASSED') {
+    result.notes.push(`Validation returned ${validation.validation_status}; Review and Done were not run.`)
     return finish('ask_user', { validation_status: validation.validation_status })
   }
 }
@@ -367,11 +311,11 @@ if (runs('Review') && A.need_review !== false) {
   review = await agent(
     brief(
       'Review',
-      `Review the diff this task produced and write ${DIR}/Review.md. Its FIRST LINE is required to be exactly:
+      `Review the TESTS this task added — not the production code — and write ${DIR}/Review.md. Its FIRST LINE is required to be exactly:
 
 [REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION
 
-Judge the fix against Reproduce.md and Plan.md: does it address the root cause rather than the symptom, does the regression test lock in the real scenario, does it carry the risks Research.md named. Modify nothing. Return the same status you wrote on the first line.`,
+What counts here: edge-case coverage, assertions that mean something (an "assert true == true" is a finding), logic mocked out that should have been tested directly, tests that leak state into each other, and whether the next person can read them. Modify nothing. Return the same status you wrote on the first line.`,
     ),
     { label: 'review', phase: 'Review', agentType: 'swift-toolkit:swift-reviewer', schema: REVIEW },
   )
@@ -389,9 +333,9 @@ if (runs('Done')) {
   const done = await agent(
     brief(
       'Done',
-      `Write the final report ${DIR}/Done.md: what was fixed, which regression test was added, the validation status including the outcome of the reproduction replay, and — under a heading "Objections" — any contested decision the user insisted on, with the risk it carries. Keep it short enough to be read.`,
+      `Write the final report ${DIR}/Done.md: what is covered now (the components and scenarios), what coverage was reached if it was measured, which frameworks were used, the validation status including any test that came back flaky, and — under a heading "Objections" — any contested decision the user insisted on, such as declining to cover a critical path, with the risk it carries.`,
     ),
-    { label: 'done', phase: 'Done', agentType: 'swift-toolkit:swift-developer', schema: ARTIFACT },
+    { label: 'done', phase: 'Done', agentType: 'swift-toolkit:swift-tester', schema: ARTIFACT },
   )
   if (!done) return finish('stop', { status: 'error', reason: 'the Done agent returned nothing' })
   record('Done', done)
