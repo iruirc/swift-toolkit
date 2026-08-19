@@ -172,6 +172,20 @@ const readPlan = (stage, agentType) =>
     { label: `${stage.toLowerCase()}:read-plan`, phase: stage, agentType, schema: PLAN },
   )
 
+// start_phase is an entry point, not a hint: the read-plan agent is free to return an earlier
+// phase anyway, so the cut has to happen here. An id the list does not carry is usually one
+// already marked done, hence run-them-all rather than stop — but never silently.
+const fromStartPhase = (phases) => {
+  if (!A.start_phase) return phases
+  const at = phases.findIndex((p) => String(p.id) === String(A.start_phase))
+  if (at < 0) {
+    log(`start_phase=${A.start_phase} is not among the outstanding phases; running all of them`)
+    return phases
+  }
+  if (at > 0) log(`start_phase=${A.start_phase}: skipping ${at} earlier phase(s)`)
+  return phases.slice(at)
+}
+
 // One agent per plan phase, strictly sequential: each phase builds on the previous phase's
 // commit, so fanning these out would corrupt the history rather than speed anything up.
 const runPhases = async (stage, agents, phases, guidance) => {
@@ -273,7 +287,7 @@ if (runs('Write')) {
   const ok = await runPhases(
     'Write',
     { code: 'swift-toolkit:swift-tester', test: 'swift-toolkit:swift-tester' },
-    plan.phases || [],
+    fromStartPhase(plan.phases || []),
     'Commit type: test for a phase that adds test logic, chore for a test-infrastructure-only phase (fixtures and helpers with no test logic of their own). Run the phase\'s new tests before committing it — a phase whose tests were never run is not green, it is unknown.',
   )
   if (!ok) return finish('ask_user', { status: 'interrupted' })
