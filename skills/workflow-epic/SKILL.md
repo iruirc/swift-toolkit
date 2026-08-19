@@ -9,6 +9,8 @@ stack_axes_envelope: { may: [], never: all }
 
 # Workflow Epic
 
+This skill is **Method B** for the EPIC profile: it runs the stages when the host has no Workflow tool. `workflows/profile-epic.js` is Method A and runs the same stages as code. The orchestrator picks between them (see `swift-toolkit:orchestrator` → **Dispatch**), and `scripts/lint-workflows.sh` fails if the two stage lists drift apart. Edit a stage here and the script needs the same edit.
+
 The profile workflow for tasks with `[TASK_TYPE] = EPIC`. Unlike the other workflow-* skills, EPIC has a branch on the Plan stage: **decomposition** (split into `.step/` subfolders and run them sequentially) or **pure_research** (Research.md is the final artifact; no implementation follows). The skill receives an already-resolved contract from the orchestrator and does not try to re-resolve any parameter on its own.
 
 **Relationship to RESEARCH profile.** `pure_research` here is a *downgrade path*: a task started as an EPIC, the Research stage discovered no decomposition / implementation is needed. For tasks known up-front to be investigation-only (audits, feasibility studies), use `[TASK_TYPE] = RESEARCH` and the `swift-toolkit:workflow-research` profile directly — it has a simpler shape (`Research → [Review] → Done`), no decomposition logic, and an explicit single-agent choice. See `conventions/research-vs-epic.md`.
@@ -35,6 +37,7 @@ The field structure is documented in `swift-toolkit:orchestrator` (section **Out
 If a required field arrives empty — workflow-epic does not try to recover. It returns `{status: error, reason: status_error_empty_required_field}` (the `reason` value is taken from the locale key in `locales/<lang>.md`) back to the orchestrator.
 
 Key fields and their EPIC-specific semantics:
+- `task_dir` — the resolved epic folder; every artifact this profile writes lands there, and each step folder is `<task_dir>/<step_id>`.
 - `start_stage`, `end_stage`, `stage_scope` — determine which stages run.
 - `start_phase` — for EPIC means the **`step_id`** (e.g. `start_phase=2.step` or `start_phase=composition-model.step`), not a phase inside a stage. Research/Plan stages are not decomposed into the usual phases — the resume unit inside Execute is a step.
 - `stage_scope=single` — for EPIC means **"a single step"**, not a single stage. Used for `redo` or pinpoint re-runs of one step.
@@ -43,9 +46,10 @@ Key fields and their EPIC-specific semantics:
 - `lang` — project language for artifact prose + the final report; artifact structure (headings, field labels, status enums) stays EN. See `conventions/i18n.md` → "Artifact authoring rule". Passed through to Research/Plan subagents and inherited by every step workflow-*.
 - `need_test`, `need_review` — at the epic level only gate Plan/Research; at the step level the decision is made by each step's own workflow-* based on its own Task.md.
 - `archive_paths` — paths to backups already created (the orchestrator made them BEFORE the call; workflow-epic does not create them).
-- `epic_dispatch_mode` — **an additional optional field, EPIC-specific**: `push` (default) or `pull`. Set by the orchestrator based on a pre-flight check of nested `Skill` invocation (see section 2.3, Execute).
+- `epic_dispatch_mode` — **an additional optional field, EPIC-specific**: `push` (default) or `pull`. Forces the Execute dispatch model; omitted, the profile decides (see section 2, Execute).
+- `plugin_root` — **EPIC-specific, Method A only**: the expanded absolute path of the plugin root. Method A pushes a step by launching its profile script, and the workflow sandbox cannot expand `${CLAUDE_PLUGIN_ROOT}` itself. Absent, push degrades to pull. Method B ignores it.
 
-**Execution range.** Stages run in the order Research → Plan → Execute → Done, starting at `start_stage` and continuing through `end_stage` inclusive. If the Plan stage chose the **pure_research** branch — Execute is skipped, the workflow goes straight to Done with `last_completed_stage=Plan` and `branch=pure_research`. If `end_stage=null` — through the end of the profile. If `end_stage` is set but precedes `start_stage` in order, that is a contract error: return `{status: error, reason: "end_stage before start_stage"}`.
+**Execution range.** Stages run in the order Research → Plan → Execute → Done, starting at `start_stage` and continuing through `end_stage` inclusive. If the Plan stage chose the **pure_research** branch — Execute is skipped, the workflow goes straight to Done with `branch=pure_research`. If `end_stage=null` — through the end of the profile. If `end_stage` is set but precedes `start_stage` in order, that is a contract error: return `{status: error, reason: "end_stage before start_stage"}`.
 
 **Scope.** `stage_scope` controls execution width:
 - `single` — only `start_stage` runs. For Execute that means "a single step" (the one named in `start_phase=<step_id>`).
@@ -74,7 +78,7 @@ A stage that names an agent is executed by that agent. Dispatch it per `conventi
 
   **Branch B — Pure research.**
   - Artifact: `Research.md` is extended/finalized. `Plan.md` is optional, written as a "research roadmap" (what else needs investigation, no decomposition into executable steps).
-  - The workflow proceeds straight to Done (the Execute stage is skipped; in the output contract `branch=pure_research`, `last_completed_stage=Plan`, `completed_steps=[]`).
+  - The workflow proceeds straight to Done (the Execute stage is skipped; in the output contract `branch=pure_research`, `completed_steps=[]`).
 
   The branch decision is made based on `Research.md` and recorded inside it under an H2 heading. **CRITICAL — DO NOT TRANSLATE THE HEADING.** The heading is the byte-for-byte literal `## Decomposition decision`, written exactly that way regardless of the active language. Do not translate, localize, or adapt it — workflow-epic later parses this exact string to know which branch to take; translating it silently breaks the EPIC profile. The free-form prose under the heading IS composed by the architect agent in the user's natural language. Workflow-epic reads this section and acts accordingly — **it does not pick the branch on its own** (see section 6).
 
@@ -91,16 +95,18 @@ A stage that names an agent is executed by that agent. Dispatch it per `conventi
 
   **Push vs Pull dispatch models.**
 
-  - **Push (the recommended default):** workflow-epic invokes the `Skill` tool with `name=swift-toolkit:orchestrator` and args describing the step (effectively as a new task: `task_id=<step_id>`, the epic context inherited via args). It awaits the inner orchestrator's result, records the outcome, then moves to the next step. Used when the orchestrator's pre-flight confirmed that nested `Skill` invocation works.
+  - **Push (the recommended default):** the epic runs the step itself and awaits its result before moving on. Method B invokes the `Skill` tool with `name=swift-toolkit:orchestrator` and args describing the step (effectively as a new task: `task_id=<step_id>`, the epic context inherited via args). Method A launches the step's own profile script as a nested workflow run, building its path from `plugin_root`. Either way the outcome is recorded and the walk moves on.
 
-  - **Pull (fallback):** workflow-epic **does NOT call** the orchestrator. Instead: it walks every `.step/` folder, builds an ordered list of `[{step_id, task_id, profile, mode, …}]`, and returns it to the orchestrator via the `Output Contract` in the `pending_steps` field. The orchestrator then sequentially dispatches each step itself as ordinary tasks. Used when push does not work or the orchestrator explicitly requested pull.
+  - **Pull (fallback):** workflow-epic **does NOT run the step**. Instead it walks every `.step/` folder, builds an ordered list of `[{step_id, task_id, profile, mode, …}]`, and returns it to the orchestrator via the `Output Contract` in the `pending_steps` field. The orchestrator then sequentially dispatches each step itself as ordinary tasks.
+
+  **Three things force pull, whatever `epic_dispatch_mode` says.** `manual` mode, because the orchestrator asks the user between steps and a running workflow cannot ask. A missing `plugin_root` under Method A, because the step script's path cannot be built. And a step whose own `[TASK_TYPE]` is `EPIC` under Method A, because the runtime allows exactly one level of nested workflow and a nested epic would need a second. In each case the epic stops at the step it cannot run and returns that step **and every step after it** as `pending_steps` — the walk is ordered, so resuming past a gap would run a step against a state that never existed.
 
   **Mode selection:**
   - If `epic_dispatch_mode=push` was passed in args — use push.
   - If `epic_dispatch_mode=pull` — use pull (skip actually running the steps; populate `pending_steps`).
-  - If the field is absent — default to `push`.
+  - If the field is absent — default to `push`, subject to the three forced-pull conditions above.
 
-  The documented happy path is push. Pull exists only as a fallback for environments where nested `Skill` invocation does not work.
+  The documented happy path is push. Pull is the fallback, and in `manual` mode it is the only model.
 
 - **Done** — final report `Done.md` for the epic:
   - Which steps finished (with links to their `Done.md`).
@@ -154,8 +160,8 @@ Field semantics:
 - `status=partial` — **EPIC-specific**: some steps finished successfully and some failed/blocked/cancelled. The orchestrator decides what to show the user and whether to continue.
 - `branch=decomposition` — the Plan stage chose decomposition; there are steps.
 - `branch=pure_research` — the Plan stage chose pure research; `completed_steps`/`skipped_steps`/`failed_steps`/`pending_steps` are empty.
-- `last_completed_stage` — the last stage that actually finished (for pure_research the maximum is `Plan`).
-- `artifact_path` — path to the key artifact: `Done.md` for decomposition; `Research.md` (or `Plan.md` if a research roadmap exists) for pure_research.
+- `last_completed_stage` — the last stage that actually finished. On the pure_research branch that is still `Done`: Execute is skipped, but a short `Done.md` is written, and `branch=pure_research` is what tells the orchestrator no steps ran.
+- `artifact_path` — path to the key artifact: `Done.md` for decomposition; `Research.md` (or `Plan.md` if a research roadmap exists) for pure_research — a pure-research epic's deliverable is the research, not the report about it.
 - `next_recommended_action=continue` — the next stage or step may start immediately; `stop` — finish or fatal error; `ask_user` — confirmation is needed (e.g. after `partial` or after a step whose Review returned `CHANGES_REQUESTED`).
 - `pending_steps` — populated only in the pull model; an ordered list of steps the orchestrator must sequentially dispatch itself. In push mode this is always `[]`.
 

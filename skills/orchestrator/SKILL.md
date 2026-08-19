@@ -295,6 +295,8 @@ Semantics of `stage_scope`:
 
 **Validation.** The orchestrator does NOT validate the chosen agent name against the catalog `{swift-architect, swift-diagnostics, swift-security}` — that responsibility lies with workflow-research at dispatch entry (see `skills/workflow-research/SKILL.md` § 1, the `research_agent` bullet). An invalid value (e.g. a typo in `[RESEARCH_AGENT]`) propagates verbatim into the args; workflow-research rejects it with `{status: error, reason: <locale>}` rather than silently substituting a default.
 
+**EPIC-only optional fields — `plugin_root` and `epic_dispatch_mode`.** When `profile=epic` and the run takes Method A, include `plugin_root=${CLAUDE_PLUGIN_ROOT}` (expanded, absolute). The EPIC script runs each step as a nested workflow and has to build the step script's path; the sandbox cannot expand the variable itself, so without this field the epic falls back to handing the steps back rather than running them. `epic_dispatch_mode=push|pull` forces that choice — omit it and the script decides. Both fields are omitted for every other profile.
+
 ## Dispatch
 
 A profile has up to two executable forms. **Method A** is a workflow script the runtime executes, so the stage sequence is code rather than an instruction. **Method B** is the skill that has always run the profile. They implement the same stages — `scripts/lint-workflows.sh` fails the build if they drift — and the orchestrator picks between them once per task, not once per stage.
@@ -306,10 +308,10 @@ A profile has up to two executable forms. **Method A** is a workflow script the 
 | REFACTOR | `workflows/profile-refactor.js` | `swift-toolkit:workflow-refactor` |
 | TEST | `workflows/profile-test.js` | `swift-toolkit:workflow-test` |
 | REVIEW | `workflows/profile-review.js` | `swift-toolkit:workflow-review` |
-| EPIC | — | `swift-toolkit:workflow-epic` |
+| EPIC | `workflows/profile-epic.js` | `swift-toolkit:workflow-epic` |
 | RESEARCH | `workflows/profile-research.js` | `swift-toolkit:workflow-research` |
 
-A `—` means no script exists for that profile yet and it always takes Method B. Never construct a `scriptPath` for a profile this table does not list — a missing file fails the run after the user has already been told the task started.
+A `—` in the Method A column means that profile always takes Method B. Never construct a `scriptPath` for a profile this table does not list — a missing file fails the run after the user has already been told the task started.
 
 **Choosing the path.** Check whether `Workflow` is among the tools you can call **right now** — the ones handed to you with their parameters. Its appearance in this table, in a skill's prose, or in an agent's `tools` line does not count: look, do not assume. Then:
 
@@ -334,6 +336,8 @@ Pass `args` as a real JSON object. A JSON-encoded string arrives at the script a
 **Method A — manual mode.** A running workflow cannot ask the user anything. So `manual` mode dispatches **one workflow per stage**: `stage_scope=single` with `start_stage=<stage>`, wait for the result, run the usual post-stage gating (open-questions inspection, then `stage_done_prompt`), then dispatch the next stage. `auto` mode passes the whole range in a single call.
 
 **Method A — reading the result.** The script returns the same Output Contract every `workflow-*` skill returns — `status`, `last_completed_stage`, `artifact_path`, `next_recommended_action`, `notes` — plus the stage status fields where they apply: `validation_status`, `review_status`, `reproducible`, `blocked_phase`. Gate on those fields rather than re-reading the artifact's first line. The first line is still written and still what a human reads; it is simply no longer the parsing surface.
+
+EPIC returns more: `branch`, `completed_steps`, `skipped_steps`, `failed_steps`, and `pending_steps`. A non-empty `pending_steps` is not a failure — it is the epic handing back the steps it could not run itself, in order. Dispatch each one as an ordinary task, then re-dispatch the epic at `start_stage=Done`.
 
 `status: error` with `reason: no-args` means the contract never reached the script. Do not run the stage by hand and do not slide over to Method B as if nothing happened — say what happened, then re-dispatch with the contract filled.
 
