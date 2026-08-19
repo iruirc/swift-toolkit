@@ -159,6 +159,10 @@ const record = (stage, r) => {
   if (r && r.artifact_path) result.artifact_path = r.artifact_path
 }
 
+// effort: 'low' marks the mechanical calls — read a file back, tick a box, write a report from
+// finished artifacts. Everything that has to think omits it and inherits the session's effort, so a
+// user running high is never quietly downgraded.
+//
 // Entering at an implementation stage means no Plan stage ran in this invocation, so the phase
 // list has to be read back off disk — the script itself cannot see Plan.md.
 const readPlan = (stage, agentType) =>
@@ -167,7 +171,7 @@ const readPlan = (stage, agentType) =>
       stage,
       `Read ${DIR}/Plan.md and return its phases in order. Skip every phase already marked ✅ in the top-level table${A.start_phase ? `, and start from phase ${A.start_phase}` : ''}. Mark a phase kind test only when it adds or changes tests and nothing else. Change nothing on disk.`,
     ),
-    { label: `${stage.toLowerCase()}:read-plan`, phase: stage, agentType, schema: PLAN },
+    { label: `${stage.toLowerCase()}:read-plan`, phase: stage, agentType, schema: PLAN, effort: 'low' },
   )
 
 // start_phase is an entry point, not a hint: the read-plan agent is free to return an earlier
@@ -364,7 +368,7 @@ if (runs('Execute')) {
         'Execute',
         `Read ${DIR}/Plan.md and every <name>.step/ subfolder of ${DIR}. Return the steps in execution order — numeric prefixes ascending, named ones in the order Plan.md locks — each with the [TASK_TYPE] and [STATUS] from its own Task.md, plus its [WORKFLOW_MODE] and ## 4. [Stack] where the step declares its own. Also return the branch recorded in Research.md under "## Decomposition decision". Change nothing on disk.`,
       ),
-      { label: 'execute:read-steps', phase: 'Execute', agentType: 'swift-toolkit:swift-architect', schema: STEPS },
+      { label: 'execute:read-steps', phase: 'Execute', agentType: 'swift-toolkit:swift-architect', schema: STEPS, effort: 'low' },
     )
     if (!read) return finish('stop', { status: 'error', reason: 'the step reader returned nothing' })
     branch = read.branch
@@ -462,7 +466,7 @@ if (runs('Execute')) {
           'Execute',
           `Step ${st.step_id} finished. In ${DIR}/Plan.md tick that step's row in the progress table — "- [ ]" becomes "- [x]" — and set its [STATUS] column to match its Task.md, which swift-toolkit:task-move has just updated. Touch nothing else in the file and no other file.`,
         ),
-        { label: `execute:tick:${st.step_id}`, phase: 'Execute', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT },
+        { label: `execute:tick:${st.step_id}`, phase: 'Execute', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT, effort: 'low' },
       )
     }
 
@@ -484,6 +488,7 @@ if (runs('Done') && branch === null) {
       label: 'done:read-branch',
       phase: 'Done',
       agentType: 'swift-toolkit:swift-architect',
+      effort: 'low',
       schema: {
         type: 'object',
         additionalProperties: false,
@@ -511,7 +516,7 @@ if (runs('Done') && !failed_steps.length && !cancelled && !pending_steps.length)
 - A ## Estimate retrospective section that rolls up every completed step's own retrospective: the aggregate estimated epic range against the summed actual effort, an in-range verdict, and the reason for any variance. Take actual effort per feature-estimation ## Estimate retrospective — the user's own figure when there is one, otherwise the git proxy, labelled as a proxy, otherwise unknown. Sum step rows only in matching units; never add human-days to proxy values in one total. Append or refresh this epic's data point in the calibration log.
 - Objections, aggregated from the steps' Done.md files where the user insisted on a contested decision.`,
     ),
-    { label: 'done', phase: 'Done', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT },
+    { label: 'done', phase: 'Done', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT, effort: 'low' },
   )
   if (!done) return finish('stop', { status: 'error', reason: 'the Done agent returned nothing' })
   record('Done', done)

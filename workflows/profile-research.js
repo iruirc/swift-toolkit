@@ -158,6 +158,10 @@ const record = (stage, r) => {
   if (r && r.artifact_path) result.artifact_path = r.artifact_path
 }
 
+// effort: 'low' marks the mechanical calls — read a file back, tick a box, write a report from
+// finished artifacts. Everything that has to think omits it and inherits the session's effort, so a
+// user running high is never quietly downgraded.
+//
 // Entering at an implementation stage means no Plan stage ran in this invocation, so the phase
 // list has to be read back off disk — the script itself cannot see Plan.md.
 const readPlan = (stage, agentType) =>
@@ -166,7 +170,7 @@ const readPlan = (stage, agentType) =>
       stage,
       `Read ${DIR}/Plan.md and return its phases in order. Skip every phase already marked ✅ in the top-level table${A.start_phase ? `, and start from phase ${A.start_phase}` : ''}. Mark a phase kind test only when it adds or changes tests and nothing else. Change nothing on disk.`,
     ),
-    { label: `${stage.toLowerCase()}:read-plan`, phase: stage, agentType, schema: PLAN },
+    { label: `${stage.toLowerCase()}:read-plan`, phase: stage, agentType, schema: PLAN, effort: 'low' },
   )
 
 // start_phase is an entry point, not a hint: the read-plan agent is free to return an earlier
@@ -297,7 +301,7 @@ if (runs('Done')) {
       'Done',
       `Write the final report ${DIR}/Done.md: what was investigated, the verdict or key finding in one paragraph, a pointer to Research.md, and the follow-up tasks — how many, briefly what they are, and the task-new invocation hint for each. Nothing was built here, so keep the report about what is now known and what should happen next.`,
     ),
-    { label: 'done', phase: 'Done', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT },
+    { label: 'done', phase: 'Done', agentType: 'swift-toolkit:swift-architect', schema: ARTIFACT, effort: 'low' },
   )
   if (!done) return finish('stop', { status: 'error', reason: 'the Done agent returned nothing' })
   record('Done', done)
