@@ -111,3 +111,12 @@ Stages of the {profile} profile run through the workflow pipeline — the runtim
 
 ## dispatch_method_b
 The Workflow tool is not available in this session, so the {profile} profile runs through its skill. Same stages and same agents; the sequence is held by the assistant rather than by code.
+
+## stage_error_prompt
+Stage {stage} returned an error: {reason}. The range stops here — a later stage would build on work that was never finished.
+
+## stage_error_option_retry
+Retry {stage}
+
+## stage_error_option_stop
+Stop and hand back control

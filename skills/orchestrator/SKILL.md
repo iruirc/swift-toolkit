@@ -349,6 +349,22 @@ EPIC returns more: `branch`, `completed_steps`, `skipped_steps`, `failed_steps`,
 
 **Auto** — no pauses between stages.
 
+**Error mid-range.** A stage that returns `status: error` ends the range where it stands, in `auto`
+as much as in `manual`. `auto` means no pause between stages that *succeeded*; carrying on past a
+failure would build the next stage on a foundation that is not there.
+
+Report the stage, the reason, and whatever artifacts did get written, then AUQ with key
+`stage_error_prompt` (placeholders `{stage}`, `{reason}`). `stage_error_option_retry` re-dispatches
+that one stage with `stage_scope=single`; `stage_error_option_stop` returns control with `status:
+error` and `last_completed_stage` set to the last stage that actually finished — not the one that
+failed.
+
+Two things deliberately do NOT happen on this path. The status-driven auto-move to `DONE` does not
+fire: it reads the verdict on the first line of `Review.md`, and a run that stopped earlier never
+wrote one — no verdict, no move. And the `_archive/` backups taken before dispatch are left in
+place; they exist for exactly this case, and clearing them would remove the rope at the moment
+someone reaches for it.
+
 **Open-questions inline (research-style stages).** In `manual` mode, before rendering `stage_done_prompt`, the orchestrator inspects the just-completed stage's primary artifact (`Research.md` in every profile — the research-style stage writes that name whatever the stage is called — plus `Reproduce.md` for BUG) for non-empty open-question sections.
 
 Recognized H3 section titles (case-insensitive, scoped under any H2):
