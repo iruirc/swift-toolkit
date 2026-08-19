@@ -128,7 +128,7 @@ Stop and hand back control
 Live progress of the running workflow — the /workflows view.
 
 ## progress_open_live_ticker_note
-If no ticker lines appear below, the SubagentStart hook is not registered: restart the session after a plugin update.
+The ticker is not built yet: `live` is reserved, and today it renders exactly as `normal`.
 
 ## progress_open_method_b_live
 Under Method B the host renders every agent call itself, so `live` behaves as `normal` here.

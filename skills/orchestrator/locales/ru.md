@@ -128,7 +128,7 @@ security; OWASP; vulnerability; pinning; безопасность
 Живой ход идущего workflow — вьюха /workflows.
 
 ## progress_open_live_ticker_note
-Если строк тикера ниже не появится — хук SubagentStart не зарегистрирован: перезапустите сессию после обновления плагина.
+Тикер ещё не построен: `live` зарезервировано и сегодня выводится ровно как `normal`.
 
 ## progress_open_method_b_live
 В Method B хост сам рисует каждый вызов агента, поэтому `live` здесь ведёт себя как `normal`.

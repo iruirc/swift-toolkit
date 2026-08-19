@@ -175,7 +175,8 @@ Two things are worth knowing before you use it:
   quietly takes the skill path, which is the behaviour the toolkit has always had.
 
 How much a run narrates is set by `## Progress` in `CLAUDE-swift-toolkit.md`: `quiet`,
-`normal` (default), or `live`. At `normal` and above the orchestrator prints the
+`normal` (default), or `live` — reserved for a per-agent ticker that does not exist yet and
+renders as `normal` today. At `normal` and above the orchestrator prints the
 stage-to-agent plan once, then a report naming the agent after each stage. Live progress of
 a running workflow is always available in the `/workflows` view, whatever the setting.
 
