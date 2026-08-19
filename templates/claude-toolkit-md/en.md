@@ -47,6 +47,18 @@ en
 
 manual
 
+## Progress
+
+normal
+
+(how much the orchestrator narrates a profile run: `quiet` — the final report only;
+`normal` — the stage-to-agent plan once, then a report after every stage; `live` — also a
+ticker as each agent starts and finishes. `live` needs the SubagentStart hook, which is
+registered at session start: after a plugin update, restart the session or no ticker appears.
+Under Method B the host already renders every agent call, so `live` behaves as `normal`.
+This setting governs reporting only — the between-stage confirmations of `manual` mode are
+unaffected by it.)
+
 ## Modules
 
 (optional: list of modules with per-module stack, e.g.: "- Core: /Packages/Core — Combine, manual DI")

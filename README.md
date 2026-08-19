@@ -174,6 +174,11 @@ Two things are worth knowing before you use it:
 - **On the Pro plan, workflows are off until you enable them** in `/config`. Until then every task
   quietly takes the skill path, which is the behaviour the toolkit has always had.
 
+How much a run narrates is set by `## Progress` in `CLAUDE-swift-toolkit.md`: `quiet`,
+`normal` (default), or `live`. At `normal` and above the orchestrator prints the
+stage-to-agent plan once, then a report naming the agent after each stage. Live progress of
+a running workflow is always available in the `/workflows` view, whatever the setting.
+
 ---
 
 ## Internationalization
