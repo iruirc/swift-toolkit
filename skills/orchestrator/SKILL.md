@@ -312,7 +312,7 @@ Action after Resolution: invoke the `Skill` tool with `name` from the table and 
 
 **Auto** — no pauses between stages.
 
-**Open-questions inline (research-style stages).** In `manual` mode, before rendering `stage_done_prompt`, the orchestrator inspects the just-completed stage's primary artifact (`Research.md` for FEATURE/EPIC/RESEARCH Research; `Reproduce.md` and `Diagnose.md` for BUG; `Analyze.md` for REFACTOR/TEST) for non-empty open-question sections.
+**Open-questions inline (research-style stages).** In `manual` mode, before rendering `stage_done_prompt`, the orchestrator inspects the just-completed stage's primary artifact (`Research.md` for FEATURE/EPIC/RESEARCH Research; `Reproduce.md` and `Research.md` for BUG; `Analyze.md` for REFACTOR/TEST) for non-empty open-question sections.
 
 Recognized H3 section titles (case-insensitive, scoped under any H2):
 - `### Designer questions`
