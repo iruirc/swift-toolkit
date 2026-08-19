@@ -120,3 +120,27 @@ security; OWASP; vulnerability; pinning; безопасность
 
 ## stage_error_option_stop
 Остановиться и вернуть управление
+
+## progress_open_header
+{profile} {task_id} · {method} · {start} → {end} · Progress: {progress}
+
+## progress_open_live_hint
+Живой ход идущего workflow — вьюха /workflows.
+
+## progress_open_live_ticker_note
+Если строк тикера ниже не появится — хук SubagentStart не зарегистрирован: перезапустите сессию после обновления плагина.
+
+## progress_open_method_b_live
+В Method B хост сам рисует каждый вызов агента, поэтому `live` здесь ведёт себя как `normal`.
+
+## progress_stage_report
+{stage} — {agent}
+
+## progress_stage_artifact
+Артефакт: {path}
+
+## progress_stage_verdict
+Вердикт: {verdict}
+
+## progress_run_elapsed
+Прогон занял {elapsed}.

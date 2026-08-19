@@ -117,6 +117,14 @@ Algorithm:
    > CLAUDE-swift-toolkit.md "## Mode"
    > "manual" (default)
 
+3.5 Resolve progress (priority high→low):
+    progress_override (NL: "quietly" / "with live indication")
+    > CLAUDE-swift-toolkit.md "## Progress"
+    > "normal" (default)
+
+    An unrecognized value resolves to "normal" without an error: the resolved value is printed
+    in the opening block, so a typo shows up as a mismatch with the file rather than as silence.
+
 4. Resolve stack (per-axis; replaces the old monolithic chain):
    4.0 if stack_override is set (stack explicitly named in the request):
           stack := stack_override
@@ -337,11 +345,50 @@ Pass `args` as a real JSON object. A JSON-encoded string arrives at the script a
 
 **Method A — reading the result.** The script returns the same Output Contract every `workflow-*` skill returns — `status`, `last_completed_stage`, `artifact_path`, `next_recommended_action`, `notes` — plus the stage status fields where they apply: `validation_status`, `review_status`, `reproducible`, `blocked_phase`. Gate on those fields rather than re-reading the artifact's first line. The first line is still written and still what a human reads; it is simply no longer the parsing surface.
 
+The return also carries `stages[]` — one record per stage that finished, in order, each with
+`stage`, `agent`, `ok`, `artifact_path`, `summary` and `status`. It is what makes a per-stage
+report possible in `auto`, where a single return covers the whole range. Method B skills do not
+return it and are not expected to: there the orchestrator drives each stage itself and already
+has every field.
+
 EPIC returns more: `branch`, `completed_steps`, `skipped_steps`, `failed_steps`, and `pending_steps`. A non-empty `pending_steps` is not a failure — it is the epic handing back the steps it could not run itself, in order. Dispatch each one as an ordinary task, then re-dispatch the epic at `start_stage=Done`.
 
 `status: error` with `reason: no-args` means the contract never reached the script. Do not run the stage by hand and do not slide over to Method B as if nothing happened — say what happened, then re-dispatch with the contract filled.
 
 **Method B — invoke.** Unchanged: invoke the `Skill` tool with the name from the table and `args` in Outbound Contract format.
+
+## Progress reporting
+
+`Progress` (Resolution Algorithm, step 3.5) governs reporting only. It never changes what runs,
+and it never suppresses a question: the `manual` between-stage AUQ, the open-questions gate, and
+commit confirmations behave identically at all three values.
+
+**At `quiet`** — nothing beyond the final report that closes the range.
+
+**At `normal` and above** — an opening block, once per task, before the first dispatch. Render
+`progress_open_header` (`{method}` is the literal `Method A` or `Method B`), then the sentence
+from `dispatch_method_a` / `dispatch_method_b`, then the stage-to-agent table, then
+`progress_open_live_hint` for Method A only.
+
+The table's agent column comes from `meta.phases[].agent` in `workflows/profile-<profile>.js`.
+Read that file's `meta` block — it is the same file that dispatches, and a second copy of the map
+in this skill would drift from it. Method B reads it too: the Workflow tool is absent there, but
+the file is on disk.
+
+Then, after each stage: `progress_stage_report`, plus `progress_stage_artifact` where the stage
+wrote one, plus the agent's own one-or-two-sentence summary, plus `progress_stage_verdict` where
+the stage carries a verdict.
+
+In `manual` the source is the single-stage return, printed before `stage_done_prompt`. In `auto`
+the source is `stages[]` from the one return, printed as consecutive entries.
+
+**At `live`** — additionally append `progress_open_live_ticker_note` to the opening block under
+Method A, and `progress_open_method_b_live` under Method B.
+
+**Timing.** The elapsed figure comes from the Workflow tool result, not from the script — the
+sandbox has no clock. In `manual` one call is one stage, so it is that stage's time. In `auto` it
+covers the whole range and is printed once, via `progress_run_elapsed`, at the end. Per-stage
+durations inside an `auto` run do not exist; do not invent them.
 
 ## Gating
 

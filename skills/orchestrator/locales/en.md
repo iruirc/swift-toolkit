@@ -120,3 +120,27 @@ Retry {stage}
 
 ## stage_error_option_stop
 Stop and hand back control
+
+## progress_open_header
+{profile} {task_id} · {method} · {start} → {end} · Progress: {progress}
+
+## progress_open_live_hint
+Live progress of the running workflow — the /workflows view.
+
+## progress_open_live_ticker_note
+If no ticker lines appear below, the SubagentStart hook is not registered: restart the session after a plugin update.
+
+## progress_open_method_b_live
+Under Method B the host renders every agent call itself, so `live` behaves as `normal` here.
+
+## progress_stage_report
+{stage} — {agent}
+
+## progress_stage_artifact
+Artifact: {path}
+
+## progress_stage_verdict
+Verdict: {verdict}
+
+## progress_run_elapsed
+Run finished in {elapsed}.
