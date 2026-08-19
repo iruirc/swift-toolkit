@@ -8,8 +8,8 @@ set -euo pipefail
 #   - meta.name is profile-<x> and collides with no skill directory
 #   - stage parity: every SKILL.md stage that names an agent has a meta.phases entry,
 #     and no meta.phases entry invents a stage the profile does not have
-#   - every phase names the agent that runs its stage, and that map agrees with what the
-#     script dispatches in both directions
+#   - every phase names the agent that runs its stage, and that map agrees both with what the
+#     script dispatches, in both directions, and with the script's own AGENT_OF copy
 #   - every agentType resolves to a file in agents/
 #   - the prelude block is byte-identical in every script (a script cannot import,
 #     so the shared skeleton is copied; this is what keeps the copies one thing)
@@ -113,6 +113,17 @@ for fname in files:
     dispatched = set(re.findall(r"'swift-toolkit:(swift-[a-z]+)'", src))
     for bare in sorted(dispatched - named):
         violations.append(f'{path}: dispatches "{bare}" but no meta.phases entry mentions it')
+
+    # meta is parsed before the run and is not a binding inside the sandbox, so the prelude reads a
+    # per-file AGENT_OF copy instead. Two copies only stay one map if something compares them.
+    copy = re.search(r'^const AGENT_OF = \{(.*?)^\}', raw, flags=re.M | re.S)
+    if not copy:
+        violations.append(f'{path}: no `const AGENT_OF` — the prelude reads it, meta being invisible to the body')
+    else:
+        pairs = dict(re.findall(r"^\s*'?([\w-]+)'?:\s*'([^']*)'", copy.group(1), flags=re.M))
+        drift = sorted(k for k in set(pairs) | set(agents_by_phase) if pairs.get(k) != agents_by_phase.get(k))
+        if drift:
+            violations.append(f'{path}: AGENT_OF and meta.phases[].agent disagree on: {", ".join(drift)}')
 
     stages, with_agent = skill_stages(profile)
     if stages is None:

@@ -16,6 +16,17 @@ export const meta = {
 const PROFILE = 'TEST'
 const ORDER = ['Analyze', 'Plan', 'Write', 'Validation', 'Review', 'Done']
 
+// Mirrors meta.phases[].agent, which the sandbox does not expose to the script body;
+// scripts/lint-workflows.sh fails on any drift between the two.
+const AGENT_OF = {
+  Analyze: 'swift-architect testability lens, then swift-tester',
+  Plan: 'swift-tester',
+  Write: 'swift-tester',
+  Validation: 'swift-validator',
+  Review: 'swift-reviewer',
+  Done: 'swift-tester',
+}
+
 // ── prelude ──────────────────────────────────────────────────────────────────
 // Byte-identical in every profile script; scripts/lint-workflows.sh enforces that. A workflow
 // script cannot import, so this block is copied rather than shared, and the lint is what keeps
@@ -147,18 +158,30 @@ const REVIEW = {
   },
 }
 
-const result = { status: 'ok', last_completed_stage: null, artifact_path: null, notes: [] }
+const result = { status: 'ok', last_completed_stage: null, artifact_path: null, notes: [], stages: [] }
 const finish = (next, extra) => ({
   status: extra && extra.status ? extra.status : result.status,
   last_completed_stage: result.last_completed_stage,
   artifact_path: result.artifact_path,
   next_recommended_action: next,
   notes: result.notes.join(' '),
+  stages: result.stages,
   ...(extra || {}),
 })
+// stages[] is the per-stage report auto has no other source for: there one return covers the whole
+// range. A missing ok means the verdict lives in its own field (VALIDATION, REVIEW), not that the
+// stage failed.
 const record = (stage, r) => {
   result.last_completed_stage = stage
   if (r && r.artifact_path) result.artifact_path = r.artifact_path
+  result.stages.push({
+    stage,
+    agent: AGENT_OF[stage] || 'unnamed',
+    ok: !!(r && (r.ok === undefined || r.ok)),
+    artifact_path: (r && r.artifact_path) || null,
+    summary: (r && r.summary) || null,
+    status: (r && (r.review_status || r.validation_status)) || null,
+  })
 }
 
 // effort: 'low' marks the mechanical calls — read a file back, tick a box, write a report from
