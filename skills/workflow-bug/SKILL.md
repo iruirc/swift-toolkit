@@ -50,6 +50,8 @@ The fields that directly drive this workflow's behavior:
 
 ## 2. Stages
 
+A stage that names an agent is executed by that agent. Dispatch it per `conventions/stage-dispatch.md` — stage work does not run in the main context, and a stage that skips its agent says so before it starts.
+
 - **Reproduce** — `swift-toolkit:swift-diagnostics`. Artifact: `Reproduce.md` (or a section in `Research.md`) with reproduction steps, a minimal reproducer, and the manifestation frequency (always / sometimes / under condition X). Goal: pin down a deterministic scenario that Validation can later rely on.
 
   Apply the `feature-requirements` skill (Secondary checklist only) to enumerate which Secondary states the bug touches — error / loading / empty / offline / a11y / deeplink / push / i18n / analytics / lifecycle / cancellation. A bug often hides not in the happy path but in one of these states; explicit enumeration prevents "fixed the happy path, broke offline" regressions.

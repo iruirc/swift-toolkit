@@ -50,6 +50,8 @@ The fields that directly drive this workflow's behavior:
 
 ## 2. Stages
 
+A stage that names an agent is executed by that agent. Dispatch it per `conventions/stage-dispatch.md` — stage work does not run in the main context, and a stage that skips its agent says so before it starts.
+
 - **Analyze** — a panel: `swift-toolkit:swift-architect` + `swift-toolkit:swift-tester` (via the Task tool, in parallel or sequentially as the orchestrator decides). Artifact: `Research.md`. Goal: determine **what to test** (uncovered code, critical paths, regression scenarios), **what test level** (unit / integration / UI / snapshot), **which frameworks** (XCTest / Quick+Nimble / ViewInspector / SnapshotTesting). Additionally, `swift-toolkit:swift-architect` evaluates the testability of existing code: whether dependency injection, mocks, or protocols for abstracting external dependencies are required.
 
 - **Plan** — `swift-toolkit:swift-tester`. Artifact: `Plan.md` with **two layers of progress tracking**:

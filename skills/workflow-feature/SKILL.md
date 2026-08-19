@@ -50,6 +50,8 @@ The fields that directly drive this workflow's behavior:
 
 ## 2. Stages
 
+A stage that names an agent is executed by that agent. Dispatch it per `conventions/stage-dispatch.md` — stage work does not run in the main context, and a stage that skips its agent says so before it starts.
+
 - **Research** — a panel: `swift-toolkit:swift-architect` + `swift-toolkit:swift-security` (via the Task tool, in parallel or sequentially as the orchestrator decides). Artifact: `Research.md` in the task folder. Goal: investigate the domain, surface risks, propose architectural options.
 
   The architect MUST apply the `feature-requirements` skill and then the `feature-landscape` skill, producing two H2 sections inside `Research.md`: `## Requirements` (Primary / Secondary / Designer questions / Backend questions / Known unknowns) and `## Landscape` (Entity graph / Layer map / Integration points / Work items / Implementation sequence). The `## Architectural Analysis` and other architect-output sections are appended after these two.

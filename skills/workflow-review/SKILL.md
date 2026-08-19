@@ -44,6 +44,8 @@ REVIEW-profile specifics (differences from other workflows):
 
 ## 2. Stages
 
+A stage that names an agent is executed by that agent. Dispatch it per `conventions/stage-dispatch.md` — stage work does not run in the main context, and a stage that skips its agent says so before it starts.
+
 - **Review** — `swift-toolkit:swift-reviewer`. Artifact: `Review.md` in the task folder. **Mandatory first line** of the artifact: `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` — this is the contract shared with every workflow and the orchestrator. Body of `Review.md`: what was done well, what needs changes (by severity), open questions. The detailed output format is described in `agents/swift-reviewer.md`.
 
 - **Auto-move** — a deterministic post-stage. The workflow reads the first line of `Review.md` strictly as the field `[REVIEW_STATUS] = <value>` (regex: starts with `[REVIEW_STATUS] =`, value parsed by `=`). Substring search inside the body of `Review.md` is forbidden. Possible values and actions:

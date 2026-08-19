@@ -16,6 +16,16 @@ one or more bounded questions with options.
 - Locale keys with the `auq_` prefix are historical names. They mean "question
   prompt/options" and are not tied to a specific host tool.
 
+## Subagent Dispatch
+
+`subagent dispatch` means the active host's mechanism for running a unit of work in a separate
+agent context — the Task tool with `subagent_type=swift-toolkit:<name>` in Claude Code.
+
+- Every `workflow-*` stage that names an agent is dispatched this way. The contract, including
+  what to do when the host offers no such mechanism, is `conventions/stage-dispatch.md`.
+- Some hosts carry a standing instruction not to spawn subagents unasked. A swift-toolkit command
+  is the user asking; that skill's own text says so.
+
 ## File Access
 
 `file-read mechanism`, `file-write mechanism`, and `file-edit mechanism` mean the

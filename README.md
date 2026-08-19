@@ -149,6 +149,14 @@ Live under `agents/`. Each is a specialized role with its own set of relevant sk
 | `swift-diagnostics` | Bug hunting, reproduction, instrumentation |
 | `swift-security` | OWASP Mobile Top-10 audit |
 
+### Stage dispatch
+
+Every `workflow-*` stage runs inside the agent named in the stage. Some hosts carry a standing rule
+against spawning subagents unasked, which silently collapses a profile into main-context work — a
+swift-toolkit command counts as the user asking, and the plugin's `SessionStart` hook states that in
+any project where `CLAUDE-swift-toolkit.md` or `Tasks/ACTIVE/` is present. Contract:
+`conventions/stage-dispatch.md`.
+
 ---
 
 ## Internationalization

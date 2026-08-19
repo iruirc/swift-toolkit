@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# SessionStart hook: states the agent-dispatch contract for swift-toolkit projects.
+#
+# Silent in projects that do not use the toolkit — the marker check below is what keeps this
+# from costing context in every unrelated repo the plugin is installed for.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Hook input arrives as JSON on stdin; `cwd` is the only field needed and jq may be absent.
+stdin_payload=""
+if [ ! -t 0 ]; then
+  stdin_payload="$(cat || true)"
+fi
+project_dir="$(printf '%s' "$stdin_payload" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+[ -n "$project_dir" ] || project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
+
+uses_toolkit=0
+[ -f "${project_dir}/CLAUDE-swift-toolkit.md" ] && uses_toolkit=1
+[ -d "${project_dir}/Tasks/ACTIVE" ] && uses_toolkit=1
+[ "$uses_toolkit" -eq 1 ] || exit 0
+
+contract="$(cat "${SCRIPT_DIR}/dispatch-contract.md")"
+
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' \
+  "$(escape_for_json "$contract")"
+
+exit 0

@@ -22,6 +22,7 @@ en
   - knowledge skills: `arch-*`, `persistence-*`, `net-*`, `di-*`, etc.
   - each localized skill has `locales/{en,ru}.md`
 - `commands/` — slash commands (one Markdown file per command)
+- `hooks/` — plugin hooks (`hooks.json` + scripts); the only channel that reaches existing user projects on plugin update
 - `templates/claude-md/` — CLAUDE.md templates copied into user projects (`en.md`, `ru.md`)
 - `notes/` — free-form maintainer notes, research, comparisons (any language; own local git repo, gitignored). Layout and conventions: `notes/README.md` — read it before adding a file there.
 - `docs/superpowers/` — superpowers specs and plans (any language; own local git repo, gitignored)
@@ -30,6 +31,7 @@ en
 ## Conventions
 
 - See `conventions/i18n.md` for the i18n convention reference.
+- See `conventions/stage-dispatch.md` for the stage→agent execution contract.
 
 ## When working on this repo
 

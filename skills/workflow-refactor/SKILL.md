@@ -50,6 +50,8 @@ The fields that directly drive this workflow's behavior:
 
 ## 2. Stages
 
+A stage that names an agent is executed by that agent. Dispatch it per `conventions/stage-dispatch.md` — stage work does not run in the main context, and a stage that skips its agent says so before it starts.
+
 - **Analyze** — `swift-toolkit:swift-architect`. Artifact: `Research.md` describing the current state (what is bad, why, what risks the refactor carries), a map of affected components, and the target state. Goal: refactor **without changing external behavior** — only structure, readability, maintainability, type/module boundaries, naming, and dependency isolation change. The public API/behavior contract is preserved as an invariant.
 
   The architect MUST apply the `feature-landscape` skill **twice**: once to draw the **current** entity graph + layer map + integration points (the as-is landscape), and once to draw the **target** landscape after refactor. `Research.md` gets two sections: `## Landscape (current)` and `## Landscape (target)`. The diff between them IS the refactor scope; per-phase work items in `Plan.md` are derived from this diff.

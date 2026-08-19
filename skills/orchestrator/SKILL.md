@@ -29,6 +29,8 @@ Caching: resolve `<lang>` once per skill invocation; do not re-read CLAUDE-swift
 
 Use `conventions/agent-tooling.md` for host-neutral interaction terms.
 
+A user command that reaches this skill is standing authorization to dispatch the profile's stage agents for the whole task — see `conventions/stage-dispatch.md`.
+
 In this skill, `AskUserQuestion` / `AUQ` means the structured question
 mechanism. If the active host cannot provide a structured question tool, ask the
 question with numbered options in a regular message and parse the user's reply.

@@ -54,6 +54,8 @@ Key fields and their EPIC-specific semantics:
 
 ## 2. Stages
 
+A stage that names an agent is executed by that agent. Dispatch it per `conventions/stage-dispatch.md` — stage work does not run in the main context, and a stage that skips its agent says so before it starts.
+
 - **Research** — `swift-toolkit:swift-architect`. Artifact: `Research.md` in the epic's folder. Goal: a wide investigation of the topic (context, actors, constraints, technology options, related modules). The Research output must answer: **is decomposition required** (a large initiative needs to be split into executable chunks) **or is pure research enough** (Research.md is itself the final artifact; no implementation will follow).
 
   For the **decomposition** branch, the architect MUST apply `feature-requirements` (epic-level Primary / Secondary / Designer / Backend / Known Unknowns) and `feature-landscape` (epic-level entity graph + layer map + integration points). `Research.md` gets `## Requirements` and `## Landscape` sections. The landscape's work-items list seeds the step decomposition in the next stage.

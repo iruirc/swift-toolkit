@@ -58,6 +58,8 @@ RESEARCH-profile specifics:
 
 ## 2. Stages
 
+A stage that names an agent is executed by that agent. Dispatch it per `conventions/stage-dispatch.md` — stage work does not run in the main context, and a stage that skips its agent says so before it starts.
+
 - **Research** — agent selected per `research_agent` (default `swift-toolkit:swift-architect`; alternatives `swift-toolkit:swift-diagnostics` for code-audit / inventory tasks; `swift-toolkit:swift-security` for security-audit tasks). Artifact: `Research.md` in the task folder. Goal: investigation, inventory, classification, comparative analysis, or feasibility verdict — depending on the Task.md description.
 
   **Output shape (mandatory headings):**
