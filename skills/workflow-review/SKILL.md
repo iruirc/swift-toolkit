@@ -9,6 +9,8 @@ stack_axes_envelope: { may: [], never: all }
 
 # Workflow Review
 
+This skill is **Method B** for the REVIEW profile: it runs the stages when the host has no Workflow tool. `workflows/profile-review.js` is Method A and runs the same stages as code. The orchestrator picks between them (see `swift-toolkit:orchestrator` → **Dispatch**), and `scripts/lint-workflows.sh` fails if the two stage lists drift apart. Edit a stage here and the script needs the same edit.
+
 The profile workflow for tasks with `[TASK_TYPE] = REVIEW`. Structurally simpler than the others: a single substantive stage (Review) and a deterministic post-stage Auto-move that routes by the `[REVIEW_STATUS]` field. The skill receives an already-resolved contract from the orchestrator and does not try to re-resolve any parameter on its own.
 
 ## Language Resolution
@@ -39,6 +41,7 @@ REVIEW-profile specifics (differences from other workflows):
 - `start_phase` — not used (Review has no phases).
 - `need_test`, `need_review` — ignored: this profile IS the review; `swift-toolkit:swift-reviewer` does not call itself recursively, and tests run inside the donor workflows (FEATURE/BUG/REFACTOR/TEST).
 - `mode` — `manual` / `auto` (see sections 3 and 4): only affects whether auto-move is confirmed with the user.
+- `task_dir` — the resolved task folder; `Review.md` and anything auto-move writes land there.
 - `stack`, `archive_paths` — standard (context for `swift-toolkit:swift-reviewer` and information about backups created by the orchestrator).
 - `lang` — project language for `Review.md` prose + the final report; structure (`[REVIEW_STATUS] = …`, headings) stays EN. See `conventions/i18n.md` → "Artifact authoring rule". Passed to `swift-toolkit:swift-reviewer`.
 

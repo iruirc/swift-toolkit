@@ -305,9 +305,9 @@ A profile has up to two executable forms. **Method A** is a workflow script the 
 | BUG | `workflows/profile-bug.js` | `swift-toolkit:workflow-bug` |
 | REFACTOR | `workflows/profile-refactor.js` | `swift-toolkit:workflow-refactor` |
 | TEST | `workflows/profile-test.js` | `swift-toolkit:workflow-test` |
-| REVIEW | — | `swift-toolkit:workflow-review` |
+| REVIEW | `workflows/profile-review.js` | `swift-toolkit:workflow-review` |
 | EPIC | — | `swift-toolkit:workflow-epic` |
-| RESEARCH | — | `swift-toolkit:workflow-research` |
+| RESEARCH | `workflows/profile-research.js` | `swift-toolkit:workflow-research` |
 
 A `—` means no script exists for that profile yet and it always takes Method B. Never construct a `scriptPath` for a profile this table does not list — a missing file fails the run after the user has already been told the task started.
 

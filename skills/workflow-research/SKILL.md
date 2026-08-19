@@ -9,6 +9,8 @@ stack_axes_envelope: { may: [], never: all }
 
 # Workflow Research
 
+This skill is **Method B** for the RESEARCH profile: it runs the stages when the host has no Workflow tool. `workflows/profile-research.js` is Method A and runs the same stages as code. The orchestrator picks between them (see `swift-toolkit:orchestrator` → **Dispatch**), and `scripts/lint-workflows.sh` fails if the two stage lists drift apart. Edit a stage here and the script needs the same edit.
+
 The profile workflow for tasks with `[TASK_TYPE] = RESEARCH`. Pure investigation: produces `Research.md` (the final artifact), optionally goes through `Review`, then `Done`. NO implementation, NO tests, NO Plan stage — the research IS the deliverable. The skill receives an already-resolved contract from the orchestrator and does not try to re-resolve any parameter on its own.
 
 **When to use vs EPIC pure_research:** RESEARCH is for tasks known up-front to be investigation-only. EPIC `pure_research` is a *downgrade path*: a task starts as an EPIC, the Research stage discovers that no decomposition / implementation is needed, and the workflow finishes at the Plan stage. See `conventions/research-vs-epic.md`.
@@ -41,6 +43,7 @@ RESEARCH-profile specifics:
 - `start_phase` — not used (Research has no phases in this profile).
 - `need_test` — ignored: research profile produces no code → no tests applicable. Workflow-research treats it as `false` regardless of the contract value.
 - `need_review` — gates the inclusion of `swift-toolkit:swift-reviewer` over `Research.md`. Default `true` (set by the orchestrator from `[NEED_REVIEW]` in `Task.md`).
+- `task_dir` — the resolved task folder; every artifact this profile writes lands there.
 - `mode` — `manual` / `auto` (see sections 3 and 4).
 - `stack` — see envelope (`never: all`) below.
 - `lang` — project language for `Research.md` / `Review.md` / `Done.md` prose + the final report; artifact structure stays EN. See `conventions/i18n.md` → "Artifact authoring rule".
