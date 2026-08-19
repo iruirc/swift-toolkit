@@ -4,10 +4,10 @@ export const meta = {
   whenToUse:
     'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=EPIC, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
   phases: [
-    { title: 'Research', detail: 'architect; writes Research.md and the decomposition verdict' },
-    { title: 'Plan', detail: 'architect; either the step table plus the .step/ folders, or a research roadmap' },
-    { title: 'Execute', detail: 'one nested workflow run per step, strictly sequential' },
-    { title: 'Done', detail: 'epic report: steps done, skipped, blocked, and the estimate retrospective' },
+    { title: 'Research', detail: 'architect; writes Research.md and the decomposition verdict', agent: 'swift-architect' },
+    { title: 'Plan', detail: 'architect; either the step table plus the .step/ folders, or a research roadmap', agent: 'swift-architect' },
+    { title: 'Execute', detail: 'one nested workflow run per step, strictly sequential', agent: 'nested profile workflow per step; swift-architect ticks the checkboxes' },
+    { title: 'Done', detail: 'epic report: steps done, skipped, blocked, and the estimate retrospective', agent: 'swift-architect' },
   ],
 }
 

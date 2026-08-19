@@ -4,13 +4,13 @@ export const meta = {
   whenToUse:
     'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=BUG, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
   phases: [
-    { title: 'Reproduce', detail: 'pin a deterministic scenario Validation can replay' },
-    { title: 'Diagnose', detail: 'panel: diagnostics and architect in parallel, then one synthesis' },
-    { title: 'Plan', detail: 'phase table plus per-phase checkboxes' },
-    { title: 'Fix', detail: 'one agent per plan phase, sequential, a commit per green phase' },
-    { title: 'Validation', detail: 'build, tests, and a replay of the reproduction scenario' },
-    { title: 'Review', detail: 'independent read of the diff' },
-    { title: 'Done', detail: 'final report' },
+    { title: 'Reproduce', detail: 'pin a deterministic scenario Validation can replay', agent: 'swift-diagnostics' },
+    { title: 'Diagnose', detail: 'panel: diagnostics and architect in parallel, then one synthesis', agent: 'swift-diagnostics + swift-architect panel, swift-architect synthesis' },
+    { title: 'Plan', detail: 'phase table plus per-phase checkboxes', agent: 'swift-architect' },
+    { title: 'Fix', detail: 'one agent per plan phase, sequential, a commit per green phase', agent: 'swift-developer / swift-tester' },
+    { title: 'Validation', detail: 'build, tests, and a replay of the reproduction scenario', agent: 'swift-validator' },
+    { title: 'Review', detail: 'independent read of the diff', agent: 'swift-reviewer' },
+    { title: 'Done', detail: 'final report', agent: 'swift-developer' },
   ],
 }
 

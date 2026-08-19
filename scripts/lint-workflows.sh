@@ -8,6 +8,8 @@ set -euo pipefail
 #   - meta.name is profile-<x> and collides with no skill directory
 #   - stage parity: every SKILL.md stage that names an agent has a meta.phases entry,
 #     and no meta.phases entry invents a stage the profile does not have
+#   - every phase names the agent that runs its stage, and that map agrees with what the
+#     script dispatches in both directions
 #   - every agentType resolves to a file in agents/
 #   - the prelude block is byte-identical in every script (a script cannot import,
 #     so the shared skeleton is copied; this is what keeps the copies one thing)
@@ -90,6 +92,27 @@ for fname in files:
     titles = re.findall(r"title:\s*'([^']+)'", block)
     if not titles:
         violations.append(f'{path}: meta.phases is empty or unparsable')
+
+    agents_by_phase = dict(re.findall(r"title:\s*'([^']+)'[^}]*?agent:\s*'([^']+)'", block))
+    for title in titles:
+        if title not in agents_by_phase:
+            violations.append(f'{path}: meta.phases entry "{title}" has no agent field')
+
+    named = set()
+    for spec in agents_by_phase.values():
+        named.update(re.findall(r'swift-[a-z]+', spec))
+
+    for bare in sorted(named):
+        if not os.path.exists(f'agents/{bare}.md'):
+            violations.append(f'{path}: meta.phases names agent "{bare}", which has no agents/{bare}.md')
+        if bare not in src:
+            violations.append(f'{path}: meta.phases names agent "{bare}", which the script never dispatches')
+
+    # Every namespaced literal, not just the agentType: ones — a per-phase agent reaches
+    # runPhases inside a { code, test } map, and that is the copy most likely to be forgotten.
+    dispatched = set(re.findall(r"'swift-toolkit:(swift-[a-z]+)'", src))
+    for bare in sorted(dispatched - named):
+        violations.append(f'{path}: dispatches "{bare}" but no meta.phases entry mentions it')
 
     stages, with_agent = skill_stages(profile)
     if stages is None:

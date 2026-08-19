@@ -4,12 +4,12 @@ export const meta = {
   whenToUse:
     'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=TEST, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
   phases: [
-    { title: 'Analyze', detail: 'testability lens, then the tester writes what to cover and at which level' },
-    { title: 'Plan', detail: 'phases grouped by component, each with a P0/P1/P2 priority' },
-    { title: 'Write', detail: 'one agent per plan phase, sequential, a commit per green phase' },
-    { title: 'Validation', detail: 'every new test green on first run; flapping means FLAKY' },
-    { title: 'Review', detail: 'the tests are what is reviewed, not the production code' },
-    { title: 'Done', detail: 'final report' },
+    { title: 'Analyze', detail: 'testability lens, then the tester writes what to cover and at which level', agent: 'swift-architect testability lens, then swift-tester' },
+    { title: 'Plan', detail: 'phases grouped by component, each with a P0/P1/P2 priority', agent: 'swift-tester' },
+    { title: 'Write', detail: 'one agent per plan phase, sequential, a commit per green phase', agent: 'swift-tester' },
+    { title: 'Validation', detail: 'every new test green on first run; flapping means FLAKY', agent: 'swift-validator' },
+    { title: 'Review', detail: 'the tests are what is reviewed, not the production code', agent: 'swift-reviewer' },
+    { title: 'Done', detail: 'final report', agent: 'swift-tester' },
   ],
 }
 

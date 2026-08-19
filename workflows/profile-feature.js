@@ -4,12 +4,12 @@ export const meta = {
   whenToUse:
     'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=FEATURE, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
   phases: [
-    { title: 'Research', detail: 'security lens, then the architect writes Requirements and Landscape' },
-    { title: 'Plan', detail: 'phase table, per-phase checkboxes, and the estimation gate' },
-    { title: 'Execute', detail: 'one agent per plan phase, sequential, a commit per green phase' },
-    { title: 'Validation', detail: 'build, tests, and the ops checklist' },
-    { title: 'Review', detail: 'independent read of the diff, cross-checked against the ops checklist' },
-    { title: 'Done', detail: 'final report with the estimate retrospective' },
+    { title: 'Research', detail: 'security lens, then the architect writes Requirements and Landscape', agent: 'swift-security lens, then swift-architect' },
+    { title: 'Plan', detail: 'phase table, per-phase checkboxes, and the estimation gate', agent: 'swift-architect' },
+    { title: 'Execute', detail: 'one agent per plan phase, sequential, a commit per green phase', agent: 'swift-developer / swift-tester' },
+    { title: 'Validation', detail: 'build, tests, and the ops checklist', agent: 'swift-validator' },
+    { title: 'Review', detail: 'independent read of the diff, cross-checked against the ops checklist', agent: 'swift-reviewer' },
+    { title: 'Done', detail: 'final report with the estimate retrospective', agent: 'swift-architect' },
   ],
 }
 

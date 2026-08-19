@@ -4,12 +4,12 @@ export const meta = {
   whenToUse:
     'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=REFACTOR, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
   phases: [
-    { title: 'Analyze', detail: 'current and target landscapes; their diff is the scope' },
-    { title: 'Plan', detail: 'phase table plus per-phase checkboxes, derived from that diff' },
-    { title: 'Refactor', detail: 'one agent per plan phase, sequential, a commit per green phase' },
-    { title: 'Validation', detail: 'the pre-existing tests must pass unmodified' },
-    { title: 'Review', detail: 'independent read of the diff' },
-    { title: 'Done', detail: 'final report' },
+    { title: 'Analyze', detail: 'current and target landscapes; their diff is the scope', agent: 'swift-architect' },
+    { title: 'Plan', detail: 'phase table plus per-phase checkboxes, derived from that diff', agent: 'swift-architect' },
+    { title: 'Refactor', detail: 'one agent per plan phase, sequential, a commit per green phase', agent: 'swift-refactorer / swift-tester' },
+    { title: 'Validation', detail: 'the pre-existing tests must pass unmodified', agent: 'swift-validator' },
+    { title: 'Review', detail: 'independent read of the diff', agent: 'swift-reviewer' },
+    { title: 'Done', detail: 'final report', agent: 'swift-refactorer' },
   ],
 }
 

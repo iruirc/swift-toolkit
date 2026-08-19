@@ -4,9 +4,9 @@ export const meta = {
   whenToUse:
     'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=RESEARCH, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
   phases: [
-    { title: 'Research', detail: 'architect, diagnostics or security, per research_agent; writes Research.md and changes no code' },
-    { title: 'Review', detail: 'judges the research, not the codebase' },
-    { title: 'Done', detail: 'final report with the follow-up count' },
+    { title: 'Research', detail: 'architect, diagnostics or security, per research_agent; writes Research.md and changes no code', agent: 'per research_agent: swift-architect, swift-diagnostics or swift-security' },
+    { title: 'Review', detail: 'judges the research, not the codebase', agent: 'swift-reviewer' },
+    { title: 'Done', detail: 'final report with the follow-up count', agent: 'swift-architect' },
   ],
 }
 

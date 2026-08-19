@@ -4,8 +4,8 @@ export const meta = {
   whenToUse:
     'Dispatched by swift-toolkit:orchestrator for a task with [TASK_TYPE]=REVIEW, with the resolved Outbound Contract as args. Never invoked directly by a user: without the contract there is no task folder, no stack, and no stage range, and the run refuses to start.',
   phases: [
-    { title: 'Review', detail: 'one pass over the diff, status on the first line of Review.md' },
-    { title: 'Auto-move', detail: 're-reads that first line and acts on it: move to DONE, or record what is awaited' },
+    { title: 'Review', detail: 'one pass over the diff, status on the first line of Review.md', agent: 'swift-reviewer' },
+    { title: 'Auto-move', detail: 're-reads that first line and acts on it: move to DONE, or record what is awaited', agent: 'swift-reviewer' },
   ],
 }
 
