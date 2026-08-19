@@ -345,7 +345,7 @@ Pass `args` as a real JSON object. A JSON-encoded string arrives at the script a
 
 **Auto** — no pauses between stages.
 
-**Open-questions inline (research-style stages).** In `manual` mode, before rendering `stage_done_prompt`, the orchestrator inspects the just-completed stage's primary artifact (`Research.md` for FEATURE/EPIC/RESEARCH Research; `Reproduce.md` and `Research.md` for BUG; `Analyze.md` for REFACTOR/TEST) for non-empty open-question sections.
+**Open-questions inline (research-style stages).** In `manual` mode, before rendering `stage_done_prompt`, the orchestrator inspects the just-completed stage's primary artifact (`Research.md` in every profile — the research-style stage writes that name whatever the stage is called — plus `Reproduce.md` for BUG) for non-empty open-question sections.
 
 Recognized H3 section titles (case-insensitive, scoped under any H2):
 - `### Designer questions`
