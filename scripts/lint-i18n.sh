@@ -55,7 +55,7 @@ for i, line in enumerate(text.split('\n'), 1):
 PY
       ;;
   esac
-done < <(find . -type f \( -name '*.md' -o -name '*.json' -o -name '*.yml' -o -name '*.yaml' \) -print0)
+done < <(find . -type f \( -name '*.md' -o -name '*.json' -o -name '*.yml' -o -name '*.yaml' -o -name '*.js' \) -print0)
 
 if [ "$violations" -gt 0 ]; then
   echo
