@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Paths below are repo-relative: anchor the cwd so a run from elsewhere
+# cannot scan the wrong tree and report a pass.
+cd "$(dirname "$0")/.."
+
 violations=0
 for en in skills/*/locales/en.md; do
   dir=$(dirname "$en")
