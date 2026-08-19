@@ -458,6 +458,29 @@ if (runs('Execute')) {
 }
 
 // ── Done ────────────────────────────────────────────────────────────────────
+// A run dispatched at Done alone — the orchestrator coming back after it pull-dispatched the
+// steps itself — has seen neither Research nor Plan, so the branch has to be read back before
+// the report can be the right shape. Left unresolved it defaults to decomposition, which is the
+// safer of the two: a decomposition report for a pure-research epic is wrong, an empty steps
+// section is merely empty.
+if (runs('Done') && branch === null) {
+  const verdict = await agent(
+    brief('Done', `Read ${DIR}/Research.md and return the verdict recorded under the literal heading "## Decomposition decision" — decomposition or pure_research. Change nothing on disk.`),
+    {
+      label: 'done:read-branch',
+      phase: 'Done',
+      agentType: 'swift-toolkit:swift-architect',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['branch'],
+        properties: { branch: { type: 'string', enum: ['decomposition', 'pure_research'] } },
+      },
+    },
+  )
+  if (verdict) branch = verdict.branch
+}
+
 // Done reports a finished epic. A walk that stopped early has not finished one, so the report
 // waits until the orchestrator has taken the pending steps somewhere.
 if (runs('Done') && !failed_steps.length && !cancelled && !pending_steps.length) {

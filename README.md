@@ -94,7 +94,7 @@ The skills live flat under `skills/`, but logically split into **seven groups**.
 | Skill | Purpose |
 |---|---|
 | [`orchestrator`](skills/orchestrator/SKILL.md) | Routes a request to the right profile workflow, resolves the start point, manages stages. |
-| `workflow-feature` / `workflow-bug` / `workflow-refactor` / `workflow-test` / `workflow-review` / `workflow-epic` | Profile procedures (Research → Plan → Execute → Validation → Review → Done). Activated by the `orchestrator`; not invoked directly. |
+| `workflow-feature` / `workflow-bug` / `workflow-refactor` / `workflow-test` / `workflow-review` / `workflow-research` / `workflow-epic` | Profile procedures (Research → Plan → Execute → Validation → Review → Done). Activated by the `orchestrator`; not invoked directly. |
 | `task-new` / `task-move` / `task-status` | Tending `Tasks/` (creation, status moves, progress). |
 | `swift-setup` | Sets up the toolkit in an existing project. |
 | `swift-lang` | Switches the project's prompt language (en / ru). |
@@ -156,6 +156,23 @@ against spawning subagents unasked, which silently collapses a profile into main
 swift-toolkit command counts as the user asking, and the plugin's `SessionStart` hook states that in
 any project where `CLAUDE-swift-toolkit.md` or `Tasks/ACTIVE/` is present. Contract:
 `conventions/stage-dispatch.md`.
+
+### Profile workflows
+
+Each profile also ships as a workflow script under `workflows/` — `profile-feature.js`,
+`profile-bug.js`, and so on. Same stages, same agents; the difference is that the sequence is code the
+runtime executes rather than an instruction a model follows. The orchestrator picks the script when
+the host has the `Workflow` tool and falls back to the `workflow-*` skill when it does not, so nothing
+about how you start a task changes. `scripts/lint-workflows.sh` fails the build if a script and its
+skill stop describing the same stages.
+
+Two things are worth knowing before you use it:
+
+- **Agents inside a workflow run in `acceptEdits`.** Their file edits are applied without a prompt,
+  whatever permission mode the session is in. A workflow run is more autonomous than the skill path by
+  construction — the task branch and the per-phase commits are what you review against.
+- **On the Pro plan, workflows are off until you enable them** in `/config`. Until then every task
+  quietly takes the skill path, which is the behaviour the toolkit has always had.
 
 ---
 

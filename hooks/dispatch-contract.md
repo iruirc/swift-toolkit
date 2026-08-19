@@ -14,7 +14,9 @@ It is given by any of:
 
 Run each stage by dispatching its agent (`subagent_type=swift-toolkit:<name>`), not by doing the
 stage's work in the main context. The isolated context and the independent look are the reason the
-stage has an agent at all; inlining it loses both.
+stage has an agent at all; inlining it loses both. Where the orchestrator launches a profile workflow
+instead, that run dispatches the same agents for the same stages under the same authorization — it is
+the other form of dispatching, not a way around it.
 
 If you will not dispatch — the tool is unavailable, the user opted out, or you judge delegation wrong
 for this stage — say so in your first message of that stage and name what you are doing instead. An

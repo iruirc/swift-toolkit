@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "swift-toolkit",
-  "version": "3.7.0",
+  "version": "3.8.0",
   "description": "Swift/Apple development toolkit with specialized agents for architecture, development, code review, refactoring, testing, diagnostics, security, and project initialization, plus orchestrator skill, workflow-* profile skills, task management skills, workspace-* skills for multi-package SPM workspaces, project-repo generation, and slash commands",
   "owner": {
     "name": "Dmitry Nuzhin"
@@ -13,7 +13,7 @@
     {
       "name": "swift-toolkit",
       "description": "Swift/Apple development toolkit: agents (architect, developer, reviewer, refactorer, tester, diagnostics, security, init) + orchestrator skill + workflow-* profile skills (FEATURE/BUG/REFACTOR/TEST/REVIEW/EPIC/RESEARCH) + task management skills (task-new, task-move, task-status) + workspace-* skills for multi-package SPM workspaces (workspace-init, workspace-add, workspace-docs-regen) + project-repo generation + slash commands (task-new/run/continue/redo/restart/move/status, workspace-init/add/docs-regen)",
-      "version": "3.7.0",
+      "version": "3.8.0",
       "author": {
         "name": "Dmitry Nuzhin"
       },

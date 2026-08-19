@@ -76,10 +76,12 @@ The full skill map and dependencies between skill groups — see the swift-toolk
 Task routing, profile, and stage logic lives in skills:
 
 - `swift-toolkit:orchestrator` — picks the profile by `TASK_TYPE`, determines the start point, dispatches stages
-- `swift-toolkit:workflow-feature|bug|refactor|test|review|epic` — profile procedures
+- `swift-toolkit:workflow-feature|bug|refactor|test|review|research|epic` — profile procedures
 - `swift-toolkit:task-new|task-move|task-status` — task management
 - `swift-toolkit:swift-setup` — configures swift-toolkit in an existing project (creates `CLAUDE-swift-toolkit.md` from template, inserts `@./CLAUDE-swift-toolkit.md` import into `CLAUDE.md`, creates `Tasks/`)
 - `swift-toolkit:swift-lang` — switches the project's prompt language
+
+Each profile also has a workflow script (`workflows/profile-*.js`) running the same stages as code; the orchestrator uses it where the host has the `Workflow` tool and falls back to the skill where it does not. Two consequences worth knowing: agents inside a workflow run in `acceptEdits`, so their file edits apply without a prompt whatever permission mode the session is in, and on the Pro plan workflows stay off until enabled in `/config`.
 
 Slash commands:
 - task management: `/task-new`, `/task-run`, `/task-continue`, `/task-redo`, `/task-restart`, `/task-move`, `/task-status`
