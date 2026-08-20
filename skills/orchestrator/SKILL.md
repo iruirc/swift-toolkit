@@ -369,7 +369,10 @@ EPIC returns more: `branch`, `completed_steps`, `skipped_steps`, `failed_steps`,
 and it never suppresses a question: the `manual` between-stage AUQ, the open-questions gate, and
 commit confirmations behave identically at all three values.
 
-**At `quiet`** — nothing beyond the final report that closes the range.
+**At `quiet`** — nothing beyond the final report that closes the range. Sending work to the
+background still deserves one plain line saying a stage started; that line names no agent, no
+method, no scope and no artifact, and it does not point at `/workflows`. Each of those belongs to
+the opening block, and `quiet` is the value that has no opening block.
 
 **At `normal` and above** — an opening block, once per task, before the first dispatch. Render
 `progress_open_header` (`{method}` is the literal `Method A` or `Method B`), then the sentence
