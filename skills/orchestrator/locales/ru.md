@@ -144,3 +144,12 @@ security; OWASP; vulnerability; pinning; безопасность
 
 ## progress_run_elapsed
 Прогон занял {elapsed}.
+
+## dispatch_blocked_prompt
+Тул Workflow доступен, и у профиля {profile} есть workflow-скрипт, но запуску мешает {reason}. Method B прогонит те же стадии через скилл.
+
+## dispatch_blocked_option_a
+Запустить через workflow (Method A)
+
+## dispatch_blocked_option_b
+Запустить через скилл (Method B)

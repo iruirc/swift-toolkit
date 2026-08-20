@@ -144,3 +144,12 @@ Verdict: {verdict}
 
 ## progress_run_elapsed
 Run finished in {elapsed}.
+
+## dispatch_blocked_prompt
+The Workflow tool is available and the {profile} profile has a workflow script, but {reason} stands in the way of starting it. Method B runs the same stages through the skill instead.
+
+## dispatch_blocked_option_a
+Run through the workflow (Method A)
+
+## dispatch_blocked_option_b
+Run through the skill (Method B)

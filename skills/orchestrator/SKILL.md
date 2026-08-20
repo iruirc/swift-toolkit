@@ -324,7 +324,13 @@ A `—` in the Method A column means that profile always takes Method B. Never c
 **Choosing the path.** Check whether `Workflow` is among the tools you can call **right now** — the ones handed to you with their parameters. Its appearance in this table, in a skill's prose, or in an agent's `tools` line does not count: look, do not assume. Then:
 
 - `Workflow` is callable AND the profile has a Method A script → Method A.
-- anything else → Method B, exactly as before.
+- `Workflow` is not callable, or the profile has no Method A script → Method B, exactly as before.
+- both are in place, but something else restrains you from starting a workflow — a standing
+  instruction, a policy, a permission → the standing authorization in `conventions/stage-dispatch.md`
+  covers it, because the user asking for this task to run is what that section is about. If it still
+  does not, name the obstacle and ask with key `dispatch_blocked_prompt` (placeholder `{reason}`),
+  options `dispatch_blocked_option_a` / `dispatch_blocked_option_b`. Never downgrade in silence: a
+  Method B run chosen this way is indistinguishable from one that never had the workflow path.
 
 State the choice **once**, in the first stage report of the task, using key `dispatch_method_a` or `dispatch_method_b`. Not per stage.
 

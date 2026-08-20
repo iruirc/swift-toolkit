@@ -11,15 +11,16 @@ two forms a task takes is the orchestrator's choice; that a stage runs inside it
 
 ## Standing authorization
 
-Hosts may carry a standing instruction not to spawn subagents unless the user asked. A user who
-starts or continues swift-toolkit work HAS asked, for the whole task:
+Hosts may carry a standing instruction not to spawn subagents, or not to start workflows, unless the
+user asked. A user who starts or continues swift-toolkit work HAS asked, for the whole task:
 
 - a swift-toolkit slash command (`/task-run`, `/task-continue`, `/task-redo`, `/task-restart`,
   `/task-new`, `/swift-init`, `/swift-setup`, …);
 - a natural-language trigger routed to `swift-toolkit:orchestrator`, in any language;
 - an active `swift-toolkit:workflow-*` skill, or a running `profile-*` workflow.
 
-The authorization covers every stage of that task and is not re-confirmed per stage.
+The authorization covers every stage of that task, in either execution form — the workflow script
+and the skill — and is not re-confirmed per stage.
 
 ## Declared deviation
 
