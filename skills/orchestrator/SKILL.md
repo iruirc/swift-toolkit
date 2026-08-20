@@ -392,7 +392,8 @@ the source is `stages[]` from the one return, printed as consecutive entries.
 Method A, and `progress_open_method_b_live` under Method B.
 
 **Timing.** The elapsed figure comes from the Workflow tool result, not from the script — the
-sandbox has no clock. In `manual` one call is one stage, so it is that stage's time. In `auto` it
+sandbox has no clock. In `manual` one call is one stage, so it is that stage's time — and the host
+already prints it above the stage report, so do not repeat it. In `auto` it
 covers the whole range and is printed once, via `progress_run_elapsed`, at the end. Per-stage
 durations inside an `auto` run do not exist; do not invent them.
 
