@@ -332,9 +332,9 @@ A `—` in the Method A column means that profile always takes Method B. Never c
   options `dispatch_blocked_option_a` / `dispatch_blocked_option_b`. Never downgrade in silence: a
   Method B run chosen this way is indistinguishable from one that never had the workflow path.
 
-State the choice **once**, in the first stage report of the task, using key `dispatch_method_a` or `dispatch_method_b`. Not per stage.
+State the choice **once** per task, using key `dispatch_method_a` or `dispatch_method_b`, inside the opening block that `## Progress reporting` requires before the first dispatch. At `quiet` there is no opening block: state it in the final report instead. Not per stage.
 
-**Method A — invoke.**
+**Method A — invoke.** The opening block goes out before this call, not after it: once the workflow is running, the feed shows a spinner and nothing about what is inside.
 
 ```
 Workflow({
