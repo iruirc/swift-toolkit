@@ -217,10 +217,12 @@ const fromStartPhase = (phases) => {
 
 // One agent per plan phase, strictly sequential: each phase builds on the previous phase's
 // commit, so fanning these out would corrupt the history rather than speed anything up.
+// Returns a tally for stages[] on success, false on the first phase that stalled: the stage has no
+// artifact of its own, so without the tally its record would echo whatever Plan said.
 const runPhases = async (stage, agents, phases, guidance) => {
   if (!phases.length) {
     result.notes.push(`Plan.md listed no outstanding phases, so ${stage} had nothing to do.`)
-    return true
+    return 'no outstanding phases'
   }
   log(`${stage}: ${phases.length} phase(s), sequentially`)
   for (const ph of phases) {
@@ -245,7 +247,7 @@ The phase is not done until every checkbox is ticked AND it is committed. If you
       return false
     }
   }
-  return true
+  return `${phases.length} phase(s) committed`
 }
 // ── end prelude ──────────────────────────────────────────────────────────────
 
@@ -361,14 +363,14 @@ if (runs('Fix')) {
   if (!plan) plan = await readPlan('Fix', 'swift-toolkit:swift-developer')
   if (!plan) return finish('stop', { status: 'error', reason: 'could not read the phase list from Plan.md' })
 
-  const ok = await runPhases(
+  const phasesDone = await runPhases(
     'Fix',
     { code: 'swift-toolkit:swift-developer', test: 'swift-toolkit:swift-tester' },
     fromStartPhase(plan.phases || []),
     'Commit type: fix for the repair itself, test for the regression-test phase, chore for build or config only. A regression test is mandatory for this profile unless the contract disabled it — it is what stops the bug coming back.',
   )
-  if (!ok) return finish('ask_user', { status: 'interrupted' })
-  record('Fix', plan)
+  if (!phasesDone) return finish('ask_user', { status: 'interrupted' })
+  record('Fix', { artifact_path: plan.artifact_path, summary: phasesDone })
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────

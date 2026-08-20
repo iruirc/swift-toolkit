@@ -215,10 +215,12 @@ const fromStartPhase = (phases) => {
 
 // One agent per plan phase, strictly sequential: each phase builds on the previous phase's
 // commit, so fanning these out would corrupt the history rather than speed anything up.
+// Returns a tally for stages[] on success, false on the first phase that stalled: the stage has no
+// artifact of its own, so without the tally its record would echo whatever Plan said.
 const runPhases = async (stage, agents, phases, guidance) => {
   if (!phases.length) {
     result.notes.push(`Plan.md listed no outstanding phases, so ${stage} had nothing to do.`)
-    return true
+    return 'no outstanding phases'
   }
   log(`${stage}: ${phases.length} phase(s), sequentially`)
   for (const ph of phases) {
@@ -243,7 +245,7 @@ The phase is not done until every checkbox is ticked AND it is committed. If you
       return false
     }
   }
-  return true
+  return `${phases.length} phase(s) committed`
 }
 // ── end prelude ──────────────────────────────────────────────────────────────
 
@@ -348,14 +350,14 @@ if (runs('Execute')) {
   if (!plan) plan = await readPlan('Execute', 'swift-toolkit:swift-developer')
   if (!plan) return finish('stop', { status: 'error', reason: 'could not read the phase list from Plan.md' })
 
-  const ok = await runPhases(
+  const phasesDone = await runPhases(
     'Execute',
     { code: 'swift-toolkit:swift-developer', test: 'swift-toolkit:swift-tester' },
     fromStartPhase(plan.phases || []),
     'Commit type: feat for a phase that adds behaviour, fix for one that repairs it, test for a test-only phase, chore for build or config only.',
   )
-  if (!ok) return finish('ask_user', { status: 'interrupted' })
-  record('Execute', plan)
+  if (!phasesDone) return finish('ask_user', { status: 'interrupted' })
+  record('Execute', { artifact_path: plan.artifact_path, summary: phasesDone })
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────
