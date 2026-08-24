@@ -22,8 +22,16 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
 
 @test "missing python3 exits 2 with a readable reason" {
   local stub="$(mktemp -d)"
+  # /bin/bash by absolute path: with PATH stubbed empty, a `#!/usr/bin/env bash`
+  # shebang would fail to resolve its own interpreter before the script runs.
   run env PATH="$stub" CLAUDE_CONFIG_DIR="$(tm_home home-empty)" \
-      "$(tm_repo_root)/scripts/agent-metrics.sh"
+      /bin/bash "$(tm_repo_root)/scripts/agent-metrics.sh"
   [ "$status" -eq 2 ]
   [[ "$output" == *"python3 not found"* ]]
+}
+
+@test "an option without its value exits 2, not 1" {
+  run tm_metrics home-empty --session
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"missing value for --session"* ]]
 }

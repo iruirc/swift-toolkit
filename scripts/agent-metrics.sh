@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # The only file in this repo that knows where Claude Code keeps its run state
@@ -17,12 +17,18 @@ run=""
 all=0
 format="json"
 
+# Without this guard `shift 2` on a valueless flag trips set -e and exits 1 in
+# silence, which is the one failure mode the argument contract forbids.
+need_value() {
+  [ "$#" -ge 2 ] || { echo "agent-metrics: missing value for $1" >&2; exit 2; }
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
-    --session) session="${2:-}"; shift 2 ;;
-    --run)     run="${2:-}"; shift 2 ;;
+    --session) need_value "$@"; session="$2"; shift 2 ;;
+    --run)     need_value "$@"; run="$2"; shift 2 ;;
+    --format)  need_value "$@"; format="$2"; shift 2 ;;
     --all)     all=1; shift ;;
-    --format)  format="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "agent-metrics: unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
