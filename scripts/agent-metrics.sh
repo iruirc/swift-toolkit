@@ -284,8 +284,16 @@ def agent_record(run_dir, agent_id, rec, state):
     seen = transcript(os.path.join(run_dir, "agent-%s.jsonl" % agent_id))
     elapsed = rec.get("durationMs")
     if elapsed is None:
-        if state == "running" and epoch(rec.get("startedAt")):
-            elapsed = now_ms() - epoch(rec["startedAt"])
+        started = epoch(rec.get("startedAt"))
+        last_progress = epoch(rec.get("lastProgressAt"))
+        # lastProgressAt is the agent's last sign of life. Preferring it over
+        # now - startedAt means a killed-but-still-"running" agent reports how
+        # long it actually worked, not how long it has sat dead — with no
+        # need to know which state names count as terminal.
+        if started and last_progress:
+            elapsed = last_progress - started
+        elif state == "running" and started:
+            elapsed = now_ms() - started
         elif seen["first"] and seen["last"]:
             elapsed = seen["last"] - seen["first"]
     record = {

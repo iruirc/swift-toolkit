@@ -162,6 +162,17 @@ JSON
   [ "$(tm_field "$output" runs.0.agents.0.state)" = "running" ]
 }
 
+@test "elapsed for a running agent prefers lastProgressAt over now, and stays fixed" {
+  # wf_ccc3333-333's agent carries startedAt 1787219600000 and lastProgressAt
+  # 1787219650000 — a fixed 50s gap. A stale/killed agent still marked
+  # "running" must report how long it actually worked, not now() - startedAt,
+  # which would grow every time this test runs.
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_ccc3333-333
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.0.agents.0.elapsedMs)" = "50000" ]
+  [ "$(tm_field "$output" runs.0.agents.0.elapsedText)" = "50s" ]
+}
+
 @test "a running agent from workflowProgress shows its glyph and tool in the panel" {
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_ccc3333-333 --format panel
   [ "$status" -eq 0 ]
