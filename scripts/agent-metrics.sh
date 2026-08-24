@@ -7,13 +7,14 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-usage: agent-metrics.sh [--session <id>] [--run <wf_id>] [--all]
+usage: agent-metrics.sh [--session <id>] [--run <wf_id>] [--task <id>] [--all]
                         [--format json|md|panel]
 USAGE
 }
 
 session=""
 run=""
+task=""
 all=0
 format="json"
 
@@ -27,6 +28,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --session) need_value "$@"; session="$2"; shift 2 ;;
     --run)     need_value "$@"; run="$2"; shift 2 ;;
+    --task)    need_value "$@"; task="$2"; shift 2 ;;
     --format)  need_value "$@"; format="$2"; shift 2 ;;
     --all)     all=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -47,10 +49,10 @@ fi
 session="${session:-${CLAUDE_CODE_SESSION_ID:-}}"
 config_dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
-python3 - "$config_dir" "$session" "$run" "$format" "$all" <<'PY'
+python3 - "$config_dir" "$session" "$run" "$task" "$format" "$all" <<'PY'
 import glob, json, os, re, sys
 
-CONFIG_DIR, SESSION, RUN_FILTER, FORMAT, WANT_ALL = sys.argv[1:6]
+CONFIG_DIR, SESSION, RUN_FILTER, TASK_FILTER, FORMAT, WANT_ALL = sys.argv[1:7]
 WANT_ALL = WANT_ALL == "1"
 
 GLYPH = {"done": "✅", "running": "🔄", "error": "❌",
@@ -114,6 +116,10 @@ def render_md(doc):
     totals = doc["totals"]
     lines.append("%d agents · %s out · %s" % (
         totals["agents"], human_tokens(totals["out"]), human_time(totals["elapsedMs"])))
+    if totals["total"]:
+        lines.append("%s total · %s cache-read · %s cache-write · %s in" % (
+            human_tokens(totals["total"]), human_tokens(totals["cacheRead"]),
+            human_tokens(totals["cacheWrite"]), human_tokens(totals["in"])))
     return "\n".join(lines)
 
 
@@ -142,6 +148,10 @@ def render_panel(doc):
     totals = doc["totals"]
     lines.append("  %d agents · %s out · %s" % (
         totals["agents"], human_tokens(totals["out"]), human_time(totals["elapsedMs"])))
+    if totals["total"]:
+        lines.append("  %s total · %s cache-read · %s cache-write · %s in" % (
+            human_tokens(totals["total"]), human_tokens(totals["cacheRead"]),
+            human_tokens(totals["cacheWrite"]), human_tokens(totals["in"])))
     return "\n".join(lines)
 
 
@@ -222,6 +232,7 @@ def ms(stamp):
 
 def transcript(path):
     out = tools = ctx = 0
+    in_tok = cache_write = cache_read = 0
     model = first = last = None
     for row in load_jsonl(path):
         stamp = row.get("timestamp")
@@ -234,6 +245,9 @@ def transcript(path):
         model = message.get("model") or model
         usage = message.get("usage") or {}
         out += usage.get("output_tokens") or 0
+        in_tok += usage.get("input_tokens") or 0
+        cache_write += usage.get("cache_creation_input_tokens") or 0
+        cache_read += usage.get("cache_read_input_tokens") or 0
         # Context is the size of the last request, not a sum over requests.
         ctx = (usage.get("input_tokens", 0)
                + usage.get("cache_creation_input_tokens", 0)
@@ -242,6 +256,7 @@ def transcript(path):
             if isinstance(block, dict) and block.get("type") == "tool_use":
                 tools += 1
     return {"out": out, "ctx": ctx, "tools": tools, "model": model,
+            "inTok": in_tok, "cacheWrite": cache_write, "cacheRead": cache_read,
             "first": ms(first), "last": ms(last)}
 
 
@@ -304,6 +319,9 @@ def agent_record(run_dir, agent_id, rec, state):
         "state": state,
         "out": seen["out"],
         "ctx": rec.get("tokens") or seen["ctx"],
+        "inTok": seen["inTok"],
+        "cacheWrite": seen["cacheWrite"],
+        "cacheRead": seen["cacheRead"],
         "tools": rec.get("toolCalls") or seen["tools"],
         "elapsedMs": elapsed,
         "lastTool": rec.get("lastToolName"),
@@ -513,7 +531,9 @@ try:
 
     if RUN_FILTER:
         runs = [r for r in runs if r["runId"] == RUN_FILTER]
-    elif WANT_ALL or not runs:
+    if TASK_FILTER:
+        runs = [r for r in runs if r["task_id"] == TASK_FILTER]
+    if not (RUN_FILTER or TASK_FILTER) and (WANT_ALL or not runs):
         extra = method_b_run(sess)
         if extra:
             runs.append(extra)
@@ -523,9 +543,17 @@ try:
     totals = {
         "agents": sum(len(r["agents"]) for r in runs),
         "out": sum(a["out"] for r in runs for a in r["agents"]),
+        "in": sum(a["inTok"] for r in runs for a in r["agents"]),
+        "cacheWrite": sum(a["cacheWrite"] for r in runs for a in r["agents"]),
+        "cacheRead": sum(a["cacheRead"] for r in runs for a in r["agents"]),
         "elapsedMs": sum(r["elapsedMs"] or 0 for r in runs) or None,
     }
+    totals["total"] = totals["in"] + totals["cacheWrite"] + totals["cacheRead"] + totals["out"]
     totals["outText"] = human_tokens(totals["out"])
+    totals["inText"] = human_tokens(totals["in"])
+    totals["cacheWriteText"] = human_tokens(totals["cacheWrite"])
+    totals["cacheReadText"] = human_tokens(totals["cacheRead"])
+    totals["totalText"] = human_tokens(totals["total"])
     totals["elapsedText"] = human_time(totals["elapsedMs"])
     emit({"session": os.path.basename(sess), "runs": runs, "totals": totals, "reason": None})
 except Exception:

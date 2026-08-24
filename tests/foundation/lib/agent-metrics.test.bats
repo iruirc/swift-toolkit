@@ -124,6 +124,31 @@ setup_file() {
   [ "$(tm_field "$output" totals.agents)" = "2" ]
 }
 
+@test "the agent record sums input, cache-write and cache-read tokens from the transcript" {
+  # agent-a0000000000000001.jsonl carries two usage blocks: input 2+2, cache
+  # write 1000+2000, cache read 9000+40000.
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_aaa1111-111
+  [ "$(tm_field "$output" runs.0.agents.0.inTok)" = "4" ]
+  [ "$(tm_field "$output" runs.0.agents.0.cacheWrite)" = "3000" ]
+  [ "$(tm_field "$output" runs.0.agents.0.cacheRead)" = "49000" ]
+}
+
+@test "totals gain in, cacheWrite and cacheRead summed across every agent" {
+  # Session 11111111 sums 3 runs' worth of usage: in 4+0+1+1=6,
+  # cacheWrite 3000+0+500+200=3700, cacheRead 49000+0+7000+3000=59000.
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
+  [ "$(tm_field "$output" totals.in)" = "6" ]
+  [ "$(tm_field "$output" totals.cacheWrite)" = "3700" ]
+  [ "$(tm_field "$output" totals.cacheRead)" = "59000" ]
+}
+
+@test "totals.total sums in, cacheWrite, cacheRead and out, and totalText is its formatted form" {
+  # 6 + 3700 + 59000 + 1598 (out) = 64304.
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
+  [ "$(tm_field "$output" totals.total)" = "64304" ]
+  [ "$(tm_field "$output" totals.totalText)" = "64.3k" ]
+}
+
 @test "json carries print-ready strings beside the raw numbers" {
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_aaa1111-111
   [ "$status" -eq 0 ]
@@ -202,6 +227,28 @@ JSON
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_bbb2222-222
   [ "$(tm_field "$output" runs.0.runId)" = "wf_bbb2222-222" ]
   [ "$(tm_field "$output" totals.agents)" = "1" ]
+}
+
+@test "--task selects only that task's runs" {
+  # Session 11111111 has three tasks (077, 081, 090) across three runs; only
+  # 077's run (wf_aaa1111-111, 2 agents) should survive the filter.
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --task 077
+  [ "$status" -eq 0 ]
+  [ "$(tm_run_count "$output")" = "1" ]
+  [ "$(tm_field "$output" runs.0.runId)" = "wf_aaa1111-111" ]
+  [ "$(tm_field "$output" totals.agents)" = "2" ]
+}
+
+@test "--task with a value that matches nothing yields an empty document at exit 0" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --task nope
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs)" = "[]" ]
+}
+
+@test "--task with no value exits 2, like the other flags" {
+  run tm_metrics home-empty --task
+  [ "$status" -eq 2 ]
+  tm_contains "$output" "missing value for --task"
 }
 
 @test "a session without workflow runs still shows its Task agents" {
@@ -323,6 +370,51 @@ JSON
   run tm_metrics home-empty --session 99999999-9999-9999-9999-999999999999 --format panel
   [ "$status" -eq 0 ]
   tm_contains "$output" "session directory not found"
+}
+
+@test "md and panel formats both print the volume line under the totals line" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --format md
+  [ "$status" -eq 0 ]
+  tm_contains "$output" "64.3k total · 59.0k cache-read · 3.7k cache-write · 6 in"
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --format panel
+  [ "$status" -eq 0 ]
+  tm_contains "$output" "64.3k total · 59.0k cache-read · 3.7k cache-write · 6 in"
+}
+
+@test "the volume line is not printed when there are no agents" {
+  run tm_metrics home-empty --session 99999999-9999-9999-9999-999999999999 --format md
+  [ "$status" -eq 0 ]
+  tm_lacks "$output" "cache-read"
+  run tm_metrics home-empty --session 99999999-9999-9999-9999-999999999999 --format panel
+  [ "$status" -eq 0 ]
+  tm_lacks "$output" "cache-read"
+}
+
+@test "the volume line is skipped, not printed as em dashes, when total is zero" {
+  local cfg
+  cfg="$(mktemp -d)"
+  mkdir -p "$cfg/projects/-tmp-proj/zz/workflows"
+  cat > "$cfg/projects/-tmp-proj/zz/workflows/wf_zero0000-000.json" <<'JSON'
+{
+  "runId": "wf_zero0000-000", "workflowName": "profile-refactor", "status": "running",
+  "args": {"task_id": "999", "profile": "refactor"}, "phases": [{"title": "Analyze"}],
+  "workflowProgress": [{"type": "workflow_phase", "index": 1, "title": "Analyze"}]
+}
+JSON
+  run env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_SESSION_ID="" \
+      "$(tm_repo_root)/scripts/agent-metrics.sh" --session zz --format md
+  rm -rf "$cfg"
+  [ "$status" -eq 0 ]
+  tm_lacks "$output" "total ·"
+}
+
+@test "no renderer prints cache-read on a per-agent row" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --format md
+  [ "$status" -eq 0 ]
+  tm_lacks "$(echo "$output" | sed '$d' | sed '$d')" "cache"
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --format panel
+  [ "$status" -eq 0 ]
+  tm_lacks "$(echo "$output" | sed '$d' | sed '$d')" "cache"
 }
 
 @test "the panel exits on Ctrl-C and stops painting" {
