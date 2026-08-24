@@ -386,25 +386,30 @@ def method_b_run(sess):
             "elapsedMs": None, "phases": [], "agents": agents}
 
 
-runs = []
-for path in sorted(glob.glob(os.path.join(sess, "workflows", "wf_*.json"))):
-    wf = load_json(path)
-    if wf:
-        runs.append(build_run(sess, wf))
+# The format is not a contract (P8): a shape neither this script nor its
+# fixtures anticipated must degrade to an empty result, not a traceback.
+try:
+    runs = []
+    for path in sorted(glob.glob(os.path.join(sess, "workflows", "wf_*.json"))):
+        wf = load_json(path)
+        if wf:
+            runs.append(build_run(sess, wf))
 
-if RUN_FILTER:
-    runs = [r for r in runs if r["runId"] == RUN_FILTER]
-elif WANT_ALL or not runs:
-    extra = method_b_run(sess)
-    if extra:
-        runs.append(extra)
+    if RUN_FILTER:
+        runs = [r for r in runs if r["runId"] == RUN_FILTER]
+    elif WANT_ALL or not runs:
+        extra = method_b_run(sess)
+        if extra:
+            runs.append(extra)
 
-totals = {
-    "agents": sum(len(r["agents"]) for r in runs),
-    "out": sum(a["out"] for r in runs for a in r["agents"]),
-    "elapsedMs": sum(r["elapsedMs"] or 0 for r in runs) or None,
-}
-totals["outText"] = human_tokens(totals["out"])
-totals["elapsedText"] = human_time(totals["elapsedMs"])
-emit({"session": os.path.basename(sess), "runs": runs, "totals": totals, "reason": None})
+    totals = {
+        "agents": sum(len(r["agents"]) for r in runs),
+        "out": sum(a["out"] for r in runs for a in r["agents"]),
+        "elapsedMs": sum(r["elapsedMs"] or 0 for r in runs) or None,
+    }
+    totals["outText"] = human_tokens(totals["out"])
+    totals["elapsedText"] = human_time(totals["elapsedMs"])
+    emit({"session": os.path.basename(sess), "runs": runs, "totals": totals, "reason": None})
+except Exception:
+    empty("could not parse run state")
 PY

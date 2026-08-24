@@ -36,6 +36,13 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   tm_contains "$output" "missing value for --session"
 }
 
+@test "a malformed wf_*.json degrades to an empty result, not a traceback" {
+  run tm_metrics home-a --session 33333333-3333-3333-3333-333333333333
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" reason)" = "could not parse run state" ]
+  [ "$(tm_field "$output" runs)" = "[]" ]
+}
+
 @test "method A run exposes phases in order" {
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
   [ "$status" -eq 0 ]
