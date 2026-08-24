@@ -151,6 +151,9 @@ Run finished in {elapsed}.
 ## progress_run_totals
 {agents} agents · {out} out · {elapsed}
 
+## progress_run_volume
+{total} total · {cacheRead} cache-read · {cacheWrite} cache-write · {in} in
+
 ## dispatch_blocked_prompt
 The Workflow tool is available and the {profile} profile has a workflow script, but {reason} stands in the way of starting it. Method B runs the same stages through the skill instead.
 

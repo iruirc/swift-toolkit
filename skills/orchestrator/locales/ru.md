@@ -151,6 +151,9 @@ security; OWASP; vulnerability; pinning; безопасность
 ## progress_run_totals
 {agents} агентов · {out} out · {elapsed}
 
+## progress_run_volume
+{total} итого · {cacheRead} cache-read · {cacheWrite} cache-write · {in} in
+
 ## dispatch_blocked_prompt
 Тул Workflow доступен, и у профиля {profile} есть workflow-скрипт, но запуску мешает {reason}. Method B прогонит те же стадии через скилл.
 
