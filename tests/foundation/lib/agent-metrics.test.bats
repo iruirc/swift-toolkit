@@ -78,3 +78,22 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$(tm_field "$output" totals.out)" = "1148" ]
   [ "$(tm_field "$output" totals.agents)" = "2" ]
 }
+
+@test "a truncated trailing line is skipped, not fatal" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_bbb2222-222
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.0.agents.0.out)" = "300" ]
+  [ "$(tm_field "$output" runs.0.agents.0.tools)" = "1" ]
+}
+
+@test "started without result means running, and type comes from meta" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_bbb2222-222
+  [ "$(tm_field "$output" runs.0.agents.0.state)" = "running" ]
+  [ "$(tm_field "$output" runs.0.agents.0.agentType)" = "swift-toolkit:swift-developer" ]
+}
+
+@test "--run selects exactly one run" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_bbb2222-222
+  [ "$(tm_field "$output" runs.0.runId)" = "wf_bbb2222-222" ]
+  [ "$(tm_field "$output" totals.agents)" = "1" ]
+}

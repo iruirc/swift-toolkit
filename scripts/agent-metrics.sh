@@ -216,6 +216,10 @@ def build_run(sess, wf):
               for r in progress if r.get("type") == "workflow_agent"]
 
     started, results = journal(run_dir)
+    if not agents:
+        agents = [agent_record(run_dir, agent_id, None,
+                               "done" if agent_id in results else "running")
+                  for agent_id in started]
     for agent in agents:
         result = results.get(agent["agentId"])
         if result:
@@ -248,6 +252,9 @@ for path in sorted(glob.glob(os.path.join(sess, "workflows", "wf_*.json"))):
     wf = load_json(path)
     if wf:
         runs.append(build_run(sess, wf))
+
+if RUN_FILTER:
+    runs = [r for r in runs if r["runId"] == RUN_FILTER]
 
 totals = {
     "agents": sum(len(r["agents"]) for r in runs),

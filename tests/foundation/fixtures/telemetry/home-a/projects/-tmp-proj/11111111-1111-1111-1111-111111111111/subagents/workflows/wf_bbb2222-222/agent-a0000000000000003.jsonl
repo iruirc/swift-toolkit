@@ -1,0 +1,2 @@
+{"type":"assistant","agentId":"a0000000000000003","timestamp":"2026-08-20T09:00:00.000Z","message":{"model":"claude-opus-5","usage":{"input_tokens":1,"cache_creation_input_tokens":500,"cache_read_input_tokens":7000,"output_tokens":300},"content":[{"type":"tool_use","id":"t9","name":"Edit","input":{}}]}}
+{"type":"assistant","agentId":"a0000000000000003","timestamp":"2026-08-20T09:01:00.

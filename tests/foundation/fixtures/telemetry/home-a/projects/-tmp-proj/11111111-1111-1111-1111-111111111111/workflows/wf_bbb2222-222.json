@@ -1,0 +1,8 @@
+{
+  "runId": "wf_bbb2222-222",
+  "workflowName": "profile-feature",
+  "status": "running",
+  "startTime": 1787219400000,
+  "args": {"task_id": "081", "profile": "feature"},
+  "phases": [{"title": "Research"}, {"title": "Plan"}]
+}
