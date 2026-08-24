@@ -29,13 +29,13 @@ Caching: resolve `<lang>` once per skill invocation; do not re-read CLAUDE-swift
 |---|---|
 | (none) | every workflow run of this session |
 | `--run <wf_id>` | one run |
-| `--all` | additionally include agents dispatched directly through `Task` |
+| `--all` | additionally include agents dispatched directly, outside a workflow run |
 
 ## Procedure
 
 1. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/agent-metrics.sh" --format md <arguments>`.
-2. Exit code 0 — print the header from key `agents_header`, then the script's output verbatim. The table is tool output and stays English; only the header and the notes around it are localized.
-3. Exit code 2 — print key `agents_unavailable` with placeholder `{reason}` filled from the script's stderr, and stop. This is not an error worth interrupting anything for.
-4. Output containing `no runs found` — print key `agents_none` instead of the empty table.
+2. Non-zero exit — print key `agents_unavailable` with placeholder `{reason}` filled from the script's stderr, and stop. This is not an error worth interrupting anything for.
+3. Exit code 0, output containing `| Stage |` — print the header from key `agents_header`, then the script's output verbatim. The table is tool output and stays English; only the header and the notes around it are localized.
+4. Exit code 0, output NOT containing `| Stage |` — print key `agents_none` instead of the empty output. Every empty-result reason the script can print (`no runs found`, `session directory not found`, …) lands here; the branch keys on the missing table, not on any one reason string.
 
 The script is the only thing that knows where Claude Code keeps its files. Never read `~/.claude` directly from this skill.
