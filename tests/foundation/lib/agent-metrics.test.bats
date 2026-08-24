@@ -8,6 +8,10 @@ setup_file() {
   touch -t 202601010000 "$wf/wf_aaa1111-111.json"
   touch -t 202601010005 "$wf/wf_bbb2222-222.json"
   touch -t 202601010010 "$wf/wf_ccc3333-333.json"
+
+  local task395="$(tm_home home-a)/projects/-tmp-proj/55555555-5555-5555-5555-555555555555/workflows"
+  touch -t 202601020000 "$task395/wf_9664a933-1b1.json"
+  touch -t 202601020010 "$task395/wf_8ea8c484-343.json"
 }
 
 @test "unknown session yields an empty document, not an error" {
@@ -352,4 +356,82 @@ JSON
   [ "$status" -eq 0 ]
   tm_contains "$output" "swift-architect"
   tm_lacks "$output" $'\033[?1049h'
+}
+
+# ── manual mode: one block per task, not one per stage ──────────────────────
+# Session 55555555 has two FINISHED runs of task 395 (Analyze, then Plan), the
+# shape a REFACTOR task leaves behind under manual mode's one-run-per-stage dispatch.
+
+@test "two finished runs of the same task fold into one run record" {
+  run tm_metrics home-a --session 55555555-5555-5555-5555-555555555555
+  [ "$status" -eq 0 ]
+  [ "$(tm_run_count "$output")" = "1" ]
+  [ "$(tm_field "$output" runs.0.task_id)" = "395" ]
+  [ "$(tm_field "$output" runs.0.workflow)" = "profile-refactor" ]
+  [ "$(tm_field "$output" runs.0.runId)" = "" ]
+  [ "$(tm_field "$output" runs.0.status)" = "completed" ]
+  [ "$(tm_field "$output" runs.0.elapsedMs)" = "171000" ]
+}
+
+@test "a merged task's phase list names each phase once, both finished stages done" {
+  run tm_metrics home-a --session 55555555-5555-5555-5555-555555555555
+  [ "$(python3 -c 'import json,sys; print(len(json.loads(sys.argv[1])["runs"][0]["phases"]))' "$output")" = "3" ]
+  [ "$(tm_field "$output" runs.0.phases.0.title)" = "Analyze" ]
+  [ "$(tm_field "$output" runs.0.phases.0.state)" = "done" ]
+  [ "$(tm_field "$output" runs.0.phases.1.title)" = "Plan" ]
+  [ "$(tm_field "$output" runs.0.phases.1.state)" = "done" ]
+  [ "$(tm_field "$output" runs.0.phases.2.title)" = "Refactor" ]
+  [ "$(tm_field "$output" runs.0.phases.2.state)" = "todo" ]
+}
+
+@test "a merged task's agents are both runs' agents, concatenated in chronological order" {
+  run tm_metrics home-a --session 55555555-5555-5555-5555-555555555555
+  [ "$(python3 -c 'import json,sys; print(len(json.loads(sys.argv[1])["runs"][0]["agents"]))' "$output")" = "2" ]
+  [ "$(tm_field "$output" runs.0.agents.0.phase)" = "Analyze" ]
+  [ "$(tm_field "$output" runs.0.agents.1.phase)" = "Plan" ]
+}
+
+@test "--run still selects exactly one run when its task has other, unmerged runs" {
+  run tm_metrics home-a --session 55555555-5555-5555-5555-555555555555 --run wf_9664a933-1b1
+  [ "$status" -eq 0 ]
+  [ "$(tm_run_count "$output")" = "1" ]
+  [ "$(tm_field "$output" runs.0.runId)" = "wf_9664a933-1b1" ]
+  # Unmerged: Plan is only done on the sibling run, filtered out here.
+  [ "$(tm_field "$output" runs.0.phases.1.state)" = "todo" ]
+}
+
+@test "the Method B pseudo-run stays standalone after task-merging is applied" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --all
+  [ "$status" -eq 0 ]
+  [ "$(tm_run_count "$output")" = "4" ]
+  [ "$(tm_field "$output" runs.3.task_id)" = "" ]
+  [ "$(tm_field "$output" runs.3.runId)" = "" ]
+  [ "$(tm_field "$output" totals.agents)" = "5" ]
+}
+
+# ── recovering task/profile/stage from the agent's own prompt ───────────────
+# Session 44444444 is a real in-flight run (task 395, stage Analyze) with no
+# state file yet — the first line of its agent's prompt is swift-toolkit's own.
+
+@test "an in-flight run recovers task_id, workflow and stage from its own prompt" {
+  run tm_metrics home-a --session 44444444-4444-4444-4444-444444444444
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.0.task_id)" = "395" ]
+  [ "$(tm_field "$output" runs.0.workflow)" = "profile-refactor" ]
+  [ "$(tm_field "$output" runs.0.agents.0.phase)" = "Analyze" ]
+  [ "$(tm_field "$output" runs.0.agents.0.state)" = "running" ]
+}
+
+@test "panel shows the recovered stage name for an in-flight run, not an em dash" {
+  run tm_metrics home-a --session 44444444-4444-4444-4444-444444444444 --format panel
+  [ "$status" -eq 0 ]
+  tm_contains "$output" "Analyze"
+}
+
+@test "a prompt that does not match the Task id line leaves task_id and phase null, no crash" {
+  run tm_metrics home-a --session 60606060-6060-6060-6060-606060606060
+  [ "$status" -eq 0 ]
+  [ "$(tm_run_count "$output")" = "1" ]
+  [ "$(tm_field "$output" runs.0.task_id)" = "" ]
+  [ "$(tm_field "$output" runs.0.agents.0.phase)" = "" ]
 }

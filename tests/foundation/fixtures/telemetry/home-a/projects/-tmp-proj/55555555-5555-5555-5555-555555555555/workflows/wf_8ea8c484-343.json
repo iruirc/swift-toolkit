@@ -1,0 +1,21 @@
+{
+  "runId": "wf_8ea8c484-343",
+  "workflowName": "profile-refactor",
+  "status": "completed",
+  "startTime": 1787220200000,
+  "durationMs": 107000,
+  "agentCount": 1,
+  "args": {"task_id": "395", "profile": "refactor"},
+  "phases": [{"title": "Analyze"}, {"title": "Plan"}, {"title": "Refactor"}],
+  "workflowProgress": [
+    {"type": "workflow_phase", "index": 1, "title": "Analyze"},
+    {"type": "workflow_phase", "index": 2, "title": "Plan"},
+    {"type": "workflow_phase", "index": 3, "title": "Refactor"},
+    {"type": "workflow_agent", "index": 1, "label": "plan", "phaseIndex": 2,
+     "phaseTitle": "Plan", "agentId": "e0000000000000002",
+     "agentType": "swift-toolkit:swift-architect", "model": "claude-opus-5",
+     "state": "done", "startedAt": 1787220200062, "lastProgressAt": 1787220307000,
+     "lastToolName": "Write", "tokens": 88000, "toolCalls": 11,
+     "durationMs": 107000}
+  ]
+}

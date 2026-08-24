@@ -382,6 +382,34 @@ def build_run(sess, wf):
     }
 
 
+TASK_LINE_RE = re.compile(r'^Task id: (\S+) — profile (\S+), stage ([^.\n]+)\.$', re.M)
+
+
+def first_prompt(path):
+    # Only the first line: it is always the dispatch prompt, and a transcript can be long.
+    try:
+        with open(path, encoding="utf-8") as fh:
+            row = json.loads(fh.readline())
+    except (OSError, ValueError):
+        return None
+    content = (row.get("message") or {}).get("content")
+    return content if row.get("type") == "user" and isinstance(content, str) else None
+
+
+def recover_from_prompt(run_dir, run):
+    # A run still in flight has no state file. But swift-toolkit writes its agents'
+    # prompts itself (workflows/profile-*.js), so parsing its own text back out is safe.
+    for agent in run["agents"]:
+        text = first_prompt(os.path.join(run_dir, "agent-%s.jsonl" % agent["agentId"]))
+        match = text and TASK_LINE_RE.search(text)
+        if not match:
+            continue
+        run["task_id"] = run["task_id"] or match.group(1)
+        run["workflow"] = run["workflow"] or "profile-" + match.group(2).lower()
+        agent["phase"] = agent["phase"] or match.group(3)
+    return run
+
+
 def task_labels(main_transcript):
     """Maps agentId -> the dispatch call that spawned it, through the tool_use id.
 
@@ -425,6 +453,38 @@ def method_b_run(sess):
             "elapsedMs": elapsed, "phases": [], "agents": agents}
 
 
+def fold_group(group):
+    # Manual mode dispatches one workflow run per stage, so a task's phase list is
+    # only true once its runs are folded together — a lone run just folds to itself.
+    if len(group) == 1:
+        return group[0]
+    agents = [a for run in group for a in run["agents"]]
+    base = next((run["phases"] for run in group if run["phases"]), [])
+    raw_phases = [{"index": p.get("index"), "title": p.get("title")} for p in base]
+    running = any(a["state"] == "running" for a in agents)
+    return {
+        "runId": None,
+        "workflow": next((run["workflow"] for run in group if run["workflow"]), None),
+        "task_id": group[0]["task_id"],
+        "status": "running" if running else group[-1]["status"],
+        "elapsedMs": sum(run["elapsedMs"] or 0 for run in group) or None,
+        "phases": phase_states(raw_phases, agents),
+        "agents": agents,
+    }
+
+
+def merge_by_task(runs):
+    # A null task_id never joins another run, even another null one — each stays solo.
+    order, buckets = [], {}
+    for i, run in enumerate(runs):
+        key = run["task_id"] if run["task_id"] is not None else ("solo", i)
+        if key not in buckets:
+            buckets[key] = []
+            order.append(key)
+        buckets[key].append(run)
+    return [fold_group(buckets[key]) for key in order]
+
+
 # The format is not a contract (P8): a shape neither this script nor its
 # fixtures anticipated must degrade to an empty result, not a traceback.
 try:
@@ -448,6 +508,8 @@ try:
     run_ids = sorted(set(finished) | set(live_ids), key=run_mtime)
     runs = [build_run(sess, finished[rid][0] if rid in finished else {"runId": rid})
             for rid in run_ids]
+    for rid, run in zip(run_ids, runs):
+        recover_from_prompt(os.path.join(sess, "subagents", "workflows", rid), run)
 
     if RUN_FILTER:
         runs = [r for r in runs if r["runId"] == RUN_FILTER]
@@ -455,6 +517,8 @@ try:
         extra = method_b_run(sess)
         if extra:
             runs.append(extra)
+
+    runs = merge_by_task(runs)
 
     totals = {
         "agents": sum(len(r["agents"]) for r in runs),

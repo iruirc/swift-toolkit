@@ -19,6 +19,11 @@ tm_metrics() {
     "$(tm_repo_root)/scripts/agent-metrics.sh" "$@"
 }
 
+# Number of entries in the collector's top-level "runs" array.
+tm_run_count() {
+  python3 -c 'import json, sys; print(len(json.loads(sys.argv[1])["runs"]))' "$1"
+}
+
 # Read a dotted path out of the collector's JSON:
 #   tm_field "$output" runs.0.agents.0.out
 tm_field() {
