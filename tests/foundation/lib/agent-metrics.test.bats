@@ -138,3 +138,12 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$status" -eq 0 ]
   tm_contains "$output" "session directory not found"
 }
+
+@test "monitor prints a single snapshot when stdout is not a tty" {
+  run env CLAUDE_CONFIG_DIR="$(tm_home home-a)" CLAUDE_CODE_SESSION_ID="" \
+      "$(tm_repo_root)/scripts/agent-monitor.sh" \
+      --session 11111111-1111-1111-1111-111111111111
+  [ "$status" -eq 0 ]
+  tm_contains "$output" "swift-architect"
+  tm_lacks "$output" $'\033[?1049h'
+}
