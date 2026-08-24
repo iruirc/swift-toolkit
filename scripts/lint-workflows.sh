@@ -59,6 +59,13 @@ for fname in files:
     pre = re.search(r'^// ── prelude ─.*?^// ── end prelude ─.*?$', raw, flags=re.M | re.S)
     if pre:
         preludes[fname] = pre.group(0)
+        # scripts/agent-metrics.sh's recover_from_prompt() parses this exact line out of
+        # an agent's transcript to recover task/profile/stage when no state file exists yet.
+        if not re.search(r'Task id: \$\{[^}]*\} — profile \$\{[^}]*\}, stage \$\{[^}]*\}\.', pre.group(0)):
+            violations.append(
+                f'{path}: prelude lost the `Task id: ... — profile ..., stage ....` line that '
+                'scripts/agent-metrics.sh\'s recover_from_prompt() depends on'
+            )
     else:
         violations.append(f'{path}: no prelude block — expected `// ── prelude ─` … `// ── end prelude ─`')
 
