@@ -26,6 +26,7 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   # shebang would fail to resolve its own interpreter before the script runs.
   run env PATH="$stub" CLAUDE_CONFIG_DIR="$(tm_home home-empty)" \
       /bin/bash "$(tm_repo_root)/scripts/agent-metrics.sh"
+  rmdir "$stub"
   [ "$status" -eq 2 ]
   tm_contains "$output" "python3 not found"
 }
