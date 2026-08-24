@@ -61,3 +61,20 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$(tm_field "$output" runs.0.phases.0.state)" = "done" ]
   [ "$(tm_field "$output" runs.0.phases.2.state)" = "todo" ]
 }
+
+@test "out is summed from the agent transcript, never taken from run state" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
+  [ "$(tm_field "$output" runs.0.agents.0.out)" = "1148" ]
+}
+
+@test "artifact and summary come from the journal result" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
+  [ "$(tm_field "$output" runs.0.agents.0.artifact)" = "Tasks/ACTIVE/077-refactor-di/Research.md" ]
+  [ "$(tm_field "$output" runs.0.agents.0.summary)" = "scope confirmed" ]
+}
+
+@test "totals sum out across the agents of a run" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_aaa1111-111
+  [ "$(tm_field "$output" totals.out)" = "1148" ]
+  [ "$(tm_field "$output" totals.agents)" = "2" ]
+}

@@ -81,7 +81,73 @@ sess = session_dir()
 if not sess:
     empty("session directory not found")
 
-import time
+import time, calendar
+
+
+def load_jsonl(path):
+    # The last line can be half-written: the file is appended to as we read it.
+    rows = []
+    try:
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(json.loads(line))
+                except ValueError:
+                    continue
+    except OSError:
+        pass
+    return rows
+
+
+def ms(stamp):
+    try:
+        return calendar.timegm(time.strptime(stamp[:19], "%Y-%m-%dT%H:%M:%S")) * 1000
+    except (TypeError, ValueError):
+        return None
+
+
+def transcript(path):
+    out = tools = ctx = 0
+    model = first = last = None
+    for row in load_jsonl(path):
+        stamp = row.get("timestamp")
+        if stamp:
+            first = first or stamp
+            last = stamp
+        if row.get("type") != "assistant":
+            continue
+        message = row.get("message") or {}
+        model = message.get("model") or model
+        usage = message.get("usage") or {}
+        out += usage.get("output_tokens") or 0
+        # Context is the size of the last request, not a sum over requests.
+        ctx = (usage.get("input_tokens", 0)
+               + usage.get("cache_creation_input_tokens", 0)
+               + usage.get("cache_read_input_tokens", 0)) or ctx
+        for block in message.get("content") or []:
+            if isinstance(block, dict) and block.get("type") == "tool_use":
+                tools += 1
+    return {"out": out, "ctx": ctx, "tools": tools, "model": model,
+            "first": ms(first), "last": ms(last)}
+
+
+def meta_type(run_dir, agent_id):
+    meta = load_json(os.path.join(run_dir, "agent-%s.meta.json" % agent_id)) or {}
+    return meta.get("agentType")
+
+
+def journal(run_dir):
+    started, results = [], {}
+    for row in load_jsonl(os.path.join(run_dir, "journal.jsonl")):
+        agent_id = row.get("agentId")
+        if row.get("type") == "started" and agent_id not in started:
+            started.append(agent_id)
+        elif row.get("type") == "result":
+            results[agent_id] = row.get("result") or {}
+    return started, results
 
 
 def load_json(path):
@@ -104,18 +170,22 @@ def now_ms():
 
 def agent_record(run_dir, agent_id, rec, state):
     rec = rec or {}
+    seen = transcript(os.path.join(run_dir, "agent-%s.jsonl" % agent_id))
     elapsed = rec.get("durationMs")
-    if elapsed is None and state == "running" and epoch(rec.get("startedAt")):
-        elapsed = now_ms() - epoch(rec["startedAt"])
+    if elapsed is None:
+        if state == "running" and epoch(rec.get("startedAt")):
+            elapsed = now_ms() - epoch(rec["startedAt"])
+        elif seen["first"] and seen["last"]:
+            elapsed = seen["last"] - seen["first"]
     return {
         "agentId": agent_id,
-        "agentType": rec.get("agentType"),
+        "agentType": rec.get("agentType") or meta_type(run_dir, agent_id),
         "phase": rec.get("phaseTitle"),
-        "model": rec.get("model"),
+        "model": rec.get("model") or seen["model"],
         "state": state,
-        "out": 0,
-        "ctx": rec.get("tokens") or 0,
-        "tools": rec.get("toolCalls") or 0,
+        "out": seen["out"],
+        "ctx": rec.get("tokens") or seen["ctx"],
+        "tools": rec.get("toolCalls") or seen["tools"],
         "elapsedMs": elapsed,
         "lastTool": rec.get("lastToolName"),
         "artifact": None,
@@ -144,6 +214,13 @@ def build_run(sess, wf):
 
     agents = [agent_record(run_dir, r.get("agentId"), r, r.get("state") or "unknown")
               for r in progress if r.get("type") == "workflow_agent"]
+
+    started, results = journal(run_dir)
+    for agent in agents:
+        result = results.get(agent["agentId"])
+        if result:
+            agent["artifact"] = result.get("artifact_path")
+            agent["summary"] = result.get("summary")
 
     phases = [{"index": p.get("index"), "title": p.get("title")}
               for p in progress if p.get("type") == "workflow_phase"]
