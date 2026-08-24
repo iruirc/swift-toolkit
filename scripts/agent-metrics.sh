@@ -97,7 +97,7 @@ def render_md(doc):
         return doc.get("reason") or "no runs found"
     lines = []
     for run in doc["runs"]:
-        head = run["workflow"] or "direct dispatch"
+        head = run["workflow"] or run["runId"] or "direct dispatch"
         if run["task_id"]:
             head = "%s · task %s" % (head, run["task_id"])
         lines += ["**%s** — %s · %s" % (head, run["status"] or "—",
@@ -124,7 +124,7 @@ def render_panel(doc):
     for run in doc["runs"]:
         head = " · ".join(part for part in [
             "task %s" % run["task_id"] if run["task_id"] else None,
-            run["workflow"] or "direct dispatch",
+            run["workflow"] or run["runId"] or "direct dispatch",
             run["status"], human_time(run["elapsedMs"])] if part)
         lines += [head, ""]
         for agent in run["agents"]:
@@ -360,15 +360,22 @@ def build_run(sess, wf):
         phases = [{"index": i + 1, "title": (p or {}).get("title")}
                   for i, p in enumerate(wf.get("phases") or [])]
 
+    status = wf.get("status")
+    if status is None:
+        status = "running" if any(a["state"] == "running" for a in agents) else "done"
+
     elapsed = wf.get("durationMs")
     if elapsed is None and epoch(wf.get("startTime")):
         elapsed = now_ms() - epoch(wf["startTime"])
+    if elapsed is None:
+        agent_elapsed = [a["elapsedMs"] for a in agents if a["elapsedMs"] is not None]
+        elapsed = max(agent_elapsed) if agent_elapsed else None
 
     return {
         "runId": run_id,
         "workflow": wf.get("workflowName"),
         "task_id": (wf.get("args") or {}).get("task_id"),
-        "status": wf.get("status"),
+        "status": status,
         "elapsedMs": elapsed,
         "phases": phase_states(phases, agents),
         "agents": agents,
@@ -421,11 +428,26 @@ def method_b_run(sess):
 # The format is not a contract (P8): a shape neither this script nor its
 # fixtures anticipated must degrade to an empty result, not a traceback.
 try:
-    runs = []
+    finished = {}
     for path in sorted(glob.glob(os.path.join(sess, "workflows", "wf_*.json"))):
         wf = load_json(path)
-        if wf:
-            runs.append(build_run(sess, wf))
+        if wf and wf.get("runId"):
+            finished[wf["runId"]] = (wf, path)
+
+    # The state file lands only when a run ends; a run still in flight has no
+    # workflows/wf_*.json yet, so its live subagents/workflows/<rid> dir counts too.
+    live_root = os.path.join(sess, "subagents", "workflows")
+    live_ids = [os.path.basename(p) for p in glob.glob(os.path.join(live_root, "wf_*"))
+                if os.path.isdir(p)]
+
+    def run_mtime(rid):
+        if rid in finished:
+            return os.path.getmtime(finished[rid][1])
+        return os.path.getmtime(os.path.join(live_root, rid))
+
+    run_ids = sorted(set(finished) | set(live_ids), key=run_mtime)
+    runs = [build_run(sess, finished[rid][0] if rid in finished else {"runId": rid})
+            for rid in run_ids]
 
     if RUN_FILTER:
         runs = [r for r in runs if r["runId"] == RUN_FILTER]

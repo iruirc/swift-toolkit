@@ -1,6 +1,15 @@
 #!/usr/bin/env bats
 load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
 
+setup_file() {
+  local wf="$(tm_home home-a)/projects/-tmp-proj/11111111-1111-1111-1111-111111111111/workflows"
+  # Discovery now orders runs by state-file mtime, not filename; pin these so
+  # every "runs.N" assertion below stays meaningful regardless of checkout order.
+  touch -t 202601010000 "$wf/wf_aaa1111-111.json"
+  touch -t 202601010005 "$wf/wf_bbb2222-222.json"
+  touch -t 202601010010 "$wf/wf_ccc3333-333.json"
+}
+
 @test "unknown session yields an empty document, not an error" {
   run tm_metrics home-empty --session 99999999-9999-9999-9999-999999999999
   [ "$status" -eq 0 ]
@@ -252,6 +261,43 @@ JSON
   [ "$status" -eq 0 ]
   [ "$(tm_field "$output" runs.0.status)" = "running" ]
   [ "$(tm_field "$output" runs.0.elapsedMs)" = "0" ]
+}
+
+@test "a run in flight is discovered before its state file exists" {
+  # Regression: discovery used to glob only workflows/wf_*.json, which is
+  # written when a run ENDS. Session 44444444... has a live run under
+  # subagents/workflows/ and no workflows/ directory at all — the exact
+  # shape observed mid-run — so with the old discovery, runs would be empty.
+  run tm_metrics home-a --session 44444444-4444-4444-4444-444444444444
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.0.runId)" = "wf_9664a933-1b1" ]
+}
+
+@test "a run in flight reports its running agent from the meta file and transcript" {
+  run tm_metrics home-a --session 44444444-4444-4444-4444-444444444444
+  [ "$(tm_field "$output" runs.0.agents.0.state)" = "running" ]
+  [ "$(tm_field "$output" runs.0.agents.0.agentType)" = "swift-toolkit:swift-architect" ]
+  [ "$(tm_field "$output" runs.0.agents.0.out)" = "469" ]
+}
+
+@test "a run in flight derives status and elapsed with no state file to read them from" {
+  run tm_metrics home-a --session 44444444-4444-4444-4444-444444444444
+  [ "$(tm_field "$output" runs.0.status)" = "running" ]
+  [ "$(tm_field "$output" runs.0.elapsedMs)" != "" ]
+}
+
+@test "a run in flight shows its running glyph in the panel, not direct dispatch" {
+  run tm_metrics home-a --session 44444444-4444-4444-4444-444444444444 --format panel
+  [ "$status" -eq 0 ]
+  tm_contains "$output" "🔄"
+  tm_lacks "$output" "direct dispatch"
+}
+
+@test "a session with state files keeps discovering the same runs in the same order" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
+  [ "$(tm_field "$output" runs.0.runId)" = "wf_aaa1111-111" ]
+  [ "$(tm_field "$output" runs.1.runId)" = "wf_bbb2222-222" ]
+  [ "$(tm_field "$output" runs.2.runId)" = "wf_ccc3333-333" ]
 }
 
 @test "md format prints a table row per agent" {
