@@ -11,13 +11,13 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
 @test "unknown option exits 2" {
   run tm_metrics home-empty --nope
   [ "$status" -eq 2 ]
-  [[ "$output" == *"unknown option"* ]]
+  tm_contains "$output" "unknown option"
 }
 
 @test "unknown format exits 2" {
   run tm_metrics home-empty --format yaml
   [ "$status" -eq 2 ]
-  [[ "$output" == *"unknown format"* ]]
+  tm_contains "$output" "unknown format"
 }
 
 @test "missing python3 exits 2 with a readable reason" {
@@ -27,13 +27,13 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   run env PATH="$stub" CLAUDE_CONFIG_DIR="$(tm_home home-empty)" \
       /bin/bash "$(tm_repo_root)/scripts/agent-metrics.sh"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"python3 not found"* ]]
+  tm_contains "$output" "python3 not found"
 }
 
 @test "an option without its value exits 2, not 1" {
   run tm_metrics home-empty --session
   [ "$status" -eq 2 ]
-  [[ "$output" == *"missing value for --session"* ]]
+  tm_contains "$output" "missing value for --session"
 }
 
 @test "method A run exposes phases in order" {
@@ -121,20 +121,20 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
 @test "md format prints a table row per agent" {
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --format md
   [ "$status" -eq 0 ]
-  [[ "$output" == *"| Stage | Agent | out | ctx | tools | time |"* ]]
-  [[ "$output" == *"| Analyze | swift-architect |"* ]]
-  [[ "$output" == *"312.0k"* ]]
+  tm_contains "$output" "| Stage | Agent | out | ctx | tools | time |"
+  tm_contains "$output" "| Analyze | swift-architect |"
+  tm_contains "$output" "312.0k"
 }
 
 @test "panel format marks state with a glyph and names the running tool" {
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_bbb2222-222 --format panel
   [ "$status" -eq 0 ]
-  [[ "$output" == *"🔄"* ]]
-  [[ "$output" == *"swift-developer"* ]]
+  tm_contains "$output" "🔄"
+  tm_contains "$output" "swift-developer"
 }
 
 @test "an empty document renders its reason instead of a blank screen" {
   run tm_metrics home-empty --session 99999999-9999-9999-9999-999999999999 --format panel
   [ "$status" -eq 0 ]
-  [[ "$output" == *"session directory not found"* ]]
+  tm_contains "$output" "session directory not found"
 }

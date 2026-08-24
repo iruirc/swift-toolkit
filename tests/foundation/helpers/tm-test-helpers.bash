@@ -30,3 +30,16 @@ for key in sys.argv[2].split("."):
 print("" if node is None else node)
 ' "$1" "$2"
 }
+
+# A failing `[[ ]]` anywhere but the last line of a test does NOT trip bats'
+# set -e, so it asserts nothing. Every substring check goes through these.
+tm_contains() {
+  case "$1" in (*"$2"*) return 0 ;; esac
+  echo "expected output to contain: $2" >&2
+  return 1
+}
+
+tm_lacks() {
+  case "$1" in (*"$2"*) echo "expected output NOT to contain: $2" >&2; return 1 ;; esac
+  return 0
+}
