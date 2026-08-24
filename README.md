@@ -176,13 +176,13 @@ Two things are worth knowing before you use it:
 
 How much a run narrates is set by `## Progress` in `CLAUDE-swift-toolkit.md`: `quiet`,
 `normal` (default), or `live`. At `normal` and above the orchestrator prints the
-stage-to-agent plan once, then a report after each stage. Live progress of
+stage-to-agent plan once, then a report naming the agent after each stage. Live progress of
 a running workflow is always available in the `/workflows` view, whatever the setting.
 
 Token cost is reported alongside every stage: model, generated tokens, context size, tool
-calls and elapsed time. `/swift-agents` prints the same figures for the whole session on
-demand, and `scripts/agent-monitor.sh` repaints them live in a second terminal pane. All
-three read Claude Code's own transcripts and write nothing.
+calls and elapsed time, plus a totals line when the run finishes. `/swift-agents` prints the
+same figures for the whole session on demand, and `scripts/agent-monitor.sh` repaints them
+live in a second terminal pane. All three read Claude Code's own transcripts and write nothing.
 
 ---
 
