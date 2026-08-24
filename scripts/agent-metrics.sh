@@ -71,7 +71,13 @@ def human_time(value):
     if not value:
         return "—"
     total = int(value // 1000)
-    return "%dm %02ds" % (total // 60, total % 60) if total >= 60 else "%ds" % total
+    if total < 60:
+        return "%ds" % total
+    minutes, seconds = divmod(total, 60)
+    if minutes < 60:
+        return "%dm %02ds" % (minutes, seconds)
+    hours, minutes = divmod(minutes, 60)
+    return "%dh %02dm %02ds" % (hours, minutes, seconds)
 
 
 def text_fields(record):

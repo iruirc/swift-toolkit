@@ -117,6 +117,29 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$(tm_field "$output" totals.outText)" = "1.1k" ]
 }
 
+@test "human_time renders an hour component for long-running agents" {
+  local cfg
+  cfg="$(mktemp -d)"
+  mkdir -p "$cfg/projects/-tmp-proj/99999999-9999-9999-9999-999999999999/workflows"
+  cat > "$cfg/projects/-tmp-proj/99999999-9999-9999-9999-999999999999/workflows/wf_hour0000-000.json" <<'JSON'
+{
+  "runId": "wf_hour0000-000", "workflowName": "profile-refactor", "status": "completed",
+  "args": {"task_id": "099", "profile": "refactor"}, "phases": [{"title": "Analyze"}],
+  "workflowProgress": [
+    {"type": "workflow_phase", "index": 1, "title": "Analyze"},
+    {"type": "workflow_agent", "index": 1, "label": "analyze", "phaseIndex": 1,
+     "phaseTitle": "Analyze", "agentId": "f0000000000000001",
+     "agentType": "swift-toolkit:swift-architect", "model": "claude-opus-5",
+     "state": "done", "durationMs": 3661000}
+  ]
+}
+JSON
+  run env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_SESSION_ID=""       "$(tm_repo_root)/scripts/agent-metrics.sh" --session 99999999-9999-9999-9999-999999999999
+  rm -rf "$cfg"
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.0.agents.0.elapsedText)" = "1h 01m 01s" ]
+}
+
 @test "a truncated trailing line is skipped, not fatal" {
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_bbb2222-222
   [ "$status" -eq 0 ]
