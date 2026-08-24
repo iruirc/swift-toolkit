@@ -153,6 +153,15 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$(tm_field "$output" runs.3.agents.0.agentType)" = "swift-toolkit:swift-tester" ]
 }
 
+@test "totals sum across multiple workflow runs of a session, not just the first" {
+  # wf_aaa1111-111 out=1148 (2 agents), wf_bbb2222-222 out=300 (1 agent),
+  # wf_ccc3333-333 out=150 (1 agent): 1148 + 300 + 150 = 1598, agents 2+1+1 = 4.
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" totals.agents)" = "4" ]
+  [ "$(tm_field "$output" totals.out)" = "1598" ]
+}
+
 @test "md format prints a table row per agent" {
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --format md
   [ "$status" -eq 0 ]
