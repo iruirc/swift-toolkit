@@ -1,0 +1,17 @@
+{
+  "runId": "wf_ccc3333-333",
+  "workflowName": "profile-feature",
+  "status": "running",
+  "startTime": 1787219600000,
+  "args": {"task_id": "090", "profile": "feature"},
+  "phases": [{"title": "Research"}, {"title": "Plan"}],
+  "workflowProgress": [
+    {"type": "workflow_phase", "index": 1, "title": "Research"},
+    {"type": "workflow_phase", "index": 2, "title": "Plan"},
+    {"type": "workflow_agent", "index": 1, "label": "research", "phaseIndex": 1,
+     "phaseTitle": "Research", "agentId": "c0000000000000001",
+     "agentType": "swift-toolkit:swift-architect", "model": "claude-opus-5",
+     "state": "progress", "startedAt": 1787219600000, "lastProgressAt": 1787219650000,
+     "lastToolName": "Grep", "tokens": 50000, "toolCalls": 8}
+  ]
+}

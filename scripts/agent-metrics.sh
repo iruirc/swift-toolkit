@@ -299,12 +299,19 @@ def phase_states(phases, agents):
     return out
 
 
+def normalize_state(raw):
+    # The runtime's own state vocabulary is not ours and is not a contract.
+    return {"progress": "running", "in_progress": "running",
+            "queued": "queued"}.get(raw, raw)
+
+
 def build_run(sess, wf):
     run_id = wf.get("runId") or ""
     run_dir = os.path.join(sess, "subagents", "workflows", run_id)
     progress = wf.get("workflowProgress") or []
 
-    agents = [agent_record(run_dir, r.get("agentId"), r, r.get("state") or "unknown")
+    agents = [agent_record(run_dir, r.get("agentId"), r,
+                           normalize_state(r.get("state") or "unknown"))
               for r in progress if r.get("type") == "workflow_agent"]
 
     started, results = journal(run_dir)

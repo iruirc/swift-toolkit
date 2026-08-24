@@ -100,6 +100,24 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$(tm_field "$output" runs.0.agents.0.agentType)" = "swift-toolkit:swift-developer" ]
 }
 
+@test "a workflowProgress state of progress normalizes to running" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_ccc3333-333
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.0.agents.0.state)" = "running" ]
+}
+
+@test "a running agent from workflowProgress shows its glyph and tool in the panel" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_ccc3333-333 --format panel
+  [ "$status" -eq 0 ]
+  tm_contains "$output" "🔄"
+  tm_contains "$output" "Grep"
+}
+
+@test "a phase with a running agent shows running, not todo" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_ccc3333-333
+  [ "$(tm_field "$output" runs.0.phases.0.state)" = "running" ]
+}
+
 @test "--run selects exactly one run" {
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_bbb2222-222
   [ "$(tm_field "$output" runs.0.runId)" = "wf_bbb2222-222" ]
