@@ -382,8 +382,11 @@ def method_b_run(sess):
         agents.append(agent)
     if not agents:
         return None
-    return {"runId": None, "workflow": None, "task_id": None, "status": "done",
-            "elapsedMs": None, "phases": [], "agents": agents}
+    status = "running" if any(a["state"] == "running" for a in agents) else "done"
+    elapsed = max((a["elapsedMs"] for a in agents if a["elapsedMs"] is not None),
+                  default=None)
+    return {"runId": None, "workflow": None, "task_id": None, "status": status,
+            "elapsedMs": elapsed, "phases": [], "agents": agents}
 
 
 # The format is not a contract (P8): a shape neither this script nor its

@@ -169,6 +169,29 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$(tm_field "$output" totals.out)" = "1598" ]
 }
 
+@test "the direct-dispatch pseudo-run derives status and elapsed from its agents" {
+  local cfg sess
+  cfg="$(mktemp -d)"
+  sess="$cfg/projects/-tmp-proj/77777777-7777-7777-7777-777777777777"
+  mkdir -p "$sess/subagents"
+  cat > "$cfg/projects/-tmp-proj/77777777-7777-7777-7777-777777777777.jsonl" <<'JSON'
+{"type":"assistant","timestamp":"2026-08-24T10:00:00.000Z","message":{"model":"claude-opus-5","usage":{"output_tokens":10},"content":[{"type":"tool_use","id":"tu1","name":"Agent","input":{"subagent_type":"swift-toolkit:swift-developer","description":"Patch the bug"}}]}}
+{"type":"user","timestamp":"2026-08-24T10:00:01.000Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tu1","content":[{"type":"text","text":"agentId: e0000000000000001"}]}]}}
+JSON
+  cat > "$sess/subagents/agent-e0000000000000001.jsonl" <<'JSON'
+{"type":"assistant","agentId":"e0000000000000001","timestamp":"2026-08-24T10:00:10.000Z","message":{"model":"claude-opus-5","usage":{"input_tokens":1,"output_tokens":50},"content":[{"type":"tool_use","id":"tu2","name":"Edit","input":{}}]}}
+JSON
+  cat > "$sess/subagents/agent-e0000000000000001.meta.json" <<'JSON'
+{"agentType": "swift-toolkit:swift-developer", "spawnDepth": 1}
+JSON
+  touch "$sess/subagents/agent-e0000000000000001.jsonl"
+  run env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_SESSION_ID=""       "$(tm_repo_root)/scripts/agent-metrics.sh"       --session 77777777-7777-7777-7777-777777777777 --all
+  rm -rf "$cfg"
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.0.agents.0.state)" = "running" ]
+  [ "$(tm_field "$output" runs.0.status)" = "running" ]
+}
+
 @test "md format prints a table row per agent" {
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --format md
   [ "$status" -eq 0 ]
