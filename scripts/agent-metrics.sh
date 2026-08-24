@@ -53,9 +53,91 @@ import glob, json, os, re, sys
 CONFIG_DIR, SESSION, RUN_FILTER, FORMAT, WANT_ALL = sys.argv[1:6]
 WANT_ALL = WANT_ALL == "1"
 
+GLYPH = {"done": "✅", "running": "🔄", "error": "❌",
+         "queued": "⬜", "todo": "⬜", "unknown": "⬜"}
+
+
+def human_tokens(value):
+    if not value:
+        return "—"
+    if value >= 1000000:
+        return "%.1fM" % (value / 1000000.0)
+    if value >= 1000:
+        return "%.1fk" % (value / 1000.0)
+    return str(value)
+
+
+def human_time(value):
+    if not value:
+        return "—"
+    total = int(value // 1000)
+    return "%dm %02ds" % (total // 60, total % 60) if total >= 60 else "%ds" % total
+
+
+def short(agent_type):
+    return (agent_type or "—").split(":")[-1]
+
+
+def render_md(doc):
+    if not doc["runs"]:
+        return doc.get("reason") or "no runs found"
+    lines = []
+    for run in doc["runs"]:
+        head = run["workflow"] or "direct dispatch"
+        if run["task_id"]:
+            head = "%s · task %s" % (head, run["task_id"])
+        lines += ["**%s** — %s · %s" % (head, run["status"] or "—",
+                                        human_time(run["elapsedMs"])),
+                  "",
+                  "| Stage | Agent | out | ctx | tools | time |",
+                  "|---|---|---|---|---|---|"]
+        for agent in run["agents"]:
+            lines.append("| %s | %s | %s | %s | %s | %s |" % (
+                agent["phase"] or "—", short(agent["agentType"]),
+                human_tokens(agent["out"]), human_tokens(agent["ctx"]),
+                agent["tools"] or 0, human_time(agent["elapsedMs"])))
+        lines.append("")
+    totals = doc["totals"]
+    lines.append("%d agents · %s out · %s" % (
+        totals["agents"], human_tokens(totals["out"]), human_time(totals["elapsedMs"])))
+    return "\n".join(lines)
+
+
+def render_panel(doc):
+    if not doc["runs"]:
+        return doc.get("reason") or "no runs found"
+    lines = []
+    for run in doc["runs"]:
+        head = " · ".join(part for part in [
+            "task %s" % run["task_id"] if run["task_id"] else None,
+            run["workflow"] or "direct dispatch",
+            run["status"], human_time(run["elapsedMs"])] if part)
+        lines += [head, ""]
+        for agent in run["agents"]:
+            tail = "  %s" % agent["lastTool"] if agent["state"] == "running" and agent["lastTool"] else ""
+            lines.append("  %s %-12s %-18s %7s out · %7s ctx · %3s tools · %8s%s" % (
+                GLYPH.get(agent["state"], "⬜"), (agent["phase"] or "—")[:12],
+                short(agent["agentType"])[:18], human_tokens(agent["out"]),
+                human_tokens(agent["ctx"]), agent["tools"] or 0,
+                human_time(agent["elapsedMs"]), tail))
+        for phase in run["phases"]:
+            if not any(a["phase"] == phase["title"] for a in run["agents"]):
+                lines.append("  %s %-12s" % (GLYPH.get(phase["state"], "⬜"),
+                                             (phase["title"] or "")[:12]))
+        lines.append("")
+    totals = doc["totals"]
+    lines.append("  %d agents · %s out · %s" % (
+        totals["agents"], human_tokens(totals["out"]), human_time(totals["elapsedMs"])))
+    return "\n".join(lines)
+
 
 def emit(doc):
-    print(json.dumps(doc, ensure_ascii=False))
+    if FORMAT == "json":
+        print(json.dumps(doc, ensure_ascii=False))
+    elif FORMAT == "md":
+        print(render_md(doc))
+    else:
+        print(render_panel(doc))
     sys.exit(0)
 
 

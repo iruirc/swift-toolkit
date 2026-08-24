@@ -117,3 +117,24 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --all
   [ "$(tm_field "$output" totals.agents)" = "3" ]
 }
+
+@test "md format prints a table row per agent" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --format md
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"| Stage | Agent | out | ctx | tools | time |"* ]]
+  [[ "$output" == *"| Analyze | swift-architect |"* ]]
+  [[ "$output" == *"312.0k"* ]]
+}
+
+@test "panel format marks state with a glyph and names the running tool" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_bbb2222-222 --format panel
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"🔄"* ]]
+  [[ "$output" == *"swift-developer"* ]]
+}
+
+@test "an empty document renders its reason instead of a blank screen" {
+  run tm_metrics home-empty --session 99999999-9999-9999-9999-999999999999 --format panel
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"session directory not found"* ]]
+}
