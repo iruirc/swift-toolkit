@@ -36,6 +36,29 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   tm_contains "$output" "missing value for --session"
 }
 
+@test "a --session match that is not a directory is treated as not found" {
+  run tm_metrics home-a --session 66666666-6666-6666-6666-666666666666
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" reason)" = "session directory not found" ]
+}
+
+@test "the default session lookup skips a sibling that is not a session directory" {
+  local cfg proj slug
+  cfg="$(mktemp -d)"
+  proj="$(cd -- "$(mktemp -d)" && pwd -P)"
+  slug="$(printf '%s' "$proj" | tr -c 'A-Za-z0-9' '-')"
+  # `memory/` is newer than the real session dir but isn't one — no session-id
+  # name, no workflows/subagents subdirectory. Only max(mtime) would pick it.
+  mkdir -p "$cfg/projects/$slug/memory"
+  mkdir -p "$cfg/projects/$slug/88888888-8888-8888-8888-888888888888/workflows"
+  touch -t 202501010000 "$cfg/projects/$slug/88888888-8888-8888-8888-888888888888"
+  touch -t 202601010000 "$cfg/projects/$slug/memory"
+  run env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_SESSION_ID=""       bash -c "cd '$proj' && '$(tm_repo_root)/scripts/agent-metrics.sh'"
+  rm -rf "$cfg" "$proj"
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" session)" = "88888888-8888-8888-8888-888888888888" ]
+}
+
 @test "a malformed wf_*.json degrades to an empty result, not a traceback" {
   run tm_metrics home-a --session 33333333-3333-3333-3333-333333333333
   [ "$status" -eq 0 ]

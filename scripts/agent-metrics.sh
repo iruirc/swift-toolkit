@@ -157,13 +157,28 @@ def slug(path):
     return re.sub(r"[^A-Za-z0-9]", "-", path)
 
 
+SESSION_ID_RE = re.compile(r"^[0-9a-f-]{36}$")
+
+
+def looks_like_session(path):
+    # A project directory's children are not all sessions — e.g. `memory/`
+    # sits alongside them. A session either has session-id shape or holds
+    # the run-state subdirectories this script actually reads.
+    if SESSION_ID_RE.match(os.path.basename(path)):
+        return True
+    return (os.path.isdir(os.path.join(path, "workflows"))
+            or os.path.isdir(os.path.join(path, "subagents")))
+
+
 def session_dir():
     projects = os.path.join(CONFIG_DIR, "projects")
     if SESSION:
-        hits = glob.glob(os.path.join(projects, "*", SESSION))
+        hits = [p for p in glob.glob(os.path.join(projects, "*", SESSION))
+                if os.path.isdir(p)]
         return hits[0] if hits else None
     here = os.path.join(projects, slug(os.getcwd()))
-    dirs = [p for p in glob.glob(os.path.join(here, "*")) if os.path.isdir(p)]
+    dirs = [p for p in glob.glob(os.path.join(here, "*"))
+            if os.path.isdir(p) and looks_like_session(p)]
     return max(dirs, key=os.path.getmtime) if dirs else None
 
 
