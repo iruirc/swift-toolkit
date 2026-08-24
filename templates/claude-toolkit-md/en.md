@@ -52,9 +52,10 @@ manual
 normal
 
 (how much the orchestrator narrates a profile run: `quiet` — the final report only;
-`normal` — the stage-to-agent plan once, a report after every stage carrying that agent's
-token cost, and a totals line when the run finishes; `live` — everything from `normal` plus
-the command for a live agent panel you can run in a second terminal pane.
+`normal` — the stage-to-agent plan once, a report after every stage, and a totals line when
+the run finishes — the per-stage report carries that agent's token cost when the run takes the
+workflow script path (the `Workflow` tool); `live` — everything from `normal` plus the command
+for a live agent panel you can run in a second terminal pane.
 This setting governs reporting only — the between-stage confirmations of `manual` mode are
 unaffected by it.)
 
