@@ -128,10 +128,10 @@ security; OWASP; vulnerability; pinning; безопасность
 Живой ход идущего workflow — вьюха /workflows.
 
 ## progress_open_live_ticker_note
-Тикер ещё не построен: `live` зарезервировано и сегодня выводится ровно как `normal`.
+Панель с токенами — запусти `bash "{script}" --session {session}` в соседней панели терминала.
 
 ## progress_open_method_b_live
-В Method B хост сам рисует каждый вызов агента, поэтому `live` здесь ведёт себя как `normal`.
+В Method B хост сам рисует каждый вызов агента; панель добавляет к нему цифры расхода, которых хост не показывает.
 
 ## progress_stage_report
 {stage} — {agent}
@@ -142,8 +142,14 @@ security; OWASP; vulnerability; pinning; безопасность
 ## progress_stage_verdict
 Вердикт: {verdict}
 
+## progress_stage_metrics
+{model} · {out} out · {ctx} ctx · {tools} tools · {elapsed}
+
 ## progress_run_elapsed
 Прогон занял {elapsed}.
+
+## progress_run_totals
+{agents} agents · {out} out · {elapsed}
 
 ## dispatch_blocked_prompt
 Тул Workflow доступен, и у профиля {profile} есть workflow-скрипт, но запуску мешает {reason}. Method B прогонит те же стадии через скилл.

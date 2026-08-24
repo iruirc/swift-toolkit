@@ -128,10 +128,10 @@ Stop and hand back control
 Live progress of the running workflow — the /workflows view.
 
 ## progress_open_live_ticker_note
-The ticker is not built yet: `live` is reserved, and today it renders exactly as `normal`.
+Token panel — run `bash "{script}" --session {session}` in a second terminal pane.
 
 ## progress_open_method_b_live
-Under Method B the host renders every agent call itself, so `live` behaves as `normal` here.
+Under Method B the host renders every agent call itself; the panel adds the token figures it does not show.
 
 ## progress_stage_report
 {stage} — {agent}
@@ -142,8 +142,14 @@ Artifact: {path}
 ## progress_stage_verdict
 Verdict: {verdict}
 
+## progress_stage_metrics
+{model} · {out} out · {ctx} ctx · {tools} tools · {elapsed}
+
 ## progress_run_elapsed
 Run finished in {elapsed}.
+
+## progress_run_totals
+{agents} agents · {out} out · {elapsed}
 
 ## dispatch_blocked_prompt
 The Workflow tool is available and the {profile} profile has a workflow script, but {reason} stands in the way of starting it. Method B runs the same stages through the skill instead.

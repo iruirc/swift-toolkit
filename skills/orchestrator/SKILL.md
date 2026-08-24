@@ -388,11 +388,26 @@ Then, after each stage: `progress_stage_report`, plus `progress_stage_artifact` 
 wrote one, plus the agent's own one-or-two-sentence summary, plus `progress_stage_verdict` where
 the stage carries a verdict.
 
+**Metrics.** At `normal` and above, after the stage report, run
+
+```
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/agent-metrics.sh" --format json --run <runId>
+```
+
+and render `progress_stage_metrics` from the record of that stage's agent. After the range
+closes, render `progress_run_totals` from `totals`. At `quiet` the script is not run at all.
+
+The call is best-effort: a non-zero exit or unparseable output means the stage report is
+printed without the metrics line and nothing else changes. A stage never fails because its
+telemetry did.
+
 In `manual` the source is the single-stage return, printed before `stage_done_prompt`. In `auto`
 the source is `stages[]` from the one return, printed as consecutive entries.
 
 **At `live`** — additionally append `progress_open_live_ticker_note` to the opening block under
-Method A, and `progress_open_method_b_live` under Method B.
+Method A, rendered with `{script}` (the absolute path to `scripts/agent-monitor.sh`, built from
+`${CLAUDE_PLUGIN_ROOT}`) and `{session}` (`$CLAUDE_CODE_SESSION_ID`), and
+`progress_open_method_b_live` under Method B.
 
 **Timing.** The elapsed figure comes from the Workflow tool result, not from the script — the
 sandbox has no clock. In `manual` one call is one stage, so it is that stage's time — and the host
