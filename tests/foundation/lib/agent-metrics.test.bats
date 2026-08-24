@@ -97,3 +97,23 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$(tm_field "$output" runs.0.runId)" = "wf_bbb2222-222" ]
   [ "$(tm_field "$output" totals.agents)" = "1" ]
 }
+
+@test "a session without workflow runs still shows its Task agents" {
+  run tm_metrics home-a --session 22222222-2222-2222-2222-222222222222
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.0.runId)" = "" ]
+  [ "$(tm_field "$output" runs.0.agents.0.agentType)" = "swift-toolkit:swift-reviewer" ]
+  [ "$(tm_field "$output" runs.0.agents.0.out)" = "512" ]
+}
+
+@test "the Task description stands in for a stage name" {
+  run tm_metrics home-a --session 22222222-2222-2222-2222-222222222222
+  [ "$(tm_field "$output" runs.0.agents.0.phase)" = "Review the diff" ]
+}
+
+@test "workflow runs hide Task agents unless --all is passed" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
+  [ "$(tm_field "$output" totals.agents)" = "3" ]
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --all
+  [ "$(tm_field "$output" totals.agents)" = "3" ]
+}

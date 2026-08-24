@@ -1,0 +1,2 @@
+{"type":"assistant","timestamp":"2026-08-21T10:00:00.000Z","message":{"model":"claude-opus-5","usage":{"output_tokens":40},"content":[{"type":"tool_use","id":"toolu_x1","name":"Task","input":{"subagent_type":"swift-toolkit:swift-reviewer","description":"Review the diff"}}]}}
+{"type":"user","timestamp":"2026-08-21T10:00:01.000Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_x1","content":[{"type":"text","text":"Async agent launched successfully.\nagentId: b0000000000000001"}]}]}}

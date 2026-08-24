@@ -247,6 +247,42 @@ def build_run(sess, wf):
     }
 
 
+def task_labels(main_transcript):
+    """Maps agentId -> the Task call that spawned it, through the tool_use id."""
+    calls, links = {}, {}
+    for row in load_jsonl(main_transcript):
+        for block in ((row.get("message") or {}).get("content") or []):
+            if not isinstance(block, dict):
+                continue
+            if block.get("type") == "tool_use" and block.get("name") == "Task":
+                calls[block.get("id")] = block.get("input") or {}
+            elif block.get("type") == "tool_result":
+                found = re.search(r"agentId: ([0-9a-f]+)",
+                                  json.dumps(block.get("content") or "", ensure_ascii=False))
+                if found:
+                    links[found.group(1)] = block.get("tool_use_id")
+    return {agent_id: calls.get(use_id) or {} for agent_id, use_id in links.items()}
+
+
+def method_b_run(sess):
+    directory = os.path.join(sess, "subagents")
+    labels = task_labels(sess + ".jsonl")
+    agents = []
+    for path in sorted(glob.glob(os.path.join(directory, "agent-*.jsonl"))):
+        agent_id = os.path.basename(path)[len("agent-"):-len(".jsonl")]
+        call = labels.get(agent_id) or {}
+        # No journal here: a transcript touched seconds ago is still being written.
+        fresh = (now_ms() - int(os.path.getmtime(path) * 1000)) < 30000
+        agent = agent_record(directory, agent_id, None, "running" if fresh else "done")
+        agent["agentType"] = agent["agentType"] or call.get("subagent_type")
+        agent["phase"] = call.get("description")
+        agents.append(agent)
+    if not agents:
+        return None
+    return {"runId": None, "workflow": None, "task_id": None, "status": "done",
+            "elapsedMs": None, "phases": [], "agents": agents}
+
+
 runs = []
 for path in sorted(glob.glob(os.path.join(sess, "workflows", "wf_*.json"))):
     wf = load_json(path)
@@ -255,6 +291,10 @@ for path in sorted(glob.glob(os.path.join(sess, "workflows", "wf_*.json"))):
 
 if RUN_FILTER:
     runs = [r for r in runs if r["runId"] == RUN_FILTER]
+elif WANT_ALL or not runs:
+    extra = method_b_run(sess)
+    if extra:
+        runs.append(extra)
 
 totals = {
     "agents": sum(len(r["agents"]) for r in runs),
