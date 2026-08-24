@@ -25,8 +25,12 @@ if [ ! -t 1 ]; then
   exit $?
 fi
 
+# A trap that only cleans up would return into the loop — bash resumes a script
+# after an INT handler that does not exit, and the panel would then keep
+# repainting over the terminal it just restored. `exit 130` is what stops it.
 leave() { printf '\033[?1049l'; }
-trap leave EXIT INT TERM
+trap leave EXIT
+trap 'exit 130' INT TERM
 printf '\033[?1049h'
 
 while true; do

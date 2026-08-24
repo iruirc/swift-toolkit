@@ -43,3 +43,43 @@ tm_lacks() {
   case "$1" in (*"$2"*) echo "expected output NOT to contain: $2" >&2; return 1 ;; esac
   return 0
 }
+
+# Drives a command under a real pty, sends SIGINT after `wait` seconds, and
+# prints "<exit code> <repaints after the interrupt>". Ctrl-C behaviour is the
+# one thing about the panel that no ordinary test can see.
+tm_pty_interrupt() {
+  local wait_s="$1"; shift
+  python3 - "$wait_s" "$@" <<'PY'
+import os, pty, select, signal, subprocess, sys, time
+
+wait_s = float(sys.argv[1])
+master, slave = pty.openpty()
+proc = subprocess.Popen(sys.argv[2:], stdout=slave, stderr=slave,
+                        stdin=subprocess.DEVNULL, close_fds=True)
+os.close(slave)
+
+
+def drain(seconds):
+    out = b""
+    end = time.time() + seconds
+    while time.time() < end:
+        ready, _, _ = select.select([master], [], [], 0.2)
+        if ready:
+            try:
+                out += os.read(master, 65536)
+            except OSError:
+                break
+    return out
+
+
+drain(wait_s)
+proc.send_signal(signal.SIGINT)
+after = drain(2.0)
+code = proc.poll()
+if code is None:
+    proc.kill()
+    proc.wait()
+    code = "running"
+print("%s %d" % (code, after.count(b"\x1b[2J")))
+PY
+}

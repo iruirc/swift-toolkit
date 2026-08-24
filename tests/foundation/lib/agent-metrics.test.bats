@@ -139,6 +139,15 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   tm_contains "$output" "session directory not found"
 }
 
+@test "the panel exits on Ctrl-C and stops painting" {
+  export CLAUDE_CODE_SESSION_ID=""
+  export CLAUDE_CONFIG_DIR="$(tm_home home-a)"
+  run tm_pty_interrupt 2 "$(tm_repo_root)/scripts/agent-monitor.sh" \
+      --session 11111111-1111-1111-1111-111111111111 --interval 1
+  [ "$status" -eq 0 ]
+  [ "$output" = "130 0" ]
+}
+
 @test "monitor prints a single snapshot when stdout is not a tty" {
   run env CLAUDE_CONFIG_DIR="$(tm_home home-a)" CLAUDE_CODE_SESSION_ID="" \
       "$(tm_repo_root)/scripts/agent-monitor.sh" \
