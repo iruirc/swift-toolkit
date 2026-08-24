@@ -413,8 +413,9 @@ After the range closes, render `progress_run_totals` from a `totals` that covers
 range, not just its last stage. In `auto` a single `Workflow` call already spans the range under
 one `runId`, so that call's own `totals` is the range's totals. In `manual`, "Method A — manual
 mode" above dispatches one workflow per stage — a fresh `runId` each time — so the orchestrator
-accumulates `agents` and `out` itself, summing the `totals` field of every `--run` call it made
-across the range.
+sums `totals.agents`, the raw `totals.out` and `totals.elapsedMs` from every `--run` call across
+the range, then formats both sums (thousands as `1.6k`, durations as `5m 13s`) rather than printing
+raw numbers, keeping the two modes' output consistent with single-run formatting.
 
 **At `live`** — additionally append `progress_open_live_ticker_note` to the opening block under
 Method A, rendered with `{script}` (the absolute path to `scripts/agent-monitor.sh`, built from

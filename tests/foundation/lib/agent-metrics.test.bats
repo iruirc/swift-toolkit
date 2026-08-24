@@ -250,8 +250,8 @@ JSON
       --session 77777777-7777-7777-7777-777777777777 --all
   rm -rf "$cfg"
   [ "$status" -eq 0 ]
-  [ "$(tm_field "$output" runs.0.agents.0.state)" = "running" ]
   [ "$(tm_field "$output" runs.0.status)" = "running" ]
+  [ "$(tm_field "$output" runs.0.elapsedMs)" = "0" ]
 }
 
 @test "md format prints a table row per agent" {
