@@ -52,8 +52,9 @@ manual
 normal
 
 (how much the orchestrator narrates a profile run: `quiet` — the final report only;
-`normal` — the stage-to-agent plan once, then a report after every stage; `live` — reserved
-for a per-agent ticker that is not built yet, so today it renders exactly as `normal`.
+`normal` — the stage-to-agent plan once, then a report after every stage, each with the
+agent's token cost; `live` — everything from `normal` plus the command for a live agent
+panel you can run in a second terminal pane.
 This setting governs reporting only — the between-stage confirmations of `manual` mode are
 unaffected by it.)
 
