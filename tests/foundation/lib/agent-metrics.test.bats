@@ -54,7 +54,8 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   mkdir -p "$cfg/projects/$slug/88888888-8888-8888-8888-888888888888/workflows"
   touch -t 202501010000 "$cfg/projects/$slug/88888888-8888-8888-8888-888888888888"
   touch -t 202601010000 "$cfg/projects/$slug/memory"
-  run env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_SESSION_ID=""       bash -c "cd '$proj' && '$(tm_repo_root)/scripts/agent-metrics.sh'"
+  run env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_SESSION_ID="" \
+      bash -c "cd '$proj' && '$(tm_repo_root)/scripts/agent-metrics.sh'"
   rm -rf "$cfg" "$proj"
   [ "$status" -eq 0 ]
   [ "$(tm_field "$output" session)" = "88888888-8888-8888-8888-888888888888" ]
@@ -135,7 +136,8 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   ]
 }
 JSON
-  run env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_SESSION_ID=""       "$(tm_repo_root)/scripts/agent-metrics.sh" --session 99999999-9999-9999-9999-999999999999
+  run env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_SESSION_ID="" \
+      "$(tm_repo_root)/scripts/agent-metrics.sh" --session 99999999-9999-9999-9999-999999999999
   rm -rf "$cfg"
   [ "$status" -eq 0 ]
   [ "$(tm_field "$output" runs.0.agents.0.elapsedText)" = "1h 01m 01s" ]
@@ -232,7 +234,9 @@ JSON
 {"agentType": "swift-toolkit:swift-developer", "spawnDepth": 1}
 JSON
   touch "$sess/subagents/agent-e0000000000000001.jsonl"
-  run env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_SESSION_ID=""       "$(tm_repo_root)/scripts/agent-metrics.sh"       --session 77777777-7777-7777-7777-777777777777 --all
+  run env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_SESSION_ID="" \
+      "$(tm_repo_root)/scripts/agent-metrics.sh" \
+      --session 77777777-7777-7777-7777-777777777777 --all
   rm -rf "$cfg"
   [ "$status" -eq 0 ]
   [ "$(tm_field "$output" runs.0.agents.0.state)" = "running" ]
