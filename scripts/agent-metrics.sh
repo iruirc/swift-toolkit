@@ -347,13 +347,17 @@ def build_run(sess, wf):
 
 
 def task_labels(main_transcript):
-    """Maps agentId -> the Task call that spawned it, through the tool_use id."""
+    """Maps agentId -> the dispatch call that spawned it, through the tool_use id.
+
+    The dispatch tool is named "Agent" on current Claude Code and "Task" on
+    older versions; both are accepted.
+    """
     calls, links = {}, {}
     for row in load_jsonl(main_transcript):
         for block in ((row.get("message") or {}).get("content") or []):
             if not isinstance(block, dict):
                 continue
-            if block.get("type") == "tool_use" and block.get("name") == "Task":
+            if block.get("type") == "tool_use" and block.get("name") in ("Agent", "Task"):
                 calls[block.get("id")] = block.get("input") or {}
             elif block.get("type") == "tool_result":
                 found = re.search(r"agentId: ([0-9a-f]+)",

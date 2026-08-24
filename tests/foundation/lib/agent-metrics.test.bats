@@ -137,11 +137,20 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$(tm_field "$output" runs.0.agents.0.phase)" = "Review the diff" ]
 }
 
-@test "workflow runs hide Task agents unless --all is passed" {
+@test "workflow runs hide direct-dispatch agents unless --all is passed" {
+  # 11111111... has 3 workflow runs (2 + 1 + 1 agents = 4) plus one direct-dispatch
+  # agent (session-level subagents/agent-*.jsonl) that only --all pulls in.
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
-  [ "$(tm_field "$output" totals.agents)" = "3" ]
+  [ "$(tm_field "$output" totals.agents)" = "4" ]
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --all
-  [ "$(tm_field "$output" totals.agents)" = "3" ]
+  [ "$(tm_field "$output" totals.agents)" = "5" ]
+}
+
+@test "the description of an Agent-named dispatch comes through as the phase" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --all
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.3.agents.0.phase)" = "Write regression tests" ]
+  [ "$(tm_field "$output" runs.3.agents.0.agentType)" = "swift-toolkit:swift-tester" ]
 }
 
 @test "md format prints a table row per agent" {
