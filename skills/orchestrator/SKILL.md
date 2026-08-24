@@ -394,12 +394,14 @@ the stage carries a verdict.
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/agent-metrics.sh" --format json --run <runId>
 ```
 
-and render `progress_stage_metrics` from the record of that stage's agent. After the range
-closes, render `progress_run_totals` from `totals`. At `quiet` the script is not run at all.
+and render `progress_stage_metrics` from the record in `agents[]` whose `phase` equals the
+stage just reported. Fill `{out}`, `{ctx}` and `{elapsed}` from that record's `outText`,
+`ctxText` and `elapsedText` — the ready-to-print strings — never from the raw `out`, `ctx` and
+`elapsedMs` numbers beside them. After the range closes, render `progress_run_totals` the same
+way from `totals`. At `quiet` the script is not run at all.
 
 The call is best-effort: a non-zero exit or unparseable output means the stage report is
-printed without the metrics line and nothing else changes. A stage never fails because its
-telemetry did.
+printed without the metrics line and nothing else changes.
 
 In `manual` the source is the single-stage return, printed before `stage_done_prompt`. In `auto`
 the source is `stages[]` from the one return, printed as consecutive entries.

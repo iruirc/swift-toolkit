@@ -74,6 +74,14 @@ def human_time(value):
     return "%dm %02ds" % (total // 60, total % 60) if total >= 60 else "%ds" % total
 
 
+def text_fields(record):
+    # The JSON consumer would otherwise format milliseconds itself and drift
+    # from what the panel shows for the same run.
+    return {"outText": human_tokens(record["out"]),
+            "ctxText": human_tokens(record["ctx"]),
+            "elapsedText": human_time(record["elapsedMs"])}
+
+
 def short(agent_type):
     return (agent_type or "—").split(":")[-1]
 
@@ -259,7 +267,7 @@ def agent_record(run_dir, agent_id, rec, state):
             elapsed = now_ms() - epoch(rec["startedAt"])
         elif seen["first"] and seen["last"]:
             elapsed = seen["last"] - seen["first"]
-    return {
+    record = {
         "agentId": agent_id,
         "agentType": rec.get("agentType") or meta_type(run_dir, agent_id),
         "phase": rec.get("phaseTitle"),
@@ -273,6 +281,8 @@ def agent_record(run_dir, agent_id, rec, state):
         "artifact": None,
         "summary": None,
     }
+    record.update(text_fields(record))
+    return record
 
 
 def phase_states(phases, agents):
@@ -383,5 +393,7 @@ totals = {
     "out": sum(a["out"] for r in runs for a in r["agents"]),
     "elapsedMs": sum(r["elapsedMs"] or 0 for r in runs) or None,
 }
+totals["outText"] = human_tokens(totals["out"])
+totals["elapsedText"] = human_time(totals["elapsedMs"])
 emit({"session": os.path.basename(sess), "runs": runs, "totals": totals, "reason": None})
 PY

@@ -79,6 +79,14 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$(tm_field "$output" totals.agents)" = "2" ]
 }
 
+@test "json carries print-ready strings beside the raw numbers" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_aaa1111-111
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.0.agents.0.ctxText)" = "312.0k" ]
+  [ "$(tm_field "$output" runs.0.agents.0.elapsedText)" = "1m 04s" ]
+  [ "$(tm_field "$output" totals.outText)" = "1.1k" ]
+}
+
 @test "a truncated trailing line is skipped, not fatal" {
   run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111 --run wf_bbb2222-222
   [ "$status" -eq 0 ]
