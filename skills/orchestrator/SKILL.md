@@ -391,7 +391,7 @@ the stage carries a verdict.
 **Metrics — Method A only.** Method B has no `runId` to pass, so this whole block does not
 apply there: under Method B the orchestrator prints no metrics line and no totals line.
 
-At `normal` and above, after the stage report, run
+At `live`, after the stage report, run
 
 ```
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/agent-metrics.sh" --format json --run <runId>
@@ -401,7 +401,8 @@ and render `progress_stage_metrics` from the record in `agents[]` whose `phase` 
 stage just reported. Fill `{model}`, `{out}`, `{ctx}`, `{tools}` and `{elapsed}` from that
 record's `model` (an em dash `—` if it is null), `outText`, `ctxText`, `tools` and
 `elapsedText` — the ready-to-print strings where the script gives one, never from the raw
-`out`, `ctx` and `elapsedMs` numbers beside them. At `quiet` the script is not run at all.
+`out`, `ctx` and `elapsedMs` numbers beside them. At `quiet` and `normal` the script is not run
+at all — those two values behave exactly as they did before the metrics line existed.
 
 The call is best-effort: a non-zero exit or unparseable output means the stage report is
 printed without the metrics line and nothing else changes.
@@ -409,13 +410,13 @@ printed without the metrics line and nothing else changes.
 In `manual` the source is the single-stage return, printed before `stage_done_prompt`. In `auto`
 the source is `stages[]` from the one return, printed as consecutive entries.
 
-After the range closes, render `progress_run_totals` from a `totals` that covers the whole
-range, not just its last stage. In `auto` a single `Workflow` call already spans the range under
-one `runId`, so that call's own `totals` is the range's totals. In `manual`, "Method A — manual
-mode" above dispatches one workflow per stage — a fresh `runId` each time — so the orchestrator
-sums `totals.agents`, the raw `totals.out` and `totals.elapsedMs` from every `--run` call across
-the range, then formats both sums (thousands as `1.6k`, durations as `5m 13s`) rather than printing
-raw numbers, keeping the two modes' output consistent with single-run formatting.
+At `live`, after the range closes, render `progress_run_totals` from a `totals` that covers the
+whole range, not just its last stage. In `auto` a single `Workflow` call already spans the range
+under one `runId`, so that call's own `totals` is the range's totals. In `manual`, "Method A —
+manual mode" above dispatches one workflow per stage — a fresh `runId` each time — so the
+orchestrator sums `totals.agents`, the raw `totals.out` and `totals.elapsedMs` from every `--run`
+call across the range, then formats both sums (thousands as `1.6k`, durations as `5m 13s`) rather
+than printing raw numbers, keeping the two modes' output consistent with single-run formatting.
 
 **At `live`** — additionally append `progress_open_live_ticker_note` to the opening block under
 Method A, rendered with `{script}` (the absolute path to `scripts/agent-monitor.sh`, built from

@@ -179,11 +179,12 @@ How much a run narrates is set by `## Progress` in `CLAUDE-swift-toolkit.md`: `q
 stage-to-agent plan once, then a report naming the agent after each stage. Live progress of
 a running workflow is always available in the `/workflows` view, whatever the setting.
 
-When a run takes the workflow path, token cost is reported alongside every stage: model,
-generated tokens, context size, tool calls and elapsed time, plus a totals line when the run
-finishes. The skill path carries no run id to report against, so it prints no per-stage cost
-line — `/swift-agents --all` and `scripts/agent-monitor.sh` still show it on demand, reading the
-same transcripts. All three read Claude Code's own transcripts and write nothing.
+When a run is at `live`, token cost is reported alongside every stage: model, generated
+tokens, context size, tool calls and elapsed time, plus a totals line when the run finishes.
+`normal` is unchanged from before — no per-stage cost line. The skill path carries no run id to
+report against either, so `/swift-agents --all` and `scripts/agent-monitor.sh` still show it on
+demand, reading the same transcripts. All three read Claude Code's own transcripts and write
+nothing.
 
 ---
 
