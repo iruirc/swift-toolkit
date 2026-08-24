@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # Allowed cyrillic locations:
-#   docs/**, notes/**                (free-form reference)
+#   docs/**, notes/**, .superpowers/**  (free-form reference)
 #   skills/*/locales/ru.md           (Russian locale strings)
 #   templates/claude-md-stub/ru.md   (Russian template)
 #   conventions/i18n.md              (canonical multilingual examples)
@@ -20,7 +20,7 @@ cd "$(dirname "$0")/.."
 violations=0
 while IFS= read -r -d '' f; do
   case "$f" in
-    ./docs/*|./notes/*) continue ;;
+    ./docs/*|./notes/*|./.superpowers/*) continue ;;
     *.ru.md) continue ;;
     ./skills/*/locales/*.md) continue ;;
     ./templates/claude-md-stub/ru.md) continue ;;
