@@ -8,9 +8,15 @@ here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 interval=1
 args=()
 
+# Without this guard `shift 2` on a valueless flag trips set -e and exits 1 in
+# silence, which is the one failure mode the argument contract forbids.
+need_value() {
+  [ "$#" -ge 2 ] || { echo "agent-monitor: missing value for $1" >&2; exit 2; }
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
-    --interval) interval="${2:-1}"; shift 2 ;;
+    --interval) need_value "$@"; interval="$2"; shift 2 ;;
     *) args+=("$1"); shift ;;
   esac
 done
@@ -30,7 +36,8 @@ fi
 # repainting over the terminal it just restored. `exit 130` is what stops it.
 leave() { printf '\033[?1049l'; }
 trap leave EXIT
-trap 'exit 130' INT TERM
+trap 'exit 130' INT
+trap 'exit 143' TERM
 printf '\033[?1049h'
 
 while true; do

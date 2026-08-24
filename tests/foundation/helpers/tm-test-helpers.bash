@@ -44,17 +44,18 @@ tm_lacks() {
   return 0
 }
 
-# Drives a command under a real pty, sends SIGINT after `wait` seconds, and
-# prints "<exit code> <repaints after the interrupt>". Ctrl-C behaviour is the
-# one thing about the panel that no ordinary test can see.
-tm_pty_interrupt() {
-  local wait_s="$1"; shift
-  python3 - "$wait_s" "$@" <<'PY'
+# Drives a command under a real pty, sends the named signal after `wait`
+# seconds, and prints "<exit code> <repaints after the signal>". Signal
+# behaviour is the one thing about the panel that no ordinary test can see.
+tm_pty_signal() {
+  local sig="$1" wait_s="$2"; shift 2
+  python3 - "$sig" "$wait_s" "$@" <<'PY'
 import os, pty, select, signal, subprocess, sys, time
 
-wait_s = float(sys.argv[1])
+sig = getattr(signal, sys.argv[1])
+wait_s = float(sys.argv[2])
 master, slave = pty.openpty()
-proc = subprocess.Popen(sys.argv[2:], stdout=slave, stderr=slave,
+proc = subprocess.Popen(sys.argv[3:], stdout=slave, stderr=slave,
                         stdin=subprocess.DEVNULL, close_fds=True)
 os.close(slave)
 
@@ -73,7 +74,7 @@ def drain(seconds):
 
 
 drain(wait_s)
-proc.send_signal(signal.SIGINT)
+proc.send_signal(sig)
 after = drain(2.0)
 code = proc.poll()
 if code is None:
@@ -82,4 +83,8 @@ if code is None:
     code = "running"
 print("%s %d" % (code, after.count(b"\x1b[2J")))
 PY
+}
+
+tm_pty_interrupt() {
+  tm_pty_signal SIGINT "$@"
 }

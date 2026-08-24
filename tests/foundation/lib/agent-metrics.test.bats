@@ -268,6 +268,21 @@ JSON
   [ "$output" = "130 0" ]
 }
 
+@test "the panel exits 143 on SIGTERM, distinct from Ctrl-C's 130" {
+  export CLAUDE_CODE_SESSION_ID=""
+  export CLAUDE_CONFIG_DIR="$(tm_home home-a)"
+  run tm_pty_signal SIGTERM 2 "$(tm_repo_root)/scripts/agent-monitor.sh" \
+      --session 11111111-1111-1111-1111-111111111111 --interval 1
+  [ "$status" -eq 0 ]
+  [ "$output" = "143 0" ]
+}
+
+@test "agent-monitor.sh --interval without a value exits 2, not 1" {
+  run "$(tm_repo_root)/scripts/agent-monitor.sh" --interval
+  [ "$status" -eq 2 ]
+  tm_contains "$output" "missing value for --interval"
+}
+
 @test "monitor prints a single snapshot when stdout is not a tty" {
   run env CLAUDE_CONFIG_DIR="$(tm_home home-a)" CLAUDE_CODE_SESSION_ID="" \
       "$(tm_repo_root)/scripts/agent-monitor.sh" \
