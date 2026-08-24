@@ -81,6 +81,101 @@ sess = session_dir()
 if not sess:
     empty("session directory not found")
 
-emit({"session": os.path.basename(sess), "runs": [],
-      "totals": {"agents": 0, "out": 0, "elapsedMs": None}, "reason": None})
+import time
+
+
+def load_json(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return None
+
+
+def epoch(value):
+    # startTime and startedAt are epoch ms in every sample seen; a string is
+    # tolerated so a format change degrades to "no time" instead of a crash.
+    return int(value) if isinstance(value, (int, float)) else None
+
+
+def now_ms():
+    return int(time.time() * 1000)
+
+
+def agent_record(run_dir, agent_id, rec, state):
+    rec = rec or {}
+    elapsed = rec.get("durationMs")
+    if elapsed is None and state == "running" and epoch(rec.get("startedAt")):
+        elapsed = now_ms() - epoch(rec["startedAt"])
+    return {
+        "agentId": agent_id,
+        "agentType": rec.get("agentType"),
+        "phase": rec.get("phaseTitle"),
+        "model": rec.get("model"),
+        "state": state,
+        "out": 0,
+        "ctx": rec.get("tokens") or 0,
+        "tools": rec.get("toolCalls") or 0,
+        "elapsedMs": elapsed,
+        "lastTool": rec.get("lastToolName"),
+        "artifact": None,
+        "summary": None,
+    }
+
+
+def phase_states(phases, agents):
+    out = []
+    for phase in phases:
+        mine = [a for a in agents if a.get("phase") == phase.get("title")]
+        if any(a["state"] == "running" for a in mine):
+            state = "running"
+        elif mine and all(a["state"] in ("done", "error") for a in mine):
+            state = "done"
+        else:
+            state = "todo"
+        out.append(dict(phase, state=state))
+    return out
+
+
+def build_run(sess, wf):
+    run_id = wf.get("runId") or ""
+    run_dir = os.path.join(sess, "subagents", "workflows", run_id)
+    progress = wf.get("workflowProgress") or []
+
+    agents = [agent_record(run_dir, r.get("agentId"), r, r.get("state") or "unknown")
+              for r in progress if r.get("type") == "workflow_agent"]
+
+    phases = [{"index": p.get("index"), "title": p.get("title")}
+              for p in progress if p.get("type") == "workflow_phase"]
+    if not phases:
+        phases = [{"index": i + 1, "title": (p or {}).get("title")}
+                  for i, p in enumerate(wf.get("phases") or [])]
+
+    elapsed = wf.get("durationMs")
+    if elapsed is None and epoch(wf.get("startTime")):
+        elapsed = now_ms() - epoch(wf["startTime"])
+
+    return {
+        "runId": run_id,
+        "workflow": wf.get("workflowName"),
+        "task_id": (wf.get("args") or {}).get("task_id"),
+        "status": wf.get("status"),
+        "elapsedMs": elapsed,
+        "phases": phase_states(phases, agents),
+        "agents": agents,
+    }
+
+
+runs = []
+for path in sorted(glob.glob(os.path.join(sess, "workflows", "wf_*.json"))):
+    wf = load_json(path)
+    if wf:
+        runs.append(build_run(sess, wf))
+
+totals = {
+    "agents": sum(len(r["agents"]) for r in runs),
+    "out": sum(a["out"] for r in runs for a in r["agents"]),
+    "elapsedMs": sum(r["elapsedMs"] or 0 for r in runs) or None,
+}
+emit({"session": os.path.basename(sess), "runs": runs, "totals": totals, "reason": None})
 PY

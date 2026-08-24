@@ -35,3 +35,29 @@ load "$(dirname "$BATS_TEST_FILENAME")/../helpers/tm-test-helpers"
   [ "$status" -eq 2 ]
   [[ "$output" == *"missing value for --session"* ]]
 }
+
+@test "method A run exposes phases in order" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
+  [ "$status" -eq 0 ]
+  [ "$(tm_field "$output" runs.0.workflow)" = "profile-refactor" ]
+  [ "$(tm_field "$output" runs.0.task_id)" = "077" ]
+  [ "$(tm_field "$output" runs.0.elapsedMs)" = "252000" ]
+  [ "$(tm_field "$output" runs.0.phases.0.title)" = "Analyze" ]
+  [ "$(tm_field "$output" runs.0.phases.2.title)" = "Review" ]
+}
+
+@test "method A agents carry stage, model, ctx and tool count" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
+  [ "$(tm_field "$output" runs.0.agents.0.phase)" = "Analyze" ]
+  [ "$(tm_field "$output" runs.0.agents.0.agentType)" = "swift-toolkit:swift-architect" ]
+  [ "$(tm_field "$output" runs.0.agents.0.model)" = "claude-opus-5" ]
+  [ "$(tm_field "$output" runs.0.agents.0.ctx)" = "312000" ]
+  [ "$(tm_field "$output" runs.0.agents.0.tools)" = "24" ]
+  [ "$(tm_field "$output" runs.0.agents.0.elapsedMs)" = "64000" ]
+}
+
+@test "a phase with no agent of its own stays todo" {
+  run tm_metrics home-a --session 11111111-1111-1111-1111-111111111111
+  [ "$(tm_field "$output" runs.0.phases.0.state)" = "done" ]
+  [ "$(tm_field "$output" runs.0.phases.2.state)" = "todo" ]
+}

@@ -1,0 +1,27 @@
+{
+  "runId": "wf_aaa1111-111",
+  "workflowName": "profile-refactor",
+  "status": "completed",
+  "startTime": 1787219194000,
+  "durationMs": 252000,
+  "agentCount": 2,
+  "args": {"task_id": "077", "profile": "refactor"},
+  "phases": [{"title": "Analyze"}, {"title": "Plan"}, {"title": "Review"}],
+  "workflowProgress": [
+    {"type": "workflow_phase", "index": 1, "title": "Analyze"},
+    {"type": "workflow_phase", "index": 2, "title": "Plan"},
+    {"type": "workflow_phase", "index": 3, "title": "Review"},
+    {"type": "workflow_agent", "index": 1, "label": "analyze", "phaseIndex": 1,
+     "phaseTitle": "Analyze", "agentId": "a0000000000000001",
+     "agentType": "swift-toolkit:swift-architect", "model": "claude-opus-5",
+     "state": "done", "startedAt": 1787219194062, "lastProgressAt": 1787219258000,
+     "lastToolName": "Read", "tokens": 312000, "toolCalls": 24,
+     "durationMs": 64000},
+    {"type": "workflow_agent", "index": 2, "label": "plan", "phaseIndex": 2,
+     "phaseTitle": "Plan", "agentId": "a0000000000000002",
+     "agentType": "swift-toolkit:swift-architect", "model": "claude-opus-5",
+     "state": "done", "startedAt": 1787219260000, "lastProgressAt": 1787219367000,
+     "lastToolName": "Write", "tokens": 96000, "toolCalls": 14,
+     "durationMs": 107000}
+  ]
+}
