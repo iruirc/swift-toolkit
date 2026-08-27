@@ -20,7 +20,7 @@ You are called by `swift-toolkit:orchestrator` as the **Validation** stage of a 
 
 The orchestrator passes:
 - `profile` — one of `FEATURE` / `BUG` / `REFACTOR` / `TEST` (determines mandatory MCP scope; see "Validation Process by Profile").
-- `task_path` — absolute path to the task folder (e.g. `Tasks/ACTIVE/042-auth-fix/`). Read `Task.md`, `Plan.md`, the profile's main artifact (`Execute.md` / `Fix.md` / `Refactor.md` / `Tests.md`), and for BUG also `Reproduce.md`.
+- `task_path` — absolute path to the task folder (e.g. `Tasks/ACTIVE/042-auth-fix/`). Read `Task.md`, `Plan.md`, and for BUG also `Reproduce.md`.
 - `stack` — project stack hint (e.g. `iOS SwiftUI`, `iOS UIKit`, `macOS AppKit`, `SPM library`). Used to decide whether mobile MCP is applicable.
 
 ---
@@ -43,14 +43,10 @@ In this order:
 1. `CLAUDE-swift-toolkit.md` — project stack, conventions, test layout.
 2. `<task_path>/Task.md` — `[TASK_TYPE]`, scope, files involved.
 3. `<task_path>/Plan.md` — what was supposed to be done.
-4. The profile's main work artifact:
-   - FEATURE → `Execute.md`
-   - BUG → `Reproduce.md` (mandatory — you will replay this scenario) + `Fix.md`
-   - REFACTOR → `Refactor.md`
-   - TEST → `Tests.md` (list of added test names)
+4. The record of what actually landed. The implementing stage (Execute / Fix / Refactor / Write) writes no artifact file of its own — `Plan.md`'s per-phase checkboxes say what was supposed to land, and the task's per-phase git commits say what did. For BUG, also `<task_path>/Reproduce.md` — mandatory, you will replay that scenario.
 5. Project root: locate `.xcodeproj` / `.xcworkspace` / `Package.swift`. If multiple, prefer the workspace.
 
-If any required artifact is missing, fail fast: status = FAILED, reason = `missing artifact: <name>`.
+If `Task.md`, `Plan.md`, or — for BUG — `Reproduce.md` is missing, fail fast: status = FAILED, reason = `missing artifact: <name>`.
 
 ---
 
@@ -79,7 +75,7 @@ If any required artifact is missing, fail fast: status = FAILED, reason = `missi
 
 ### TEST
 
-- **`test_sim`** — mandatory. Every newly added test (from `Tests.md`) must pass on the first run.
+- **`test_sim`** — mandatory. Every test the Write stage added (named per phase in `Plan.md`, landed in that phase's commit) must pass on the first run.
 - **Flaky detection** — if any added test fails on the first run but the scope says it should pass, re-run the failing test **up to 3 times**. Record fail rate (e.g. `2/3 runs`). A test that flaps is FLAKY, not FAILED.
 - **`build_sim`** — implicit (test_sim builds first).
 - **mobile MCP** — optional. Only for UI tests that need visual verification.

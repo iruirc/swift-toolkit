@@ -35,7 +35,7 @@ Default an item to **Applicable** unless you have a concrete reason to mark it N
 
 ## Inputs
 
-- The active task's `Research.md` + `Plan.md` + the profile's main artifact (`Execute.md` / `Fix.md` / `Refactor.md`)
+- The active task's `Research.md` + `Plan.md`, plus the task's per-phase git commits as the record of what actually landed
 - Project stack from `CLAUDE-swift-toolkit.md` — platform target, UI framework, etc.
 - The product context (internal vs public-facing, B2B vs consumer)
 
