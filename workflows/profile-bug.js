@@ -144,7 +144,8 @@ const VALIDATION = {
     reproduction_status: { type: 'string', enum: ['fixed', 'still-reproduces', 'not-replayed', 'deferred-manual'] },
     artifact_path: { type: 'string' },
     ops_checklist_path: { type: 'string' },
-    manual_checks: { type: 'array', items: { type: 'string' }, description: 'checks mobile_mcp: off deferred to a human' },
+    manual_checks_path: { type: 'string' },
+    manual_checks: { type: 'array', items: { type: 'string' }, description: 'case titles from ManualChecks.md' },
     summary: { type: 'string' },
   },
 }
@@ -384,7 +385,7 @@ if (runs('Validation')) {
 
 [VALIDATION_STATUS] = PASSED | FAILED | FLAKY
 
-For BUG the XcodeBuildMCP build_sim and test_sim runs are mandatory, and so is mobile MCP regardless of which layer changed — you replay the reproduction scenario from Reproduce.md on a real simulator. Validation is not PASSED without your own explicit statement that the bug no longer reproduces. If mobile_mcp resolves to off — Task.md [MOBILE_MCP] first, then CLAUDE-swift-toolkit.md ## Validation — you do not replay it: return reproduction_status deferred-manual, put the replay steps into Validation.md ## Manual Verification and manual_checks, and claim nothing about whether the bug is fixed. Reserve not-replayed for a replay that was expected of you and stayed inconclusive.
+For BUG the XcodeBuildMCP build_sim and test_sim runs are mandatory, and so is mobile MCP regardless of which layer changed — you replay the reproduction scenario from Reproduce.md on a real simulator. Validation is not PASSED without your own explicit statement that the bug no longer reproduces. If mobile_mcp resolves to off — Task.md [MOBILE_MCP] first, then CLAUDE-swift-toolkit.md ## Validation — you do not replay it: return reproduction_status deferred-manual, put the replay steps into ${DIR}/ManualChecks.md and their titles into manual_checks, and claim nothing about whether the bug is fixed. Reserve not-replayed for a replay that was expected of you and stayed inconclusive.
 
 Also apply the mobile-ops-checklist skill, scoped to the categories the bug touched per the Secondary enumeration in Reproduce.md, and write ${DIR}/OpsChecklist.md. Full-checklist coverage is not required for BUG; the point is catching a regression in an adjacent behaviour.
 
@@ -401,7 +402,7 @@ Change no production code and no tests. Return the same status you wrote on the 
   record('Validation', validation)
 
   if (validation.manual_checks && validation.manual_checks.length) {
-    result.notes.push(`mobile MCP is off for this project — verify by hand: ${validation.manual_checks.join('; ')}`)
+    result.notes.push(`hand-run checks in ${validation.manual_checks_path || 'ManualChecks.md'}: ${validation.manual_checks.join('; ')}`)
   }
 
   // deferred-manual means the replay was switched off, not that it failed: the steps are in

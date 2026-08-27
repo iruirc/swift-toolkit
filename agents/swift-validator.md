@@ -54,22 +54,32 @@ If `Task.md`, `Plan.md`, or — for BUG — `Reproduce.md` is missing, fail fast
 
 ### The mobile MCP switch
 
-Whether you may drive the app at all resolves in this order, first hit wins:
+Two independent keys, each resolved the same way — `<task_path>/Task.md` first, then `CLAUDE-swift-toolkit.md` → `## Validation`, then the default. A missing line, a missing section, or an unrecognised value falls through to the next step.
 
-1. `<task_path>/Task.md` → `[MOBILE_MCP] = [<value>]` — the per-task override, usually absent.
-2. `CLAUDE-swift-toolkit.md` → `## Validation` → `mobile_mcp` — the project default.
-3. `auto`.
-
-A missing line, a missing section, or an unrecognised value falls through to the next step.
+| Key | `Task.md` | `## Validation` | Default | Governs |
+|---|---|---|---|---|
+| mobile MCP | `[MOBILE_MCP]` | `mobile_mcp` | `auto` | whether **you** drive the app |
+| manual checks | `[MANUAL_CHECKS]` | `manual_checks` | `auto` | whether **a human** gets a script |
 
 - `auto` — the per-profile rules below apply unchanged.
 - `off` — you never launch mobile MCP, on any profile. XcodeBuildMCP still runs in full; build and test evidence is what carries the verdict.
 
-When `off` suppresses a step the profile calls mandatory, the check is **deferred, not dropped**: write the steps a human has to run into `## Manual Verification`, repeat them in `manual_checks:` in the return digest, and mark the matching `OpsChecklist.md` items **Pending** — never Applicable, since you verified nothing. Every profile behaves the same way here, BUG included: for BUG the deferred check is the replay from `Reproduce.md` and `reproduction_status` is `deferred-manual` — you claim nothing about whether the bug is fixed, and the user runs the scenario.
+When `mobile_mcp: off` suppresses a step the profile calls mandatory, the check is **deferred, not dropped**: it goes into `ManualChecks.md` (see below), its titles go into `manual_checks:` in the return digest, and the matching `OpsChecklist.md` items are marked **Pending** — never Applicable, since you verified nothing. Every profile behaves the same way here, BUG included: for BUG the deferred check is the replay from `Reproduce.md` and `reproduction_status` is `deferred-manual` — you claim nothing about whether the bug is fixed, and the user runs the scenario.
 
 `deferred-manual` is not `not-replayed`. The first means the project or the task told you not to drive the app; the second means a replay was expected of you and produced nothing conclusive, and it still stops the run at the user.
 
 `off` never lowers the verdict by itself. Green build and tests with a deferred UI check is `PASSED` with an open manual item; `FAILED` would claim something broke.
+
+### `ManualChecks.md` — the hand-run script
+
+A **separate artifact** in the task folder, never a section of `Validation.md`, for the same reason `OpsChecklist.md` is separate: a human opens it after the run, may re-run it on the next build, and it has to survive as a standalone reference from `Done.md`. `Validation.md` is a log dump — nobody finds test steps inside a full `xcodebuild` transcript. Leave one pointer line to it under `Validation.md ## Verdict`.
+
+When you write it:
+
+- `manual_checks: auto` — only when something was deferred to a human, i.e. `mobile_mcp: off` suppressed a mandatory step. Nothing deferred, no file.
+- `manual_checks: always` — every run of a UI-bearing task, including one where mobile MCP drove the app. There you cover what driving it could not: what the happy path did **not** touch, and the device-only ground MCP cannot reach — push, biometrics, camera, real purchases, permission dialogs, backgrounding, low connectivity, multi-device. Checks mobile MCP actually performed are listed as already covered, not repeated as work.
+
+Structure: `## Scope` (what this covers and what already passed automatically), then `## Cases` — numbered, each with preconditions, ordered steps, and the expected result. Written for someone who has not read the task. Only genuinely deferred cases become `OpsChecklist.md` **Pending**; a case the agent already verified stays Applicable with its evidence.
 
 ### FEATURE
 
@@ -188,10 +198,6 @@ Step-by-step replay of `Reproduce.md`, observed vs. expected, explicit statement
 ## UI Smoke (FEATURE with UI / BUG / UI-touching REFACTOR)
 What was driven, what was asserted, screenshot path.
 
-## Manual Verification (only when `mobile_mcp: off` suppressed a mandatory UI run)
-Numbered steps a human runs by hand, in order, each with what to observe.
-Written for someone who has not read the task.
-
 ## Failures
 Structured list of every failure. Each entry:
 - Type: build error / test failure / UI assertion / reproduction
@@ -200,6 +206,7 @@ Structured list of every failure. Each entry:
 
 ## Verdict
 Mirrors the status line in prose: "Passed." / "Failed: <one-liner cause>." / "Flaky: <N>/<total> rate on <test name>."
+One pointer line to `ManualChecks.md` when you wrote one.
 ```
 
 ---
@@ -218,8 +225,9 @@ errors:
 reproduction_status: fixed | still-reproduces | not-replayed | deferred-manual
 flaky_tests:
   - <TestSuite.testName>: <fail_rate, e.g. 2/3>
+manual_checks_path: <relative path to ManualChecks.md, omitted when none was written>
 manual_checks:
-  - <one deferred check per line: what to run by hand, what to look for>
+  - <one line per case in ManualChecks.md: its title>
 next_recommended_action: continue | ask_user | stop
 notes: <optional one-line context>
 ```
@@ -229,7 +237,7 @@ Rules:
 - `failed_count` reflects build + test failures + UI assertion failures combined.
 - Include at most 5 entries under `errors:` (the rest live in `Validation.md`). Order: build errors first, then test failures, then UI assertions.
 - `reproduction_status` is BUG-only — omit the field entirely on every other profile. `deferred-manual` when the switch is `off`; `not-replayed` when a replay was expected and stayed inconclusive, with the reason in `notes`.
-- `manual_checks:` is empty unless `mobile_mcp: off` suppressed a step the profile calls mandatory. Non-empty obliges the caller to surface the list to the user.
+- `manual_checks:` lists the case titles from `ManualChecks.md` and is empty when you wrote no such file. Non-empty obliges the caller to surface the list to the user.
 - `flaky_tests:` empty list for non-TEST profiles or when no flake was observed.
 - `next_recommended_action`:
   - PASSED → `continue` (also when `manual_checks:` is non-empty — the open item travels to Review via `OpsChecklist.md`)
@@ -269,7 +277,7 @@ Before finalizing `Validation.md` and returning:
 - [ ] No PII / tokens / secrets leaked into the on-disk log (redacted to `***`).
 - [ ] Return digest contains ≤ 5 error entries, each ≤ ~200 chars.
 - [ ] `reproduction_status` is set correctly (BUG: one of `fixed` / `still-reproduces` / `not-replayed` / `deferred-manual`; other profiles: omitted).
-- [ ] Every step `mobile_mcp: off` suppressed appears in both `## Manual Verification` and `manual_checks:`, with its `OpsChecklist.md` item Pending.
+- [ ] Every step `mobile_mcp: off` suppressed is a case in `ManualChecks.md` and a title in `manual_checks:`, with its `OpsChecklist.md` item Pending.
 - [ ] `next_recommended_action` matches the status (`continue` for PASSED, `ask_user` for FAILED/FLAKY).
 
 ---

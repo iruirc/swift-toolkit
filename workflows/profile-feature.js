@@ -142,7 +142,8 @@ const VALIDATION = {
     reproduction_status: { type: 'string', enum: ['fixed', 'still-reproduces', 'not-replayed', 'deferred-manual'] },
     artifact_path: { type: 'string' },
     ops_checklist_path: { type: 'string' },
-    manual_checks: { type: 'array', items: { type: 'string' }, description: 'checks mobile_mcp: off deferred to a human' },
+    manual_checks_path: { type: 'string' },
+    manual_checks: { type: 'array', items: { type: 'string' }, description: 'case titles from ManualChecks.md' },
     summary: { type: 'string' },
   },
 }
@@ -371,7 +372,7 @@ if (runs('Validation')) {
 
 [VALIDATION_STATUS] = PASSED | FAILED | FLAKY
 
-For FEATURE the XcodeBuildMCP build_sim and test_sim runs are mandatory. mobile MCP is mandatory when the feature has a UI layer — SwiftUI or UIKit views, screens, navigation — and skipped for a purely domain or infrastructure feature; say which case this is and why. If mobile_mcp resolves to off — Task.md [MOBILE_MCP] first, then CLAUDE-swift-toolkit.md ## Validation — run no mobile MCP at all: put the UI steps a human has to run into Validation.md ## Manual Verification, return them in manual_checks, and mark the matching OpsChecklist items Pending rather than Applicable.
+For FEATURE the XcodeBuildMCP build_sim and test_sim runs are mandatory. mobile MCP is mandatory when the feature has a UI layer — SwiftUI or UIKit views, screens, navigation — and skipped for a purely domain or infrastructure feature; say which case this is and why. If mobile_mcp resolves to off — Task.md [MOBILE_MCP] first, then CLAUDE-swift-toolkit.md ## Validation — run no mobile MCP at all: write the UI cases a human has to run into ${DIR}/ManualChecks.md, return their titles in manual_checks, and mark the matching OpsChecklist items Pending rather than Applicable. Independently of that switch, manual_checks: always in the same two sources means you write ManualChecks.md on every UI-bearing run, covering what the happy path did not reach and what mobile MCP cannot do at all.
 
 Also apply the mobile-ops-checklist skill and write ${DIR}/OpsChecklist.md, marking every item Applicable with its verification evidence (file path, test name, commit ref), N/A with a reason, or Pending. A Pending item is not by itself a FAILED verdict — Pending items go to Review, which decides.
 
@@ -383,7 +384,7 @@ Change no production code and no tests. Return the same status you wrote on the 
   record('Validation', validation)
 
   if (validation.manual_checks && validation.manual_checks.length) {
-    result.notes.push(`mobile MCP is off for this project — verify by hand: ${validation.manual_checks.join('; ')}`)
+    result.notes.push(`hand-run checks in ${validation.manual_checks_path || 'ManualChecks.md'}: ${validation.manual_checks.join('; ')}`)
   }
 
   if (validation.validation_status !== 'PASSED') {

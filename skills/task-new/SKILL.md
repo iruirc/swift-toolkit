@@ -109,6 +109,7 @@ For reference, the templates contain these placeholders:
 9. **Optional override lines** — append via Edit immediately after the `[NEED_REVIEW]` line, one per line, only where the user explicitly asked for something other than the project default in `CLAUDE-swift-toolkit.md`. Otherwise leave the template as is (the commented-out lines stay as documentation).
    - `[WORKFLOW_MODE] = [<manual|auto>]` — overrides `## Mode`.
    - `[MOBILE_MCP] = [<auto|off>]` — overrides `## Validation` → `mobile_mcp`; write `off` when the user says the UI check of this particular task has to be done by hand.
+   - `[MANUAL_CHECKS] = [<auto|always>]` — overrides `## Validation` → `manual_checks`; write `always` when the user wants a hand-run test script out of this task whether or not the agent drove the app itself.
 10. **Verify structural anchors are intact.** Read the just-written `Task.md`. Check that **every** one of the following literal strings is present (case-sensitive, byte-for-byte):
     - `**Date:**`
     - `[TASK_TYPE] = `

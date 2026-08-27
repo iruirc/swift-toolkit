@@ -142,7 +142,8 @@ const VALIDATION = {
     reproduction_status: { type: 'string', enum: ['fixed', 'still-reproduces', 'not-replayed', 'deferred-manual'] },
     artifact_path: { type: 'string' },
     ops_checklist_path: { type: 'string' },
-    manual_checks: { type: 'array', items: { type: 'string' }, description: 'checks mobile_mcp: off deferred to a human' },
+    manual_checks_path: { type: 'string' },
+    manual_checks: { type: 'array', items: { type: 'string' }, description: 'case titles from ManualChecks.md' },
     summary: { type: 'string' },
   },
 }
@@ -334,7 +335,7 @@ if (runs('Validation')) {
 
 [VALIDATION_STATUS] = PASSED | FAILED | FLAKY
 
-For TEST the XcodeBuildMCP test_sim run is mandatory: every newly added test has to pass on its first run. When one fails on the first run, re-run that test up to three times; if the results flap, return FLAKY and record the test name, the failure rate, and your hypothesis for the cause in Validation.md. mobile MCP is optional and only for UI tests that need visual verification, and mobile_mcp resolving to off — Task.md [MOBILE_MCP] first, then CLAUDE-swift-toolkit.md ## Validation — removes even that option.
+For TEST the XcodeBuildMCP test_sim run is mandatory: every newly added test has to pass on its first run. When one fails on the first run, re-run that test up to three times; if the results flap, return FLAKY and record the test name, the failure rate, and your hypothesis for the cause in Validation.md. mobile MCP is optional and only for UI tests that need visual verification, and mobile_mcp resolving to off — Task.md [MOBILE_MCP] first, then CLAUDE-swift-toolkit.md ## Validation — removes even that option. manual_checks: always in the same two sources still asks you for a ${DIR}/ManualChecks.md covering what the automated suite cannot reach.
 
 Change no production code and no tests — a flaky test that you quietly stabilise is a finding you have hidden. Return the same status you wrote on the first line.`,
     ),
@@ -344,7 +345,7 @@ Change no production code and no tests — a flaky test that you quietly stabili
   record('Validation', validation)
 
   if (validation.manual_checks && validation.manual_checks.length) {
-    result.notes.push(`mobile MCP is off for this project — verify by hand: ${validation.manual_checks.join('; ')}`)
+    result.notes.push(`hand-run checks in ${validation.manual_checks_path || 'ManualChecks.md'}: ${validation.manual_checks.join('; ')}`)
   }
 
   if (validation.validation_status !== 'PASSED') {

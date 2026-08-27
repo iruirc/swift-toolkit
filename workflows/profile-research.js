@@ -136,7 +136,8 @@ const VALIDATION = {
     reproduction_status: { type: 'string', enum: ['fixed', 'still-reproduces', 'not-replayed', 'deferred-manual'] },
     artifact_path: { type: 'string' },
     ops_checklist_path: { type: 'string' },
-    manual_checks: { type: 'array', items: { type: 'string' }, description: 'checks mobile_mcp: off deferred to a human' },
+    manual_checks_path: { type: 'string' },
+    manual_checks: { type: 'array', items: { type: 'string' }, description: 'case titles from ManualChecks.md' },
     summary: { type: 'string' },
   },
 }

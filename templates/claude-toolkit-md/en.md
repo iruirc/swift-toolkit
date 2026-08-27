@@ -61,15 +61,21 @@ unaffected by it.)
 ## Validation
 
 mobile_mcp: auto
+manual_checks: auto
 
-(whether the Validation stage may drive the running app through mobile MCP: `auto` — the profile
+(`mobile_mcp` — whether the Validation stage may drive the running app through mobile MCP: `auto` — the profile
 decides (FEATURE: when the feature has a UI layer; BUG: always, to replay the reproduction;
 REFACTOR: when UI code was touched; TEST: only for UI tests); `off` — never, because this project
 has no mobile MCP configured or no simulator to drive.
-`off` does not delete the check: the validator writes the steps a human has to run into
-`Validation.md ## Manual Verification`, returns them in `manual_checks`, and marks the matching
-`OpsChecklist.md` items Pending. For BUG the deferred check is the reproduction replay itself.
-A single task overrides this with `[MOBILE_MCP] = [auto|off]` in its `Task.md`.)
+`off` does not delete the check: the validator writes the cases a human has to run into a separate
+`ManualChecks.md` in the task folder and marks the matching `OpsChecklist.md` items Pending.
+For BUG the deferred check is the reproduction replay itself.
+`manual_checks` — when the validator writes `ManualChecks.md`, the hand-run script for a human:
+`auto` — only for checks it was told not to run itself; `always` — every time, so a UI-bearing task
+ships a manual pass even when mobile MCP drove the app and covered the happy path.
+
+A single task overrides both with `[MOBILE_MCP] = [auto|off]` and `[MANUAL_CHECKS] = [auto|always]`
+in its `Task.md`.)
 
 ## Modules
 
