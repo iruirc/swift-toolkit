@@ -12,7 +12,7 @@ A set of skills, agents, and slash commands for Claude Code that turn the assist
 
 `/swift-setup` and `/swift-init` produce two files in your project root:
 
-- **`CLAUDE-swift-toolkit.md`** — toolkit-owned configuration (`## Language`, `## Persona`, `## Rules`, `## Stack`, `## Mode`, `## Progress`, `## Validation`, `## Modules`, `## EstimationDeltas`, `## DeliveryMode`, `## AILeverage`, `## Paths`, `## Orchestration`). Updated by `/swift-setup` and `/swift-lang`. Don't edit by hand — re-running `/swift-setup` may overwrite it (with a backup).
+- **`CLAUDE-swift-toolkit.md`** — toolkit-owned configuration (`## Language`, `## Persona`, `## Rules`, `## Stack`, `## Mode`, `## Progress`, `## Validation`, `## Reporting`, `## Modules`, `## EstimationDeltas`, `## DeliveryMode`, `## AILeverage`, `## Paths`, `## Orchestration`). Updated by `/swift-setup` and `/swift-lang`. Don't edit by hand — re-running `/swift-setup` may overwrite it (with a backup).
 - **`CLAUDE.md`** — your project-level Claude instructions. Contains a single `@./CLAUDE-swift-toolkit.md` line that imports toolkit configuration into Claude's context. Add your own sections, conventions, and project-specific instructions here. Toolkit never overwrites this file beyond inserting the import line.
 
 Existing projects on the legacy single-file format (everything in `CLAUDE.md`) are migrated automatically on the next `/swift-setup` invocation: toolkit sections move to `CLAUDE-swift-toolkit.md`, your sections stay in `CLAUDE.md`, and the original is backed up to `CLAUDE.md.bak`.
@@ -96,6 +96,7 @@ The skills live flat under `skills/`, but logically split into **seven groups**.
 | [`orchestrator`](skills/orchestrator/SKILL.md) | Routes a request to the right profile workflow, resolves the start point, manages stages. |
 | `workflow-feature` / `workflow-bug` / `workflow-refactor` / `workflow-test` / `workflow-review` / `workflow-research` / `workflow-epic` | Profile procedures (Research → Plan → Execute → Validation → Review → Done). Activated by the `orchestrator`; not invoked directly. |
 | `task-new` / `task-move` / `task-status` | Tending `Tasks/` (creation, status moves, progress). |
+| [`task-walkthrough`](skills/task-walkthrough/SKILL.md) | `Walkthrough.md` — the human-facing account of what a task landed: summary, plan-vs-outcome divergences with their trigger, a commit-by-commit log, mermaid diagrams, follow-ups. Written at the end of the implementing stage, refreshed at Done. Switched by `## Reporting` → `walkthrough`. |
 | `swift-setup` | Sets up the toolkit in an existing project. |
 | `swift-lang` | Switches the project's prompt language (en / ru). |
 

@@ -29,6 +29,10 @@ const AGENT_OF = {
   Done: 'swift-developer',
 }
 
+// Writes Walkthrough.md — the same agent that writes this profile's final report, so the two
+// speak with one voice.
+const WALKTHROUGH_AGENT = 'swift-toolkit:swift-developer'
+
 // ── prelude ──────────────────────────────────────────────────────────────────
 // Byte-identical in every profile script; scripts/lint-workflows.sh enforces that. A workflow
 // script cannot import, so this block is copied rather than shared, and the lint is what keeps
@@ -251,6 +255,33 @@ The phase is not done until every checkbox is ticked AND it is committed. If you
   }
   return `${phases.length} phase(s) committed`
 }
+
+// Walkthrough.md is the human-facing account of what landed. Written at the end of the implementing
+// stage so it is readable before anything is validated or reviewed; refreshed later only when new
+// commits moved past the range its [COVERS] line records. Documentation — a failure here is noted
+// and never stops the run.
+const writeWalkthrough = async (stage, extra) => {
+  if (!WALKTHROUGH_AGENT || A.walkthrough === 'off' || A.walkthrough === false) return
+  const w = await agent(
+    brief(
+      stage,
+      `Write or refresh ${DIR}/Walkthrough.md by applying the swift-toolkit:task-walkthrough skill, which owns the section list, the per-section length budgets and the refresh rules. Read it first.
+
+Derive the account from git — the task's own commits, git log over the range and git show for what each one carries — reconciled against ${DIR}/Plan.md. The plan is intent, the commits are fact, and the divergences between them, each labelled with its trigger, are what this artifact exists for. The second line is required to be exactly:
+
+[COVERS] = <first-sha>..<last-sha>
+
+If the file already exists and that range already ends at the task's last commit, change nothing and say so.${extra ? `
+
+${extra}` : ''}
+
+Change no production code and no tests.`,
+    ),
+    { label: 'walkthrough', phase: stage, agentType: WALKTHROUGH_AGENT, schema: ARTIFACT },
+  )
+  if (w && w.artifact_path) log(`Walkthrough.md: ${w.summary || 'written'}`)
+  else result.notes.push('The walkthrough agent returned nothing, so Walkthrough.md may be missing or stale.')
+}
 // ── end prelude ──────────────────────────────────────────────────────────────
 
 // ── Reproduce ───────────────────────────────────────────────────────────────
@@ -373,6 +404,7 @@ if (runs('Fix')) {
   )
   if (!phasesDone) return finish('ask_user', { status: 'interrupted' })
   record('Fix', { artifact_path: plan.artifact_path, summary: phasesDone })
+  await writeWalkthrough('Fix')
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────
@@ -438,6 +470,11 @@ Judge the fix against Reproduce.md and Plan.md: does it address the root cause r
 }
 
 // ── Done ────────────────────────────────────────────────────────────────────
+// Done refreshes the walkthrough only when the implementing stage did not run in this invocation:
+// a run that reached Done after Validation and Review passed has added no commits since, and one
+// that entered at Review or Done has.
+if (runs('Done') && !runs('Fix')) await writeWalkthrough('Done')
+
 if (runs('Done')) {
   const done = await agent(
     brief(

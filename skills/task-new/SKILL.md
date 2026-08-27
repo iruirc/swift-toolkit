@@ -110,6 +110,7 @@ For reference, the templates contain these placeholders:
    - `[WORKFLOW_MODE] = [<manual|auto>]` — overrides `## Mode`.
    - `[MOBILE_MCP] = [<auto|off>]` — overrides `## Validation` → `mobile_mcp`; write `off` when the user says the UI check of this particular task has to be done by hand.
    - `[MANUAL_CHECKS] = [<auto|always>]` — overrides `## Validation` → `manual_checks`; write `always` when the user wants a hand-run test script out of this task whether or not the agent drove the app itself.
+   - `[WALKTHROUGH] = [<on|off>]` — overrides `## Reporting` → `walkthrough`; write `off` to suppress `Walkthrough.md` for this task. Never written for `REVIEW` or `RESEARCH`, where the profile has nothing to write it from.
 10. **Verify structural anchors are intact.** Read the just-written `Task.md`. Check that **every** one of the following literal strings is present (case-sensitive, byte-for-byte):
     - `**Date:**`
     - `[TASK_TYPE] = `

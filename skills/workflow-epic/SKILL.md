@@ -117,6 +117,8 @@ A stage that names an agent is executed by that agent. Dispatch it per `conventi
   - Objections (aggregated from each step's `Done.md` if the user insisted on a contested decision in any of them).
   - For branch B (pure_research) — Done.md is short, points at `Research.md` as the final artifact; the steps section is empty; no estimate retrospective is required.
 
+  On branch A, and only for a walk with no failed, cancelled or pending steps, also apply `swift-toolkit:task-walkthrough` and write `Walkthrough.md` — governed by `[WALKTHROUGH]` in `Task.md`, else `## Reporting` → `walkthrough` in `CLAUDE-swift-toolkit.md`, else `on`. An epic has no commits of its own: the file sits a layer above the steps, linking to each step's own walkthrough rather than restating it. Branch B gets none — there is no implementation to walk through.
+
 ## 3. Manual mode
 
 After each stage (Research, Plan) and **after each step in Execute**, the orchestrator asks the user via the structured question mechanism using the `stage_done_prompt` key from `locales/<lang>.md`, with placeholders `{stage}` and `{step_id}`.

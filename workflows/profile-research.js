@@ -21,6 +21,10 @@ const AGENT_OF = {
   Done: 'swift-architect',
 }
 
+// No implementing stage and no diff of its own: Research.md is already the account of what was
+// done, so a walkthrough would be a copy of it.
+const WALKTHROUGH_AGENT = null
+
 // ── prelude ──────────────────────────────────────────────────────────────────
 // Byte-identical in every profile script; scripts/lint-workflows.sh enforces that. A workflow
 // script cannot import, so this block is copied rather than shared, and the lint is what keeps
@@ -242,6 +246,33 @@ The phase is not done until every checkbox is ticked AND it is committed. If you
     }
   }
   return `${phases.length} phase(s) committed`
+}
+
+// Walkthrough.md is the human-facing account of what landed. Written at the end of the implementing
+// stage so it is readable before anything is validated or reviewed; refreshed later only when new
+// commits moved past the range its [COVERS] line records. Documentation — a failure here is noted
+// and never stops the run.
+const writeWalkthrough = async (stage, extra) => {
+  if (!WALKTHROUGH_AGENT || A.walkthrough === 'off' || A.walkthrough === false) return
+  const w = await agent(
+    brief(
+      stage,
+      `Write or refresh ${DIR}/Walkthrough.md by applying the swift-toolkit:task-walkthrough skill, which owns the section list, the per-section length budgets and the refresh rules. Read it first.
+
+Derive the account from git — the task's own commits, git log over the range and git show for what each one carries — reconciled against ${DIR}/Plan.md. The plan is intent, the commits are fact, and the divergences between them, each labelled with its trigger, are what this artifact exists for. The second line is required to be exactly:
+
+[COVERS] = <first-sha>..<last-sha>
+
+If the file already exists and that range already ends at the task's last commit, change nothing and say so.${extra ? `
+
+${extra}` : ''}
+
+Change no production code and no tests.`,
+    ),
+    { label: 'walkthrough', phase: stage, agentType: WALKTHROUGH_AGENT, schema: ARTIFACT },
+  )
+  if (w && w.artifact_path) log(`Walkthrough.md: ${w.summary || 'written'}`)
+  else result.notes.push('The walkthrough agent returned nothing, so Walkthrough.md may be missing or stale.')
 }
 // ── end prelude ──────────────────────────────────────────────────────────────
 

@@ -82,11 +82,15 @@ A stage that names an agent is executed by that agent. Dispatch it per `conventi
 
   If `start_phase=<phase_id>` was passed in args — `swift-toolkit:swift-tester` receives that phase as the start point in the Task-tool prompt. Already-completed phases (status `✅` in `Plan.md`) are skipped, not redone. The progress table is updated only for new / changed phases.
 
+  When the stage's phases are done, apply `swift-toolkit:task-walkthrough` and write `Walkthrough.md` — the human-facing account of what actually landed, readable before anything has been validated or reviewed. Governed by `[WALKTHROUGH]` in `Task.md`, else `## Reporting` → `walkthrough` in `CLAUDE-swift-toolkit.md`, else `on`. Written by `swift-toolkit:swift-tester`.
+
 - **Validation** — `swift-toolkit:swift-validator`. Artifact: `Validation.md`, **first line is required** to be `[VALIDATION_STATUS] = PASSED | FAILED | FLAKY` (the shared contract between `swift-validator`, every `workflow-*`, and the orchestrator; analogous to `[REVIEW_STATUS]`). For the TEST profile, the validator runs XcodeBuildMCP `test_sim` mandatorily (every newly added test must pass on first run / green); on a first-run failure the validator re-runs the failing test up to 3 times and, if results flap, returns `[VALIDATION_STATUS] = FLAKY` with the test name, fail rate, and a hypothesized cause recorded in `Validation.md`. mobile MCP is optional — only for UI tests requiring visual verification, and `mobile_mcp` resolving to `off` (`Task.md [MOBILE_MCP]` first, then `CLAUDE-swift-toolkit.md ## Validation`) removes even that option. Detailed behavior (flaky-detection procedure, return-digest format) lives in `agents/swift-validator.md`.
 
 - **Review** — `swift-toolkit:swift-reviewer` (if `need_review=true` in args). **Special case for the TEST profile:** the review evaluates the quality of the **tests**, not production code — edge-case coverage, meaningful assertions (no "assert true == true"), absence of mocks for logic that should be tested directly, isolation of tests from each other, readability and maintainability. Artifact: `Review.md`, **first line is required** to be `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (this field is the shared contract between workflow-* and the orchestrator; it is also used by `swift-toolkit:workflow-review` for auto-move into DONE/).
 
 - **Done** — final report `Done.md`: what is now covered (list of components and scenarios), what coverage was achieved (if measured), the list of frameworks used, validation status (are all added tests green, any flaky), and objections (if the user insisted on a contested decision — e.g. declining to test a critical path).
+
+  Refresh `Walkthrough.md` here when the Write stage did not run in this invocation — an entry at Review or Done means commits landed after it was written. `task-walkthrough` owns the refresh rules; its `[COVERS]` line decides whether there is anything to do.
 
 ## 3. Manual mode
 

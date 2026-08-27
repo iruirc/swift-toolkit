@@ -18,7 +18,7 @@ You are called by the swift-toolkit orchestrator in one of two scenarios:
 - **Executing stage** of FEATURE/BUG/REFACTOR profiles — generating tests alongside production code (`swift-toolkit:swift-developer` handles code, you handle tests)
 - **Write + Validation stages** of the TEST profile — when writing tests IS the task
 
-Your output must be appended/written to the task-stage file specified by the orchestrator (typically `Research.md`, `Plan.md`, `Done.md`, or `Review.md` inside `Tasks/<STATUS>/<NNN-slug>/`).
+Your output must be appended/written to the task-stage file specified by the orchestrator (typically `Research.md`, `Plan.md`, `Done.md`, `Walkthrough.md`, or `Review.md` inside `Tasks/<STATUS>/<NNN-slug>/`).
 
 Produce output in the sections described in the "Output Format" section below — the orchestrator will copy your response into the correct stage file. Keep prose concise; use headings, tables, and bullet lists so the output can be merged or updated across stages.
 

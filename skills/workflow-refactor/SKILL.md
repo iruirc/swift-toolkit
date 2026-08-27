@@ -85,6 +85,8 @@ A stage that names an agent is executed by that agent. Dispatch it per `conventi
 
   If `start_phase=<phase_id>` was passed in args — `swift-toolkit:swift-refactorer` receives that phase as the start point in the Task-tool prompt. Already-completed phases (status `✅` in `Plan.md`) are skipped, not redone. The progress table is updated only for new / changed phases.
 
+  When the stage's phases are done, apply `swift-toolkit:task-walkthrough` and write `Walkthrough.md` — the human-facing account of what actually landed, readable before anything has been validated or reviewed. Governed by `[WALKTHROUGH]` in `Task.md`, else `## Reporting` → `walkthrough` in `CLAUDE-swift-toolkit.md`, else `on`. Written by `swift-toolkit:swift-refactorer`.
+
 - **Validation** — `swift-toolkit:swift-validator`. Artifact: `Validation.md`, **first line is required** to be `[VALIDATION_STATUS] = PASSED | FAILED | FLAKY` (the shared contract between `swift-validator`, every `workflow-*`, and the orchestrator; analogous to `[REVIEW_STATUS]`). For the REFACTOR profile, the validator runs XcodeBuildMCP `test_sim` mandatorily as a regression check (every pre-existing test must pass **without modification** — touching a test during a refactor is itself a finding), `build_sim` is optional, and mobile MCP runs only when the refactor touched a UI layer (SwiftUI/UIKit views, screens, or navigation) — purely domain/infrastructure refactors skip mobile MCP. Detailed behavior lives in `agents/swift-validator.md`. `mobile_mcp` resolving to `off` (`Task.md [MOBILE_MCP]` first, then `CLAUDE-swift-toolkit.md ## Validation`) suppresses the UI smoke entirely — the affected screens move to a separate `ManualChecks.md` (titles echoed in `manual_checks`) for a human to walk. `manual_checks: always` in the same two sources produces that artifact even on a run mobile MCP drove itself.
 
   The validator MUST apply the `mobile-ops-checklist` skill in **regression mode**: only items that were Applicable for the affected area pre-refactor are re-checked. Output: `OpsChecklist.md` in the task folder. A previously-Applicable item that no longer has verifiable evidence after the refactor is itself a finding — a violation of the refactor invariant (the refactor changed observable behavior). Pure additive items (new ops concerns introduced by the refactor) are flagged but do not block PASSED.
@@ -92,6 +94,8 @@ A stage that names an agent is executed by that agent. Dispatch it per `conventi
 - **Review** — `swift-toolkit:swift-reviewer` (if `need_review=true` in args). Artifact: `Review.md`, **first line is required** to be `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (this field is the shared contract between workflow-* and the orchestrator; it is also used by `swift-toolkit:workflow-review` for auto-move into DONE/).
 
 - **Done** — final report `Done.md`: what was refactored, why it is now better (readability, separation of concerns, reduced coupling), measurable metrics where available (file size, cyclomatic complexity of key functions, dependency count), validation status (build/test result), and objections (if the user insisted on a contested decision).
+
+  Refresh `Walkthrough.md` here when the Refactor stage did not run in this invocation — an entry at Review or Done means commits landed after it was written. `task-walkthrough` owns the refresh rules; its `[COVERS]` line decides whether there is anything to do.
 
 ## 3. Manual mode
 

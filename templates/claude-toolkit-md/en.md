@@ -77,6 +77,17 @@ ships a manual pass even when mobile MCP drove the app and covered the happy pat
 A single task overrides both with `[MOBILE_MCP] = [auto|off]` and `[MANUAL_CHECKS] = [auto|always]`
 in its `Task.md`.)
 
+## Reporting
+
+walkthrough: on
+
+(whether a task writes `Walkthrough.md` — the human-facing account of what actually landed:
+summary, plan-vs-outcome divergences with their trigger, a commit-by-commit log, diagrams where
+they help, follow-ups. Written at the end of the implementing stage, so it is readable before
+Validation and Review, and refreshed afterwards if later commits moved past it.
+`on` — write it; `off` — never. Not applicable to RESEARCH and REVIEW, whose deliverable is the
+artifact itself. A single task overrides with `[WALKTHROUGH] = [on|off]` in its `Task.md`.)
+
 ## Modules
 
 (optional: list of modules with per-module stack, e.g.: "- Core: /Packages/Core — Combine, manual DI")

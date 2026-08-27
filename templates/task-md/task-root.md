@@ -9,6 +9,7 @@
 # [WORKFLOW_MODE] = [auto]    # manual | auto
 # [MOBILE_MCP] = [off]        # auto | off
 # [MANUAL_CHECKS] = [always]  # auto | always
+# [WALKTHROUGH] = [off]       # on | off
 
 ## 1. [Files]
 
