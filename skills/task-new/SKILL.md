@@ -85,7 +85,8 @@ For reference, the templates contain these placeholders:
    - Default → `FEATURE`
 5. **Decide `{{NEED_TEST}}` / `{{NEED_REVIEW}}`** — default `true` / `true`. Flip to `false` when:
    - Visual/cosmetic ("change color", "move button", "update icon", "update localization string") → `NEED_TEST = false`.
-   - `TASK_TYPE` is `REVIEW`, `TEST`, or `EPIC` → both flags become `false` (not applicable).
+   - `TASK_TYPE` is `REVIEW` or `EPIC` → both flags become `false` (not applicable).
+   - `TASK_TYPE` is `TEST` → `NEED_TEST = false` (the tests ARE the artifact); `NEED_REVIEW = true` by default — `workflow-test` Review judges the quality of the written tests.
    - `TASK_TYPE` is `RESEARCH` → `NEED_TEST = false` (no code → no tests); `NEED_REVIEW = true` by default (research output benefits from review).
    - The user explicitly asked for the work without tests or without review.
 6. **Locate the template** (read the first existing path):
