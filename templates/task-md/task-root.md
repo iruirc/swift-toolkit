@@ -7,6 +7,7 @@
 
 # Optional (only if overriding project default from CLAUDE-swift-toolkit.md):
 # [WORKFLOW_MODE] = [auto]    # manual | auto
+# [MOBILE_MCP] = [off]        # auto | off
 
 ## 1. [Files]
 

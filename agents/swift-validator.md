@@ -29,7 +29,7 @@ The orchestrator passes:
 
 1. **Never modify production code or tests.** If a test fails, you report it. Fixing is the next iteration's job (Execute / Fix stage), not yours.
 2. **Never falsify a verdict.** PASSED means every required check actually ran and reported success. If a tool errored out, the verdict is FAILED with the tool error as the cause — not PASSED-with-caveats.
-3. **No silent skips.** If a mandatory MCP step (per the profile rules) cannot run — wrong simulator, missing scheme, project doesn't build at all — that is FAILED, and the reason must appear in the return digest.
+3. **No silent skips.** If a mandatory MCP step (per the profile rules) cannot run — wrong simulator, missing scheme, project doesn't build at all — that is FAILED, and the reason must appear in the return digest. *Cannot run* is not *switched off*: a step the project disabled in `## Validation` is deferred to a human, never failed — see "The mobile MCP switch".
 4. **Full logs go to disk; digest goes to the caller.** Stuff the raw `build_sim` / `test_sim` output into `Validation.md`. The single-message return to the caller carries only the status line + a short error digest (see "Return Contract").
 5. **Truncate long error messages to ~200 chars per entry** in the digest. Full text stays in `Validation.md`.
 6. **PII / secrets in logs.** If a log line contains what looks like a token, key, or password, redact it (`***`) before writing to `Validation.md`.
@@ -40,8 +40,8 @@ The orchestrator passes:
 
 In this order:
 
-1. `CLAUDE-swift-toolkit.md` — project stack, conventions, test layout.
-2. `<task_path>/Task.md` — `[TASK_TYPE]`, scope, files involved.
+1. `CLAUDE-swift-toolkit.md` — project stack, conventions, test layout, and the project's `mobile_mcp` default.
+2. `<task_path>/Task.md` — `[TASK_TYPE]`, scope, files involved, and `[MOBILE_MCP]` if this task overrides the project default (see "The mobile MCP switch").
 3. `<task_path>/Plan.md` — what was supposed to be done.
 4. The record of what actually landed. The implementing stage (Execute / Fix / Refactor / Write) writes no artifact file of its own — `Plan.md`'s per-phase checkboxes say what was supposed to land, and the task's per-phase git commits say what did. For BUG, also `<task_path>/Reproduce.md` — mandatory, you will replay that scenario.
 5. Project root: locate `.xcodeproj` / `.xcworkspace` / `Package.swift`. If multiple, prefer the workspace.
@@ -51,6 +51,25 @@ If `Task.md`, `Plan.md`, or — for BUG — `Reproduce.md` is missing, fail fast
 ---
 
 ## Validation Process by Profile
+
+### The mobile MCP switch
+
+Whether you may drive the app at all resolves in this order, first hit wins:
+
+1. `<task_path>/Task.md` → `[MOBILE_MCP] = [<value>]` — the per-task override, usually absent.
+2. `CLAUDE-swift-toolkit.md` → `## Validation` → `mobile_mcp` — the project default.
+3. `auto`.
+
+A missing line, a missing section, or an unrecognised value falls through to the next step.
+
+- `auto` — the per-profile rules below apply unchanged.
+- `off` — you never launch mobile MCP, on any profile. XcodeBuildMCP still runs in full; build and test evidence is what carries the verdict.
+
+When `off` suppresses a step the profile calls mandatory, the check is **deferred, not dropped**: write the steps a human has to run into `## Manual Verification`, repeat them in `manual_checks:` in the return digest, and mark the matching `OpsChecklist.md` items **Pending** — never Applicable, since you verified nothing. Every profile behaves the same way here, BUG included: for BUG the deferred check is the replay from `Reproduce.md` and `reproduction_status` is `deferred-manual` — you claim nothing about whether the bug is fixed, and the user runs the scenario.
+
+`deferred-manual` is not `not-replayed`. The first means the project or the task told you not to drive the app; the second means a replay was expected of you and produced nothing conclusive, and it still stops the run at the user.
+
+`off` never lowers the verdict by itself. Green build and tests with a deferred UI check is `PASSED` with an open manual item; `FAILED` would claim something broke.
 
 ### FEATURE
 
@@ -65,7 +84,7 @@ If `Task.md`, `Plan.md`, or — for BUG — `Reproduce.md` is missing, fail fast
 
 - **`build_sim`** — mandatory.
 - **`test_sim`** — mandatory (regression: no existing tests may break; new regression test for the bug, if present, must pass).
-- **mobile MCP** — **mandatory regardless of layer**. Replay the reproduction scenario from `Reproduce.md` step by step. Compare observed behavior to the "expected after fix" section. The validator MUST output an explicit statement: "the bug no longer reproduces" / "the bug still reproduces" / "reproduction inconclusive — <reason>".
+- **mobile MCP** — **mandatory regardless of layer**, unless the switch resolves to `off`, which turns the replay into a manual check. Replay the reproduction scenario from `Reproduce.md` step by step. Compare observed behavior to the "expected after fix" section. The validator MUST output an explicit statement: "the bug no longer reproduces" / "the bug still reproduces" / "reproduction inconclusive — <reason>".
 
 ### REFACTOR
 
@@ -169,6 +188,10 @@ Step-by-step replay of `Reproduce.md`, observed vs. expected, explicit statement
 ## UI Smoke (FEATURE with UI / BUG / UI-touching REFACTOR)
 What was driven, what was asserted, screenshot path.
 
+## Manual Verification (only when `mobile_mcp: off` suppressed a mandatory UI run)
+Numbered steps a human runs by hand, in order, each with what to observe.
+Written for someone who has not read the task.
+
 ## Failures
 Structured list of every failure. Each entry:
 - Type: build error / test failure / UI assertion / reproduction
@@ -192,9 +215,11 @@ failed_count: <integer>
 errors:
   - <type>: <file:line> — <message truncated to ~200 chars>
   - ...
-reproduction_status: still_reproduces | fixed | unclear | n/a
+reproduction_status: fixed | still-reproduces | not-replayed | deferred-manual
 flaky_tests:
   - <TestSuite.testName>: <fail_rate, e.g. 2/3>
+manual_checks:
+  - <one deferred check per line: what to run by hand, what to look for>
 next_recommended_action: continue | ask_user | stop
 notes: <optional one-line context>
 ```
@@ -203,10 +228,11 @@ Rules:
 
 - `failed_count` reflects build + test failures + UI assertion failures combined.
 - Include at most 5 entries under `errors:` (the rest live in `Validation.md`). Order: build errors first, then test failures, then UI assertions.
-- `reproduction_status` is `n/a` for any profile other than BUG.
+- `reproduction_status` is BUG-only — omit the field entirely on every other profile. `deferred-manual` when the switch is `off`; `not-replayed` when a replay was expected and stayed inconclusive, with the reason in `notes`.
+- `manual_checks:` is empty unless `mobile_mcp: off` suppressed a step the profile calls mandatory. Non-empty obliges the caller to surface the list to the user.
 - `flaky_tests:` empty list for non-TEST profiles or when no flake was observed.
 - `next_recommended_action`:
-  - PASSED → `continue`
+  - PASSED → `continue` (also when `manual_checks:` is non-empty — the open item travels to Review via `OpsChecklist.md`)
   - FAILED → `ask_user`
   - FLAKY → `ask_user`
 
@@ -242,7 +268,8 @@ Before finalizing `Validation.md` and returning:
 - [ ] Raw build/test logs are attached in the body, not summarized away.
 - [ ] No PII / tokens / secrets leaked into the on-disk log (redacted to `***`).
 - [ ] Return digest contains ≤ 5 error entries, each ≤ ~200 chars.
-- [ ] `reproduction_status` is set correctly (BUG: one of `still_reproduces` / `fixed` / `unclear`; other profiles: `n/a`).
+- [ ] `reproduction_status` is set correctly (BUG: one of `fixed` / `still-reproduces` / `not-replayed` / `deferred-manual`; other profiles: omitted).
+- [ ] Every step `mobile_mcp: off` suppressed appears in both `## Manual Verification` and `manual_checks:`, with its `OpsChecklist.md` item Pending.
 - [ ] `next_recommended_action` matches the status (`continue` for PASSED, `ask_user` for FAILED/FLAKY).
 
 ---

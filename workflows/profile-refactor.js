@@ -139,9 +139,10 @@ const VALIDATION = {
   required: ['validation_status', 'artifact_path', 'summary'],
   properties: {
     validation_status: { type: 'string', enum: ['PASSED', 'FAILED', 'FLAKY'] },
-    reproduction_status: { type: 'string', enum: ['fixed', 'still-reproduces', 'not-replayed'] },
+    reproduction_status: { type: 'string', enum: ['fixed', 'still-reproduces', 'not-replayed', 'deferred-manual'] },
     artifact_path: { type: 'string' },
     ops_checklist_path: { type: 'string' },
+    manual_checks: { type: 'array', items: { type: 'string' }, description: 'checks mobile_mcp: off deferred to a human' },
     summary: { type: 'string' },
   },
 }
@@ -310,7 +311,7 @@ if (runs('Validation')) {
 
 [VALIDATION_STATUS] = PASSED | FAILED | FLAKY
 
-For REFACTOR the XcodeBuildMCP test_sim run is mandatory as a regression check: every pre-existing test must pass WITHOUT modification, and a test touched during the refactor is itself a finding. build_sim is optional. mobile MCP runs only when the refactor touched a UI layer — SwiftUI or UIKit views, screens, or navigation — and a purely domain or infrastructure refactor skips it; say which case this is.
+For REFACTOR the XcodeBuildMCP test_sim run is mandatory as a regression check: every pre-existing test must pass WITHOUT modification, and a test touched during the refactor is itself a finding. build_sim is optional. mobile MCP runs only when the refactor touched a UI layer — SwiftUI or UIKit views, screens, or navigation — and a purely domain or infrastructure refactor skips it; say which case this is. If mobile_mcp resolves to off — Task.md [MOBILE_MCP] first, then CLAUDE-swift-toolkit.md ## Validation — run none: the affected screens go into Validation.md ## Manual Verification and manual_checks for a human to walk.
 
 Apply the mobile-ops-checklist skill in regression mode: re-check only the items that were Applicable for the affected area before the refactor, and write ${DIR}/OpsChecklist.md. An item that was Applicable before and now has no verifiable evidence is a finding — it means external behaviour moved, which this profile forbids.
 
@@ -320,6 +321,10 @@ Change no production code and no tests. Return the same status you wrote on the 
   )
   if (!validation) return finish('stop', { status: 'error', reason: 'the Validation agent returned nothing' })
   record('Validation', validation)
+
+  if (validation.manual_checks && validation.manual_checks.length) {
+    result.notes.push(`mobile MCP is off for this project — verify by hand: ${validation.manual_checks.join('; ')}`)
+  }
 
   if (validation.validation_status !== 'PASSED') {
     result.notes.push(`Validation returned ${validation.validation_status}; Review and Done were not run.`)

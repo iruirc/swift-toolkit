@@ -58,6 +58,19 @@ command for a live agent panel you can run in a second terminal pane.
 This setting governs reporting only — the between-stage confirmations of `manual` mode are
 unaffected by it.)
 
+## Validation
+
+mobile_mcp: auto
+
+(whether the Validation stage may drive the running app through mobile MCP: `auto` — the profile
+decides (FEATURE: when the feature has a UI layer; BUG: always, to replay the reproduction;
+REFACTOR: when UI code was touched; TEST: only for UI tests); `off` — never, because this project
+has no mobile MCP configured or no simulator to drive.
+`off` does not delete the check: the validator writes the steps a human has to run into
+`Validation.md ## Manual Verification`, returns them in `manual_checks`, and marks the matching
+`OpsChecklist.md` items Pending. For BUG the deferred check is the reproduction replay itself.
+A single task overrides this with `[MOBILE_MCP] = [auto|off]` in its `Task.md`.)
+
 ## Modules
 
 (optional: list of modules with per-module stack, e.g.: "- Core: /Packages/Core — Combine, manual DI")

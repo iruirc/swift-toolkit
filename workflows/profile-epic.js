@@ -135,9 +135,10 @@ const VALIDATION = {
   required: ['validation_status', 'artifact_path', 'summary'],
   properties: {
     validation_status: { type: 'string', enum: ['PASSED', 'FAILED', 'FLAKY'] },
-    reproduction_status: { type: 'string', enum: ['fixed', 'still-reproduces', 'not-replayed'] },
+    reproduction_status: { type: 'string', enum: ['fixed', 'still-reproduces', 'not-replayed', 'deferred-manual'] },
     artifact_path: { type: 'string' },
     ops_checklist_path: { type: 'string' },
+    manual_checks: { type: 'array', items: { type: 'string' }, description: 'checks mobile_mcp: off deferred to a human' },
     summary: { type: 'string' },
   },
 }
