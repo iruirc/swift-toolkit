@@ -11,7 +11,7 @@ description: |
 
 Bootstraps swift-toolkit in an **already existing** Swift project. Two-file layout:
 
-- `CLAUDE-swift-toolkit.md` — toolkit-owned configuration (Language, Persona, Stack, Mode, Modules, EstimationDeltas, DeliveryMode, AILeverage, Paths, Orchestration). Created and updated by this skill.
+- `CLAUDE-swift-toolkit.md` — toolkit-owned configuration; its sections are the ones `templates/claude-toolkit-md/en.md` carries. Created and updated by this skill.
 - `CLAUDE.md` — user-owned project instructions. Touched once to insert `@./CLAUDE-swift-toolkit.md` line; otherwise unchanged.
 
 The skill does NOT create an Xcode project, does NOT modify Swift code, and does NOT start any workflow. It is a one-time setup of toolkit infrastructure inside the project.
@@ -155,11 +155,9 @@ Rules:
 
 ### Section classification
 
-Canonical toolkit headings (case-insensitive **exact** match, not prefix):
+Canonical toolkit headings = the `## ` headings of `templates/claude-toolkit-md/en.md`, read from that file in the order it has them. Match case-insensitively and **exactly**, not by prefix.
 
-```
-Language, Persona, Stack, Mode, Modules, EstimationDeltas, DeliveryMode, AILeverage, Paths, Orchestration
-```
+Read the list rather than restating it here: a second copy falls behind the day the toolkit adds a section, and a section missing from the copy is silently never migrated into an existing project.
 
 - `toolkit_sections` = sections whose heading matches the canonical list.
 - `user_sections` = everything else, in original order.
