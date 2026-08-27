@@ -208,7 +208,7 @@ Structure:
 - **Marking everything Applicable to be safe.** Forces noise. Each Applicable needs a verification step — if you can't write evidence, downgrade to Pending.
 - **Marking N/A without reason.** Future reviewer can't tell if N/A is correct or a cop-out. Always write the reason.
 - **Filing OpsChecklist.md and moving on.** The checklist is a Review-stage input — the reviewer agent reads it and cross-checks Applicable items against the actual diff.
-- **Treating the checklist as a release-gate-only artifact.** Best practice: fill it during Plan (Pending everywhere), update during Execute as items resolve, finalize at Validation. Don't leave the whole list for the end.
+- **Seeding this checklist at Plan and carrying it through Execute.** Design-time coverage of the same concerns is `feature-requirements`' job — its Secondary enumeration reaches `Research.md ## Requirements` and becomes work items in `Plan.md`. This artifact is the verification-time counterpart, written once at Validation; spreading it across stages gives those concerns a second source of truth that drifts from the first.
 - **Hiding pending items by deleting them.** Pending = blocker. Either resolve it, get explicit N/A approval, or push the release.
 
 ## What this skill does NOT do
