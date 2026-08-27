@@ -113,10 +113,12 @@ swift-init --no-prompt --platform=macos --ui-framework=swiftui --di=factory \
 
 ## Generated Artifacts
 
+Both Markdown config files are **rendered from the toolkit's templates**, located the way `swift-toolkit:swift-setup` step 3 describes and filled per its **Placeholder Replacements** table, with this agent's dialog answers standing in for q0–q7. Leave every other line as the template has it; if no lookup path resolves, stop and report it. Composing either file section by section drifts from the template the day the toolkit adds a section.
+
 For every mode:
 - Folder structure matching the chosen mode and architecture
-- `CLAUDE-swift-toolkit.md` with filled `## Stack`, `## Mode`, and `## DeliveryMode` sections (`manual` by default for both modes); include `## AILeverage` as an empty calibration placeholder; `## Modules` only for multi-target SPM packages (for apps the section stays empty — modules are added once the user attaches local packages, see **Multi-module projects**); `## Paths` only carries values if paths deviate from defaults
-- minimal user-owned `CLAUDE.md` with H1 placeholder + a single `@./CLAUDE-swift-toolkit.md` import line + a comment explaining the file's role
+- `CLAUDE-swift-toolkit.md` from `templates/claude-toolkit-md/en.md`. Filled from the pre-generation dialog: `## Stack`, `## Mode` and `## DeliveryMode` (`manual` by default for both modes), `## Modules` only for multi-target SPM packages (for apps the section stays empty — modules are added once the user attaches local packages, see **Multi-module projects**), `## Paths` only where paths deviate from defaults. `## AILeverage` stays the empty calibration placeholder.
+- minimal user-owned `CLAUDE.md` from `templates/claude-md-stub/<lang>.md` — an H1 placeholder, the single `@./CLAUDE-swift-toolkit.md` import line, and the comment explaining the file's role
 - `.swiftlint.yml` with sensible defaults
 - `README.md` with brief project description + how to build
 - `Tasks/` folder with subfolders `TODO/`, `ACTIVE/`, `DONE/` — **only when `--with-tasks` is passed**. Default is OFF: workspace-init relies on a single shared `Tasks/` repo at the workspace-parent; standalone users who want a project-local one must opt in.
