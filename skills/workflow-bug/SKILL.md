@@ -93,7 +93,7 @@ A stage that names an agent is executed by that agent. Dispatch it per `conventi
 
   The validator MUST apply the `mobile-ops-checklist` skill, scoped to the categories the bug touched (per `Reproduce.md`'s Secondary enumeration). Output: `OpsChecklist.md` in the task folder, marking only the touched categories — full-checklist coverage is not required for BUG. Goal: catch regressions in adjacent ops behaviors (e.g. a fix for a network bug must not break the offline / cancellation behavior).
 
-- **Review** — `swift-toolkit:swift-reviewer` (if `need_review=true` in args). Artifact: `Review.md`, **first line is required** to be `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (this field is the shared contract between workflow-* and the orchestrator; it is also used by `swift-toolkit:workflow-review` for auto-move into DONE/).
+- **Review** — `swift-toolkit:swift-reviewer` (if `need_review=true` in args). Artifact: `Review.md`, **first line is required** to be `[REVIEW_STATUS] = APPROVED | CHANGES_REQUESTED | DISCUSSION` (this field is the shared contract between workflow-* and the orchestrator; it is also used by `swift-toolkit:workflow-review` for auto-move into DONE/). On a redo after `CHANGES_REQUESTED`, the reviewer finds its own prior `Review.md` in the task folder and narrows scope to the commits landed since its `[REVIEWED_COMMIT]` line instead of re-reviewing the whole task from scratch — see `agents/swift-reviewer.md` → "1. Identify Scope".
 
 - **Done** — final report `Done.md`: what was fixed, which regression test was added, validation status (build/test result + outcome of the reproduction replay), and objections (if the user insisted on a contested decision).
 

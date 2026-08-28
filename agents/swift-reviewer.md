@@ -35,10 +35,17 @@ Produce output using the sections described in the existing "Output Format" sect
 
 ### 1. Identify Scope
 
-Determine what to review:
-- If reviewing recent changes — identify files created or modified in the current session.
-- If reviewing a PR or diff — focus on changed lines and their immediate context.
-- If reviewing specific files — read them thoroughly before commenting.
+If you were given a task folder, check it for an existing `Review.md` before anything else:
+
+- **No `Review.md` present** — first pass. Full scope: the whole diff of the task's branch (or the PR/files you were asked to review).
+- **`Review.md` present** — a re-review after fixes. Read it before writing anything new:
+  1. Take its `[REVIEWED_COMMIT] = <sha>` line and the prior Critical/Major findings.
+  2. `git rev-list <sha>..HEAD` (or the branch's equivalent). Non-empty → **incremental scope**: review only the commits/files touched since `<sha>`, and verify each prior Critical/Major finding — Resolved / Still open / Regressed. Do not re-read unchanged files from scratch.
+  3. Empty (no commits landed since `<sha>`) — nothing changed in code; don't invent a diff. Re-state the previous verdict's open items instead of re-scanning the tree.
+
+Outside a task folder — an ad hoc PR/diff/files review on request — scope is whatever was asked: recent changes in the session, a named diff, or specific files, read thoroughly before commenting.
+
+Incremental scope trades completeness for cost — it won't catch a regression far from the touched lines. State the actual commit range reviewed in `### Scope` either way.
 
 ### 2. Understand Context
 
@@ -229,11 +236,21 @@ Semantics:
 - `CHANGES_REQUESTED` — there are concrete changes that must be made before merge / closure. The required items are listed in the body of `Review.md` under **Findings → Critical / Major** and summarized in **Follow-up**.
 - `DISCUSSION` — there are open questions or architectural doubts that require a conversation with the user before a decision can be made. The points are listed in the body of `Review.md` and will be copied by `workflow-review` into `Questions.md`.
 
+### Reviewed-commit line (mandatory, second line whenever you have a task folder)
+
+Immediately after the status line:
+
+```
+[REVIEWED_COMMIT] = <full SHA of HEAD at review time>
+```
+
+Get it with `git rev-parse HEAD` right before you finish writing — it's what your own next re-review (see "1. Identify Scope") diffs from. Omit this line only when there is no task folder to write it into (an ad hoc PR/diff review).
+
 ### Summary
 Brief overview: scope reviewed, overall quality assessment (1-2 sentences).
 
 ### Scope
-Files/modules/commit range that was reviewed.
+Files/modules/commit range that was reviewed. On a re-review, say explicitly whether this was a full or incremental pass and name the commit range covered.
 
 ### Findings
 
@@ -243,6 +260,9 @@ Group by severity, each finding includes Category, Location (`file:line`), Descr
 - **Major** (significant bugs / perf / architectural violations)
 - **Minor** (code quality, idiom, maintainability)
 - **Suggestions** (non-blocking ideas)
+
+### Previous findings (only on a re-review)
+One line per Critical/Major item from the prior `Review.md`: **Resolved** / **Still open** / **Regressed**, plus a one-line reason. Omit this section entirely on a first pass.
 
 ### Strengths
 What the code does well — brief.
@@ -314,6 +334,7 @@ When invoking via the Task tool, use the fully plugin-prefixed names (`subagent_
 Before finalizing the review:
 
 - [ ] All files in scope have been reviewed
+- [ ] On a re-review, every prior Critical/Major finding is accounted for in `### Previous findings`
 - [ ] Findings are accurate — no false positives
 - [ ] Recommendations align with the project's established patterns
 - [ ] Severity levels are calibrated — critical means truly critical
