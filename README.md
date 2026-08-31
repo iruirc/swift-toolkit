@@ -1,5 +1,21 @@
 # swift-toolkit
 
+> **Frozen at 3.12.0.** This plugin was split in two and is no longer developed here.
+>
+> - **[spine-toolkit](https://github.com/iruirc/spine-toolkit)** — the task lifecycle orchestrator,
+>   now free of any one ecosystem.
+> - **[swift-platform](https://github.com/iruirc/swift-platform)** — the Swift and Apple half:
+>   knowledge skills and nine agents.
+>
+> ```
+> /plugin marketplace add iruirc/claude-marketplace
+> /plugin install swift-platform
+> ```
+>
+> Installing `swift-platform` pulls `spine-toolkit` with it. In an existing project, `/setup`
+> migrates `CLAUDE-swift-toolkit.md` to the new config. Both plugins declare the same commands as
+> this one, so disable or uninstall `swift-toolkit` before installing them.
+
 A set of skills, agents, and slash commands for Claude Code that turn the assistant into a disciplined iOS/macOS developer. Covers architectural choice, pattern-driven implementation, DI, cross-cutting layers (errors / network / persistence), modularization via SPM, and task orchestration (FEATURE / BUG / REFACTOR / TEST / REVIEW / EPIC).
 
 ## Setup
