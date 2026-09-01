@@ -7,18 +7,25 @@
 > - **[swift-platform](https://github.com/iruirc/swift-platform)** — the Swift and Apple half:
 >   knowledge skills and nine agents.
 >
+> **Disable or uninstall `swift-toolkit` before installing them.** The overlap is not only the
+> commands: eleven of this plugin's fourteen — every `/task-*`, plus `/swift-init` and the
+> `/workspace-*` set — are declared by the successors too, and so are 17 skill names shared with
+> `spine-toolkit` and 27 with `swift-platform`. All nine agent names under `agents/` are identical
+> to `swift-platform`'s. Both plugins' `SessionStart` hooks also fire together in a migrated
+> project — each triggers on `Tasks/ACTIVE/`, which migration leaves untouched — and they inject
+> contradictory dispatch contracts, one saying a stage bullet names an agent and the other saying
+> it names a role. The three commands that do not collide were renamed rather than duplicated:
+> `/swift-agents` → `/agent-status`, `/swift-lang` → `/lang`, `/swift-setup` → `/setup`.
+>
 > ```
 > /plugin marketplace add iruirc/claude-marketplace
 > /plugin install swift-platform
 > ```
 >
 > Installing `swift-platform` pulls `spine-toolkit` with it. In an existing project, `/setup`
-> migrates `CLAUDE-swift-toolkit.md` to the new config. Eleven of this plugin's fourteen commands —
-> every `/task-*`, plus `/swift-init` and the `/workspace-*` set — are declared by the successors
-> too, so disable or uninstall `swift-toolkit` before installing them. The other three were renamed
-> in the split and do not collide.
+> migrates `CLAUDE-swift-toolkit.md` to the new config.
 
-A set of skills, agents, and slash commands for Claude Code that turn the assistant into a disciplined iOS/macOS developer. Covers architectural choice, pattern-driven implementation, DI, cross-cutting layers (errors / network / persistence), modularization via SPM, and task orchestration (FEATURE / BUG / REFACTOR / TEST / REVIEW / EPIC).
+A set of skills, agents, and slash commands for Claude Code that turn the assistant into a disciplined iOS/macOS developer. Covers architectural choice, pattern-driven implementation, DI, cross-cutting layers (errors / network / persistence), modularization via SPM, and task orchestration (FEATURE / BUG / REFACTOR / TEST / REVIEW / RESEARCH / EPIC).
 
 ## Setup
 
@@ -155,7 +162,7 @@ The skills live flat under `skills/`, but logically split into **seven groups**.
 
 ## Agents
 
-Live under `agents/`. Each is a specialized role with its own set of relevant skills in the Skills Reference:
+Live under `agents/`. Each is a specialized role drawing on the skill groups above (*Skills as a system*):
 
 | Agent | Role |
 |---|---|
@@ -167,6 +174,7 @@ Live under `agents/`. Each is a specialized role with its own set of relevant sk
 | `swift-tester` | Unit / integration test generation |
 | `swift-diagnostics` | Bug hunting, reproduction, instrumentation |
 | `swift-security` | OWASP Mobile Top-10 audit |
+| `swift-validator` | Build, full test run, validation verdict |
 
 ### Stage dispatch
 
